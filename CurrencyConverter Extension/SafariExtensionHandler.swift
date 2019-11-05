@@ -62,4 +62,5 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
             }
         }
     }
+    
 }

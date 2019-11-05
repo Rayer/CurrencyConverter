@@ -7,8 +7,8 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="SafariExtensionViewController" customModule="CurrencyConverter_Extension" customModuleProvider="target">
             <connections>
-                <outlet property="convertCB" destination="VyI-dB-xQa" id="T3x-h9-iO7"/>
-                <outlet property="convertToCB" destination="QYY-T2-XaQ" id="AVt-3O-CnL"/>
+                <outlet property="convertListBtn" destination="O6F-e9-S0S" id="WaW-Xm-HQp"/>
+                <outlet property="convertToListBtn" destination="oft-bR-MYa" id="uf9-pk-FaF"/>
                 <outlet property="view" destination="c22-O7-iKe" id="vwT-Xx-Aiz"/>
             </connections>
         </customObject>
@@ -18,34 +18,78 @@
             <rect key="frame" x="0.0" y="0.0" width="330" height="119"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4Iy-aV-wGF">
-                    <rect key="frame" x="103" y="82" width="124" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="CurrencyConverter Extension" id="2Ec-kd-q2K">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <comboBox identifier="convertFrom" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VyI-dB-xQa">
-                    <rect key="frame" x="21" y="46" width="99" height="25"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" usesDataSource="YES" numberOfVisibleItems="5" id="hLf-5F-kbO">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </comboBoxCell>
-                </comboBox>
-                <comboBox identifier="convertTo" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QYY-T2-XaQ">
-                    <rect key="frame" x="20" y="16" width="100" height="19"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" usesDataSource="YES" numberOfVisibleItems="5" id="UtT-Bo-PEU">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </comboBoxCell>
-                </comboBox>
+                <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="10" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kRc-jp-qL9">
+                    <rect key="frame" x="61" y="98" width="208" height="16"/>
+                    <subviews>
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Eb-xW-tdx">
+                            <rect key="frame" x="-2" y="0.0" width="53" height="16"/>
+                            <textFieldCell key="cell" lineBreakMode="clipping" title="Convert" id="1aJ-XB-fks">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <popUpButton identifier="convertTo" translatesAutoresizingMaskIntoConstraints="NO" id="O6F-e9-S0S">
+                            <rect key="frame" x="57" y="-2" width="61" height="20"/>
+                            <popUpButtonCell key="cell" type="check" title="Item 1" bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="7iB-GU-NXP" id="05m-Qp-gkt">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                                <menu key="menu" id="7en-Qr-0vp">
+                                    <items>
+                                        <menuItem title="Item 1" state="on" id="7iB-GU-NXP"/>
+                                        <menuItem title="Item 2" id="Q7n-84-e5j"/>
+                                        <menuItem title="Item 3" id="8f8-fg-5BL"/>
+                                    </items>
+                                </menu>
+                            </popUpButtonCell>
+                            <connections>
+                                <action selector="OnConvertFromClicked:" target="-2" id="jzb-AV-axE"/>
+                            </connections>
+                        </popUpButton>
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="oKH-gt-BLV">
+                            <rect key="frame" x="124" y="0.0" width="19" height="16"/>
+                            <textFieldCell key="cell" lineBreakMode="clipping" title="To" id="V75-Um-qfu">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <popUpButton translatesAutoresizingMaskIntoConstraints="NO" id="oft-bR-MYa">
+                            <rect key="frame" x="149" y="-2" width="61" height="20"/>
+                            <popUpButtonCell key="cell" type="check" title="Item 1" bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="sqG-R2-WNo" id="wfy-Rk-GRs">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                                <menu key="menu" id="TnW-gn-x6r">
+                                    <items>
+                                        <menuItem title="Item 1" state="on" id="sqG-R2-WNo"/>
+                                        <menuItem title="Item 2" id="eVQ-jv-yJd"/>
+                                        <menuItem title="Item 3" id="59d-eI-V5H"/>
+                                    </items>
+                                </menu>
+                            </popUpButtonCell>
+                            <connections>
+                                <action selector="OnConvertToClicked:" target="-2" id="MIA-T0-vBY"/>
+                            </connections>
+                        </popUpButton>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
             </subviews>
+            <constraints>
+                <constraint firstItem="kRc-jp-qL9" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="5" id="Jki-Pb-SHS"/>
+                <constraint firstItem="kRc-jp-qL9" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="MLQ-IU-3vM"/>
+            </constraints>
             <point key="canvasLocation" x="140" y="154.5"/>
         </customView>
     </objects>

@@ -20,52 +20,37 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
     
     let cc = CurrencyConverter.shared
     
-    @IBOutlet weak var convertCB: NSComboBox!
-    @IBOutlet weak var convertToCB: NSComboBox!
+    @IBOutlet weak var convertListBtn: NSPopUpButton!
+    @IBOutlet weak var convertToListBtn: NSPopUpButton!
     
     var convertFromSym : String?
     var convertToSym : String?
-    @IBAction func OnSaveBtnClicked(_ sender: NSButton) {
-    }
-    
+
     override func viewDidLoad() {
         let cc = CurrencyConverter.shared
         cc.getSymbols { (symbols, error) in
             self.symbols = symbols?.sorted()
-            self.convertToCB.dataSource = self
-            self.convertCB.dataSource = self
-            self.convertToCB.delegate = self
-            self.convertCB.delegate = self
-            self.convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String?
-            self.convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String?
-            self.convertCB.reloadData()
-            self.convertToCB.reloadData()
-            //self.convertCB.selectItem(at: self.symbols!.firstIndex(of: self.convertFromSym!)!)
-            //self.convertToCB.selectItem(at: self.symbols!.firstIndex(of: self.convertToSym!)!)
+            self.convertListBtn.removeAllItems()
+            self.convertToListBtn.removeAllItems()
+            self.convertListBtn.addItems(withTitles: self.symbols!)
+            self.convertToListBtn.addItems(withTitles: self.symbols!)
+            self.convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String? ?? "USD"
+            self.convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
+            self.convertListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertFromSym ?? "USD") ?? 0)
+            self.convertToListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertToSym ?? "TWD") ?? 0)
         }
     }
-    
-    func numberOfItems(in comboBox: NSComboBox) -> Int {
-        return symbols!.count
-    }
-
-    func comboBox(_ comboBox: NSComboBox, objectValueForItemAt index: Int) -> Any? {
-        return symbols![index]
+    @IBAction func OnConvertFromClicked(_ sender: NSPopUpButton) {
+        let selected = symbols![sender.indexOfSelectedItem]
+        NSLog("ConvertFrom value selected : \(selected)")
+        UserDefaults.standard.set(selected as String, forKey: "convertFromSym")
+        convertFromSym = selected
     }
     
-    func comboBoxSelectionDidChange(_ notification: Notification) {
-        let combobox = (notification.object as? NSComboBox)!
-        NSLog("selection did change! \(notification) : \(String(describing: combobox.identifier?.rawValue))")
-        
-        if combobox.identifier?.rawValue == "convertFrom" {
-            convertFromSym = symbols![combobox.indexOfSelectedItem]
-        } else if combobox.identifier?.rawValue == "convertTo" {
-            convertToSym = symbols![combobox.indexOfSelectedItem]
-        }
-        NSLog("Now ConvertFrom : \(String(describing: convertFromSym)) and ConvertTo : \(String(describing: convertToSym))")
-        let defaults = UserDefaults.standard
-        defaults.set(convertFromSym, forKey: "convertFromSym")
-        defaults.set(convertToSym, forKey: "convertToSym")
-        
+    @IBAction func OnConvertToClicked(_ sender: NSPopUpButton) {
+        let selected = symbols![sender.indexOfSelectedItem]
+        NSLog("ConvertTo value selected : \(selected)")
+        UserDefaults.standard.set(selected as String, forKey: "convertToSym")
+        convertToSym = selected
     }
 }
