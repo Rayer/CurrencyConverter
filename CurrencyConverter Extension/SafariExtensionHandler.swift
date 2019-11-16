@@ -11,10 +11,6 @@ import SafariServices
 class SafariExtensionHandler: SFSafariExtensionHandler {
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
-        // This method will be called when a content script provided by your extension calls safari.extension.dispatchMessage("message").
-//        page.getPropertiesWithCompletionHandler { properties in
-//            NSLog("The extension received a message (\(messageName)) from a script injected into (\(String(describing: properties?.url))) with userInfo (\(userInfo ?? [:]))")
-//        }
     }
     
     override func toolbarItemClicked(in window: SFSafariWindow) {
@@ -30,7 +26,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
     override func popoverViewController() -> SFSafariExtensionViewController {
         return SafariExtensionViewController.shared
     }
-    
+        
     override func validateContextMenuItem(withCommand command: String, in page: SFSafariPage, userInfo: [String : Any]? = nil, validationHandler: @escaping (Bool, String?) -> Void) {
         NSLog("validateContextMenuItem : Command: \(command), userInfo: \(String(describing: userInfo)), validationHandler: \(String(describing: validationHandler))")
         
@@ -38,16 +34,19 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
             //let selected_string = (userInfo?["selected"] as! String)
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
-            if let selected = formatter.number(from: userInfo?["selected"] as! String) {
+            if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
+                
                 let convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String? ?? "TWD"
                 let convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
+
                 CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: Float32(truncating: selected)) { (result, error) in
-                    validationHandler(false, "\(convertFromSym)=>\(convertToSym) : \(result)")
+                    let lastCurrencyExchangeStr = "\(convertFromSym)=>\(convertToSym) : \(result)"
+                    validationHandler(false, lastCurrencyExchangeStr)
+                    UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
                 }
             } else {
                 validationHandler(true, nil)
             }
-            
         }
     }
     
@@ -55,12 +54,12 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         NSLog("contextMenuItemSelected : Command : \(command), UserInfo : \(String(describing: userInfo))")
         if command == "CurrencyExchange" {
             NSLog("Executing Currency Exchange")
-            CurrencyConverter.shared.convert(from: "TWD", to: "JPY", unit: 1.0) { (result, error) in
-                let result = ["from": "TWD", "to": "JPY", "unit": 1.0, "converted": result] as [String : Any]
-                NSLog("Currency result : \(String(describing: result))")
-                page.dispatchMessageToScript(withName: "CurrencyExchangeResult", userInfo: result)
+            if let pasteStr = UserDefaults.standard.value(forKey: "lastResult") as? String {
+                let pasteBoard = NSPasteboard.general
+                pasteBoard.clearContents()
+                pasteBoard.setString(pasteStr, forType: .string)
+                NSLog("Copying to pasteboard : \(pasteStr)")
             }
         }
     }
-    
 }

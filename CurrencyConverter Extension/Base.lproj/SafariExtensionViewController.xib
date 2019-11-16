@@ -15,11 +15,11 @@
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView id="c22-O7-iKe">
-            <rect key="frame" x="0.0" y="0.0" width="330" height="119"/>
+            <rect key="frame" x="0.0" y="0.0" width="369" height="134"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="10" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kRc-jp-qL9">
-                    <rect key="frame" x="61" y="98" width="208" height="16"/>
+                    <rect key="frame" x="5" y="103" width="359" height="16"/>
                     <subviews>
                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Eb-xW-tdx">
                             <rect key="frame" x="-2" y="0.0" width="53" height="16"/>
@@ -29,8 +29,8 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <popUpButton identifier="convertTo" translatesAutoresizingMaskIntoConstraints="NO" id="O6F-e9-S0S">
-                            <rect key="frame" x="57" y="-2" width="61" height="20"/>
+                        <popUpButton identifier="convertTo" horizontalHuggingPriority="249" translatesAutoresizingMaskIntoConstraints="NO" id="O6F-e9-S0S">
+                            <rect key="frame" x="57" y="-2" width="212" height="20"/>
                             <popUpButtonCell key="cell" type="check" title="Item 1" bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="7iB-GU-NXP" id="05m-Qp-gkt">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
@@ -47,7 +47,7 @@
                             </connections>
                         </popUpButton>
                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="oKH-gt-BLV">
-                            <rect key="frame" x="124" y="0.0" width="19" height="16"/>
+                            <rect key="frame" x="275" y="0.0" width="19" height="16"/>
                             <textFieldCell key="cell" lineBreakMode="clipping" title="To" id="V75-Um-qfu">
                                 <font key="font" metaFont="system"/>
                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -55,7 +55,7 @@
                             </textFieldCell>
                         </textField>
                         <popUpButton translatesAutoresizingMaskIntoConstraints="NO" id="oft-bR-MYa">
-                            <rect key="frame" x="149" y="-2" width="61" height="20"/>
+                            <rect key="frame" x="300" y="-2" width="61" height="20"/>
                             <popUpButtonCell key="cell" type="check" title="Item 1" bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="sqG-R2-WNo" id="wfy-Rk-GRs">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
@@ -85,12 +85,47 @@
                         <real value="3.4028234663852886e+38"/>
                     </customSpacing>
                 </stackView>
+                <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="82" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gaL-NW-C6N">
+                    <rect key="frame" x="5" y="68" width="359" height="21"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fJ7-Nn-I75">
+                            <rect key="frame" x="-2" y="2" width="161" height="18"/>
+                            <buttonCell key="cell" type="check" title="Apply Credit Card Fee" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="uVr-qe-rdl">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                        </button>
+                        <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yg8-HY-BIv">
+                            <rect key="frame" x="239" y="0.0" width="120" height="21"/>
+                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="zge-9Y-dW0">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <allowedInputSourceLocales>
+                                    <string>NSAllRomanInputSourcesLocaleIdentifier</string>
+                                </allowedInputSourceLocales>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
             </subviews>
             <constraints>
-                <constraint firstItem="kRc-jp-qL9" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="5" id="Jki-Pb-SHS"/>
-                <constraint firstItem="kRc-jp-qL9" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="MLQ-IU-3vM"/>
+                <constraint firstItem="kRc-jp-qL9" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="5" id="L6v-xB-loM"/>
+                <constraint firstItem="gaL-NW-C6N" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="5" id="Pvy-WE-f70"/>
+                <constraint firstAttribute="trailing" secondItem="kRc-jp-qL9" secondAttribute="trailing" constant="5" id="eAT-Q6-LQy"/>
+                <constraint firstAttribute="trailing" secondItem="gaL-NW-C6N" secondAttribute="trailing" constant="5" id="ieN-B0-TzB"/>
+                <constraint firstItem="gaL-NW-C6N" firstAttribute="top" secondItem="kRc-jp-qL9" secondAttribute="bottom" constant="14" id="mlP-LE-ee3"/>
+                <constraint firstItem="kRc-jp-qL9" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="15" id="ysQ-NJ-VuK"/>
             </constraints>
-            <point key="canvasLocation" x="140" y="154.5"/>
+            <point key="canvasLocation" x="139.5" y="162"/>
         </customView>
     </objects>
 </document>

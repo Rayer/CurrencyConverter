@@ -14,7 +14,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
     
     static let shared: SafariExtensionViewController = {
         let shared = SafariExtensionViewController()
-        shared.preferredContentSize = NSSize(width:320, height:240)
+        shared.preferredContentSize = NSSize(width:330, height:120)
         return shared
     }()
     
@@ -25,6 +25,9 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
     
     var convertFromSym : String?
     var convertToSym : String?
+    
+    var creditCardFeeOpt: Bool?
+    var creditCardFeeValue: Float?
 
     override func viewDidLoad() {
         let cc = CurrencyConverter.shared
