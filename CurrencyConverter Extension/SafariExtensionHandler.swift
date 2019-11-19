@@ -11,6 +11,11 @@ import SafariServices
 class SafariExtensionHandler: SFSafariExtensionHandler {
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
+        if messageName == "CCInitialize" {
+            CurrencyConverter.shared.loadData { (Error) in
+                print("CurrencyConverter Initialized")
+            }
+        }
     }
     
     override func toolbarItemClicked(in window: SFSafariWindow) {
@@ -38,9 +43,12 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 
                 let convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String? ?? "TWD"
                 let convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
-
-                CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: Float32(truncating: selected)) { (result, error) in
-                    let lastCurrencyExchangeStr = "\(convertFromSym)=>\(convertToSym) : \(result)"
+                let unit = Float32(truncating: selected)
+                
+                CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: unit) { (result, error) in
+                    let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: result)
+                    let formattingIndex = UserDefaults.standard.value(forKey: "FormatIndex") as? Int ?? 0
+                    let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
                     UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
                 }

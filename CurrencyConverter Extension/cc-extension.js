@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function (event) {
-  //safari.extension.dispatchMessage("Hello World!");
+  safari.extension.dispatchMessage("CCInitialize");
 });
 
 document.addEventListener("contextmenu", function (event) {

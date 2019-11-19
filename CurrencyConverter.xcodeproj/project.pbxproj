@@ -30,6 +30,7 @@
 		6257132523719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		6257132623719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
+		62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,7 @@
 		6257131A23719B5300466679 /* CurrencyConverter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CurrencyConverter.swift; sourceTree = "<group>"; };
 		6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSCustomPersistentContainer.swift; sourceTree = "<group>"; };
 		6257132123719BDC00466679 /* CurrencyExchangeRate.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CurrencyExchangeRate.xcdatamodel; sourceTree = "<group>"; };
+		62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPasteboardFormatter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -204,6 +206,7 @@
 				625713062371982E00466679 /* cc-extension.js */,
 				625713082371982E00466679 /* ToolbarItemIcon.pdf */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
+				62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */,
 			);
 			path = "CurrencyConverter Extension";
 			sourceTree = "<group>";
@@ -413,6 +416,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */,
 				6257132423719BDC00466679 /* NSCustomPersistentContainer.swift in Sources */,
 				6257131D23719B5300466679 /* CurrencyConverter.swift in Sources */,
 				625713012371982E00466679 /* SafariExtensionViewController.swift in Sources */,
