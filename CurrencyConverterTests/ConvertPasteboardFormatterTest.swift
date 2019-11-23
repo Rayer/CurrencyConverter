@@ -1,16 +1,15 @@
 //
-//  CurrencyConverterTests.swift
+//  ConvertPasteboardFormatterTest.swift
 //  CurrencyConverterTests
 //
-//  Created by Rayer on 2019/11/5.
+//  Created by Rayer on 2019/11/20.
 //  Copyright © 2019 Rayer. All rights reserved.
 //
 
 import XCTest
 @testable import CurrencyConverter
 
-class CurrencyConverterTests: XCTestCase {
-
+class CurrnecyConverter : XCTestCase {
     override func setUp() {
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }
@@ -19,11 +18,9 @@ class CurrencyConverterTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testFormatter() {
-        let formatter = ConvertPasteboardFormatter(fromSymbol: "USD", fromAmount: 1, toSymbol: "JPY", toAmount: 110)
-        for x in 0...3 {
-            print(formatter.getFormattedString(formatIndex: x))
-        }
+    func testExample() {
+        // This is an example of a functional test case.
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
 
     func testPerformanceExample() {
@@ -32,5 +29,4 @@ class CurrencyConverterTests: XCTestCase {
             // Put the code you want to measure the time of here.
         }
     }
-
 }

@@ -14,11 +14,16 @@ class ConvertPasteboardFormatter {
     var toSymbol : String
     var toAmount : Float32
     
+    let ToAmountPH = "${to_amount}"
+    let FromAmountPH = "${from_amount}"
+    let ToSymbolPH = "${to_symbol}"
+    let FromSymbolPH = "${from_symbol}"
+    
     static let formatterString : [String] = [
-        "12345.67 BBB",
-        "12345.67",
-        "890.1 AAA => 12345.67 BBB",
-        "(AAA) 890.1 => (BBB) 12345.67"
+        "${to_amount} ${to_symbol}",
+        "${to_amount}",
+        "${from_amount} ${from_symbol} => ${to_amount} ${to_symbol}",
+        "(${from_symbol}) ${from_amount} => (${to_symbol}) ${to_amount}"
     ]
     
     init(fromSymbol : String, fromAmount : Float32, toSymbol : String, toAmount : Float32) {
@@ -30,14 +35,19 @@ class ConvertPasteboardFormatter {
     
     func getFormattedString(formatIndex: Int) -> String{
         var ret = ConvertPasteboardFormatter.formatterString[formatIndex]
-        ret = ret.replacingOccurrences(of: "AAA", with: self.fromSymbol)
-        ret = ret.replacingOccurrences(of: "BBB", with: self.toSymbol)
-        ret = ret.replacingOccurrences(of: "890.1", with: String(describing: self.fromAmount))
-        ret = ret.replacingOccurrences(of: "12345.67", with: String(describing: self.toAmount))
+        ret = ret.replacingOccurrences(of: FromSymbolPH, with: self.fromSymbol)
+        ret = ret.replacingOccurrences(of: ToSymbolPH, with: self.toSymbol)
+        ret = ret.replacingOccurrences(of: FromAmountPH, with: String(describing: self.fromAmount))
+        ret = ret.replacingOccurrences(of: ToAmountPH, with: String(describing: self.toAmount))
         
         return ret
     }
     
-    
-    
+    func getAllFormattedStrings() -> [String] {
+        var ret : [String] = []
+        for x in 0...(ConvertPasteboardFormatter.formatterString.count - 1) {
+            ret.insert(getFormattedString(formatIndex: x), at: x)
+        }
+        return ret
+    }
 }

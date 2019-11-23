@@ -46,7 +46,19 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 let unit = Float32(truncating: selected)
                 
                 CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: unit) { (result, error) in
-                    let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: result)
+                    
+                    //Add credit card FX rate
+                    let fxIndex = UserDefaults.standard.value(forKey: "fxRateIndex") as! Int? ?? 1
+                    var fxRate : Float32 = 0.0
+                    if fxIndex == 1 {
+                        fxRate = 0.015
+                    } else if fxIndex == 2 {
+                        fxRate = 0.02
+                    }
+                    
+                    let price = result * (1 + fxRate)
+                    
+                    let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     let formattingIndex = UserDefaults.standard.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)

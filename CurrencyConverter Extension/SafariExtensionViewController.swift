@@ -8,7 +8,7 @@
 
 import SafariServices
 
-class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBoxDataSource, NSComboBoxDelegate {
+class SafariExtensionViewController: SFSafariExtensionViewController {
     
     var symbols : [String]?
     
@@ -32,7 +32,19 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
     var creditCardFeeOpt: Bool?
     var creditCardFeeValue: Float?
 
+    @IBOutlet weak var fxRateBtn0: NSButton!
+    @IBOutlet weak var fxRateBtn15: NSButton!
+    @IBOutlet weak var fxRateBtn2: NSButton!
+    
+    var fxRateBtnList : [NSButton] = []
+    
     override func viewDidLoad() {
+        
+        fxRateBtnList = [fxRateBtn0, fxRateBtn15, fxRateBtn2]
+        let fxRateIndex = UserDefaults.standard.value(forKey: "fxRateIndex") as! Int? ?? 1
+        fxRateBtnList.forEach { $0.state = .off }
+        fxRateBtnList[fxRateIndex].state = .on
+        
         let cc = CurrencyConverter.shared
         cc.getSymbols { (symbols, error) in
             self.symbols = symbols?.sorted()
@@ -44,10 +56,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
             self.convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
             self.convertListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertFromSym ?? "USD") ?? 0)
             self.convertToListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertToSym ?? "TWD") ?? 0)
-            self.formatterListBtn.removeAllItems()
-            self.formatterListBtn.addItems(withTitles: ConvertPasteboardFormatter.formatterString)
-            let formatIndex = UserDefaults.standard.value(forKey: "FormatIndex") as! Int? ?? 0
-            self.formatterListBtn.selectItem(at: formatIndex)
+            self.UpdateFormatters()
             self.UpdateRates()
         }
     }
@@ -58,6 +67,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
         UserDefaults.standard.set(selected as String, forKey: "convertFromSym")
         convertFromSym = selected
         UpdateRates()
+        UpdateFormatters()
     }
     
     @IBAction func OnConvertToClicked(_ sender: NSPopUpButton) {
@@ -66,6 +76,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
         UserDefaults.standard.set(selected as String, forKey: "convertToSym")
         convertToSym = selected
         UpdateRates()
+        UpdateFormatters()
     }
     
     @IBAction func OnFormatBtnClicked(_ sender: NSPopUpButton) {
@@ -73,10 +84,25 @@ class SafariExtensionViewController: SFSafariExtensionViewController, NSComboBox
         UserDefaults.standard.set(index, forKey: "FormatIndex")
     }
     
+    @IBAction func OnFxRateBtnClicked(_ sender: NSButton) {
+        let index = self.fxRateBtnList.firstIndex(of: sender)
+        UserDefaults.standard.set(index, forKey: "fxRateIndex")
+    }
+    
     func UpdateRates() {
         let cc = CurrencyConverter.shared
         cc.convert(from: convertFromSym!, to: convertToSym!, unit: 1.0) { (result, error) in
             self.ratesText.stringValue = "1:\(result)"
         }
+    }
+    
+    func UpdateFormatters() {
+        self.formatterListBtn.removeAllItems()
+        cc.convert(from: self.convertFromSym!, to: self.convertToSym!, unit: 1) { (result, error) in
+            let cpf = ConvertPasteboardFormatter(fromSymbol: self.convertFromSym!, fromAmount: 1, toSymbol: self.convertToSym!, toAmount: result)
+            self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings())
+        }
+        let formatIndex = UserDefaults.standard.value(forKey: "FormatIndex") as! Int? ?? 0
+        self.formatterListBtn.selectItem(at: formatIndex)
     }
 }
