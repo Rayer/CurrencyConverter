@@ -37,8 +37,10 @@ class ConvertPasteboardFormatter {
         var ret = ConvertPasteboardFormatter.formatterString[formatIndex]
         ret = ret.replacingOccurrences(of: FromSymbolPH, with: self.fromSymbol)
         ret = ret.replacingOccurrences(of: ToSymbolPH, with: self.toSymbol)
+        
+        let toAmountFixed = String(format: "%.2f", self.toAmount)
         ret = ret.replacingOccurrences(of: FromAmountPH, with: String(describing: self.fromAmount))
-        ret = ret.replacingOccurrences(of: ToAmountPH, with: String(describing: self.toAmount))
+        ret = ret.replacingOccurrences(of: ToAmountPH, with: toAmountFixed)
         
         return ret
     }

@@ -203,6 +203,7 @@
 		625712FD2371982E00466679 /* CurrencyConverter Extension */ = {
 			isa = PBXGroup;
 			children = (
+				62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */,
 				625712FE2371982E00466679 /* SafariExtensionHandler.swift */,
 				625713002371982E00466679 /* SafariExtensionViewController.swift */,
 				625713022371982E00466679 /* SafariExtensionViewController.xib */,
@@ -210,7 +211,6 @@
 				625713062371982E00466679 /* cc-extension.js */,
 				625713082371982E00466679 /* ToolbarItemIcon.pdf */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
-				62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */,
 			);
 			path = "CurrencyConverter Extension";
 			sourceTree = "<group>";

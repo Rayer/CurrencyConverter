@@ -82,6 +82,7 @@ class CurrencyConverter {
             
             let fromRate = self.currencyRateEntity?.rates[from]!
             let toRate = self.currencyRateEntity?.rates[to]!
+            
             completionHandler((unit / fromRate!) * toRate!, nil)
         }
     }

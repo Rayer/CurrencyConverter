@@ -92,7 +92,8 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     func UpdateRates() {
         let cc = CurrencyConverter.shared
         cc.convert(from: convertFromSym!, to: convertToSym!, unit: 1.0) { (result, error) in
-            self.ratesText.stringValue = "1:\(result)"
+            let resultFixed = String(format: "%.4f", result)
+            self.ratesText.stringValue = "1:\(resultFixed)"
         }
     }
     
