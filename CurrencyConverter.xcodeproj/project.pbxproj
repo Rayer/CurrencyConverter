@@ -32,6 +32,7 @@
 		6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		62985BB7238464640022ED28 /* ConvertPasteboardFormatterTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62985BB6238464640022ED28 /* ConvertPasteboardFormatterTest.swift */; };
 		62985BB8238464FB0022ED28 /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
+		62BDA7D62389FAFA00725A02 /* ToolbarItemIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */; };
 		62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
 /* End PBXBuildFile section */
 
@@ -100,6 +101,7 @@
 		6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSCustomPersistentContainer.swift; sourceTree = "<group>"; };
 		6257132123719BDC00466679 /* CurrencyExchangeRate.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CurrencyExchangeRate.xcdatamodel; sourceTree = "<group>"; };
 		62985BB6238464640022ED28 /* ConvertPasteboardFormatterTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPasteboardFormatterTest.swift; sourceTree = "<group>"; };
+		62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = ToolbarItemIcon.svg; sourceTree = "<group>"; };
 		62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPasteboardFormatter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -209,6 +211,7 @@
 				625713022371982E00466679 /* SafariExtensionViewController.xib */,
 				625713052371982E00466679 /* Info.plist */,
 				625713062371982E00466679 /* cc-extension.js */,
+				62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */,
 				625713082371982E00466679 /* ToolbarItemIcon.pdf */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
 			);
@@ -379,6 +382,7 @@
 				625713092371982E00466679 /* ToolbarItemIcon.pdf in Resources */,
 				625713042371982E00466679 /* SafariExtensionViewController.xib in Resources */,
 				625713072371982E00466679 /* cc-extension.js in Resources */,
+				62BDA7D62389FAFA00725A02 /* ToolbarItemIcon.svg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -521,7 +525,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -575,7 +579,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -639,6 +643,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -660,6 +665,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -680,7 +686,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -702,7 +708,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

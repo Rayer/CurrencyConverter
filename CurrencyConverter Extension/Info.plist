@@ -33,15 +33,15 @@
 		<string>com.apple.Safari.extension</string>
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).SafariExtensionHandler</string>
-        <key>SFSafariContextMenu</key>
-        <array>
-            <dict>
-                <key>Text</key>
-                <string>Invoke Currency Exchange</string>
-                <key>Command</key>
-                <string>CurrencyExchange</string>
-            </dict>
-        </array>
+		<key>SFSafariContextMenu</key>
+		<array>
+			<dict>
+				<key>Text</key>
+				<string>Invoke Currency Exchange</string>
+				<key>Command</key>
+				<string>CurrencyExchange</string>
+			</dict>
+		</array>
 		<key>SFSafariContentScript</key>
 		<array>
 			<dict>
@@ -73,6 +73,6 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2019 Rayer. All rights reserved.</string>
 	<key>NSHumanReadableDescription</key>
-	<string>This is a Safari Extension. You should tell us what your extension does here.</string>
+	<string>Currency Converter Safari Extension.</string>
 </dict>
 </plist>

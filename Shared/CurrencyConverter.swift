@@ -61,6 +61,19 @@ class CurrencyConverter {
         }.resume()
     }
     
+//    func loadFromCD(_ completionHandler: @escaping (Error?) -> Void) {
+//        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "CEREntityMO")
+////        //gather current calendar
+////        NSCalendar *calendar = [NSCalendar currentCalendar];
+////
+////        //gather date components from date
+////        NSDateComponents *dateComponents = [calendar components:(NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit) fromDate:[NSDate date]];
+//        let calendar = Calendar.current
+//        DateComponents components = calendar.component(component: [.year, .], from: <#T##Date#>)
+//
+//        request.predicate = NSPredicate(format: "date = %@", "")
+//    }
+    
     func loadData(completionHandler: @escaping (Error?) -> Void = {_ in }) {
         
         if currencyRateEntity != nil {
@@ -69,6 +82,7 @@ class CurrencyConverter {
         }
         
         //TODO: Peek if there are today's record in entry
+        //loadFromCD(completionHandler);
         
         loadFromWeb(completionHandler)
     }
