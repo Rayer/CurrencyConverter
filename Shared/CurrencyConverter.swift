@@ -39,40 +39,35 @@ class CurrencyConverter {
                 let decoder = JSONDecoder()
                 if let currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
                     self.currencyRateEntity = currencyRateEntity
-                    let e = NSEntityDescription.insertNewObject(forEntityName: "CEREntityMO", into: persistentContainer.viewContext)
-                    //e.base = currencyRateEntity.base
-                    //e.rates = currencyRateEntity.rates as NSObject
-                    e.setValue(currencyRateEntity.base, forKey: "base")
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "YYYY-MM-dd"
-                    guard let date = dateFormatter.date(from: currencyRateEntity.date) else {
-                       fatalError("ERROR: Date conversion failed due to mismatched format.")
-                    }
-                    e.setValue(date, forKey: "date")
-                    let encoder = JSONEncoder()
-                    let data = try! encoder.encode(currencyRateEntity.rates)
-                    e.setValue(String(data: data, encoding: .utf8), forKey: "rates")
-                    print("Saving rate data : \(e.description)")
-                    try! persistentContainer.viewContext.save()
+                    //Save this to UserDefaults
+                    UserDefaults.standard.set(Date(), forKey: "LastUpdateDate")
+                    UserDefaults.standard.set(currencyRateEntity.rates, forKey: "CurrencyData")
+                    UserDefaults.standard.set(currencyRateEntity.base, forKey:"CurrencyBase")
                 }
-
             }
             completionHandler(nil)
         }.resume()
     }
     
-//    func loadFromCD(_ completionHandler: @escaping (Error?) -> Void) {
-//        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "CEREntityMO")
-////        //gather current calendar
-////        NSCalendar *calendar = [NSCalendar currentCalendar];
-////
-////        //gather date components from date
-////        NSDateComponents *dateComponents = [calendar components:(NSYearCalendarUnit | NSMonthCalendarUnit | NSDayCalendarUnit) fromDate:[NSDate date]];
-//        let calendar = Calendar.current
-//        DateComponents components = calendar.component(component: [.year, .], from: <#T##Date#>)
-//
-//        request.predicate = NSPredicate(format: "date = %@", "")
-//    }
+    func loadFromDefaults() -> Bool {
+        let today = Date()
+        
+        guard let record = UserDefaults.standard.value(forKey: "LastUpdateDate") as! Date? else {
+            return false
+        }
+        
+        guard record.addingTimeInterval(12.0 * 60.0 * 60.0) > today else {
+            return false
+        }
+        
+        guard let rates = UserDefaults.standard.value(forKey: "CurrencyData") as! [String:Float32]? else {
+            return false
+        }
+        print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
+        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: "", rates: rates)
+        return true
+    }
+    
     
     func loadData(completionHandler: @escaping (Error?) -> Void = {_ in }) {
         
@@ -81,10 +76,13 @@ class CurrencyConverter {
             return
         }
         
-        //TODO: Peek if there are today's record in entry
-        //loadFromCD(completionHandler);
+        if loadFromDefaults() {
+            completionHandler(nil)
+        } else {
+            print("Convert Rate Data not found or too old, load from web....")
+            loadFromWeb(completionHandler)
+        }
         
-        loadFromWeb(completionHandler)
     }
     
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void) {
