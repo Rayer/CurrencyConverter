@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15400" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15505"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15400"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -39,9 +40,12 @@
                                 </textField>
                                 <popUpButton identifier="convertTo" horizontalHuggingPriority="249" translatesAutoresizingMaskIntoConstraints="NO" id="O6F-e9-S0S">
                                     <rect key="frame" x="57" y="-2" width="151" height="20"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="70" id="oQu-Ja-vNm"/>
+                                    </constraints>
                                     <popUpButtonCell key="cell" type="check" title="Loading..." bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="7iB-GU-NXP" id="05m-Qp-gkt">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="system"/>
+                                        <font key="font" metaFont="menu"/>
                                         <menu key="menu" title="Loading" id="7en-Qr-0vp">
                                             <items>
                                                 <menuItem title="Loading..." state="on" id="7iB-GU-NXP"/>
@@ -64,9 +68,12 @@
                                 </textField>
                                 <popUpButton translatesAutoresizingMaskIntoConstraints="NO" id="oft-bR-MYa">
                                     <rect key="frame" x="239" y="-2" width="84" height="20"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="70" id="bD1-DS-XIs"/>
+                                    </constraints>
                                     <popUpButtonCell key="cell" type="check" title="Loading..." bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="sqG-R2-WNo" id="wfy-Rk-GRs">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="system"/>
+                                        <font key="font" metaFont="menu"/>
                                         <menu key="menu" title="Loading" id="TnW-gn-x6r">
                                             <items>
                                                 <menuItem title="Loading..." state="on" id="sqG-R2-WNo"/>
@@ -88,6 +95,10 @@
                                     </textFieldCell>
                                 </textField>
                             </subviews>
+                            <constraints>
+                                <constraint firstItem="oKH-gt-BLV" firstAttribute="leading" secondItem="O6F-e9-S0S" secondAttribute="trailing" constant="10" id="4FH-BC-fEs"/>
+                                <constraint firstItem="oft-bR-MYa" firstAttribute="leading" secondItem="oKH-gt-BLV" secondAttribute="trailing" constant="10" id="QYp-ZM-dvX"/>
+                            </constraints>
                             <visibilityPriorities>
                                 <integer value="1000"/>
                                 <integer value="1000"/>
@@ -190,7 +201,7 @@
                                     </constraints>
                                     <popUpButtonCell key="cell" type="check" title="Loading" bezelStyle="regularSquare" imagePosition="left" lineBreakMode="truncatingTail" state="on" borderStyle="bezel" inset="2" selectedItem="G2X-eD-aCr" id="zke-wh-lxC">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="system"/>
+                                        <font key="font" metaFont="menu"/>
                                         <menu key="menu" id="rUi-G2-qot">
                                             <items>
                                                 <menuItem title="Loading" state="on" id="G2X-eD-aCr"/>
