@@ -19,7 +19,7 @@ class ConvertPasteboardFormatter {
     let ToSymbolPH = "${to_symbol}"
     let FromSymbolPH = "${from_symbol}"
     
-    static let formatterString : [String] = [
+    static let defaultFormattingString : [String] = [
         "${to_amount} ${to_symbol}",
         "${to_amount}",
         "${from_amount} ${from_symbol} => ${to_amount} ${to_symbol}",
@@ -34,7 +34,7 @@ class ConvertPasteboardFormatter {
     }
     
     func getFormattedString(formatIndex: Int) -> String{
-        var ret = ConvertPasteboardFormatter.formatterString[formatIndex]
+        var ret = ConvertPasteboardFormatter.defaultFormattingString[formatIndex]
         ret = ret.replacingOccurrences(of: FromSymbolPH, with: self.fromSymbol)
         ret = ret.replacingOccurrences(of: ToSymbolPH, with: self.toSymbol)
         
@@ -47,7 +47,7 @@ class ConvertPasteboardFormatter {
     
     func getAllFormattedStrings() -> [String] {
         var ret : [String] = []
-        for x in 0...(ConvertPasteboardFormatter.formatterString.count - 1) {
+        for x in 0...(ConvertPasteboardFormatter.defaultFormattingString.count - 1) {
             ret.insert(getFormattedString(formatIndex: x), at: x)
         }
         return ret

@@ -35,6 +35,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     @IBOutlet weak var fxRateBtn0: NSButton!
     @IBOutlet weak var fxRateBtn15: NSButton!
     @IBOutlet weak var fxRateBtn2: NSButton!
+    @IBOutlet weak var baseRateValueField: NSTextField!
     
     var fxRateBtnList : [NSButton] = []
     
@@ -56,9 +57,16 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
             self.convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
             self.convertListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertFromSym ?? "USD") ?? 0)
             self.convertToListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertToSym ?? "TWD") ?? 0)
+            self.baseRateValueField.floatValue = UserDefaults.standard.value(forKey: "baseRateValue") as! Float32? ?? 1.0
             self.UpdateFormatters()
             self.UpdateRates()
         }
+    }
+
+    @IBAction func OnBaseRateValueChanged(_ sender: NSTextField) {
+        let baseRateValue = sender.floatValue
+        UserDefaults.standard.set(baseRateValue as Float32, forKey: "baseRateValue")
+        UpdateRates()
     }
     
     @IBAction func OnConvertFromClicked(_ sender: NSPopUpButton) {
@@ -91,9 +99,9 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     func UpdateRates() {
         let cc = CurrencyConverter.shared
-        cc.convert(from: convertFromSym!, to: convertToSym!, unit: 1.0) { (result, error) in
+        cc.convert(from: convertFromSym!, to: convertToSym!, unit: baseRateValueField.floatValue) { (result, error) in
             let resultFixed = String(format: "%.4f", result)
-            self.ratesText.stringValue = "1:\(resultFixed)"
+            self.ratesText.stringValue = ":\(resultFixed)"
         }
     }
     
