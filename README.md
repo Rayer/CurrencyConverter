@@ -14,7 +14,7 @@
 
 Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安裝Safari Extension，他必須依附於一個macOS Application，所以必須要像普通App一樣拖拉進Application資料夾且點擊。
 
-1. 從[Release頁面](https://github.com/Rayer/CurrencyConverter/releases)下載`CurrencyConverter.app.zip`，目前版本是1.0，可以直接[點此連結](https://github.com/Rayer/CurrencyConverter/releases/download/v1.0/CurrencyConverter.app.zip)下載。
+1. 從[Release頁面](https://github.com/Rayer/CurrencyConverter/releases)下載`CurrencyConverter.app.zip`，目前版本是1.1。預設我放上去的版本都是開發者簽名過且AppConnect認證過的application。
 2. 就像普通macOS App一樣，把他丟進Application
 3. 執行，按下按鈕
 4. 他會自動打開Safari Preference，把Plugin的CurrencyConverter打勾即可。
