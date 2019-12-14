@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6220DCB623A50ACA0093A237 /* money.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 6220DCB523A50ACA0093A237 /* money.pdf */; };
 		625712D12371982500466679 /* CurrencyConverter.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 625712D02371982500466679 /* CurrencyConverter.entitlements */; };
 		625712D32371982500466679 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625712D22371982500466679 /* AppDelegate.swift */; };
 		625712D62371982500466679 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 625712D42371982500466679 /* Main.storyboard */; };
@@ -32,7 +33,6 @@
 		6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		62985BB7238464640022ED28 /* ConvertPasteboardFormatterTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62985BB6238464640022ED28 /* ConvertPasteboardFormatterTest.swift */; };
 		62985BB8238464FB0022ED28 /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
-		62BDA7D62389FAFA00725A02 /* ToolbarItemIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */; };
 		62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
 /* End PBXBuildFile section */
 
@@ -75,6 +75,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		6220DCB523A50ACA0093A237 /* money.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = money.pdf; sourceTree = "<group>"; };
 		625712CD2371982500466679 /* CurrencyConverter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CurrencyConverter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		625712D02371982500466679 /* CurrencyConverter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurrencyConverter.entitlements; sourceTree = "<group>"; };
 		625712D22371982500466679 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -101,7 +102,6 @@
 		6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSCustomPersistentContainer.swift; sourceTree = "<group>"; };
 		6257132123719BDC00466679 /* CurrencyExchangeRate.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CurrencyExchangeRate.xcdatamodel; sourceTree = "<group>"; };
 		62985BB6238464640022ED28 /* ConvertPasteboardFormatterTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPasteboardFormatterTest.swift; sourceTree = "<group>"; };
-		62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = ToolbarItemIcon.svg; sourceTree = "<group>"; };
 		62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertPasteboardFormatter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -209,9 +209,9 @@
 				625712FE2371982E00466679 /* SafariExtensionHandler.swift */,
 				625713002371982E00466679 /* SafariExtensionViewController.swift */,
 				625713022371982E00466679 /* SafariExtensionViewController.xib */,
+				6220DCB523A50ACA0093A237 /* money.pdf */,
 				625713052371982E00466679 /* Info.plist */,
 				625713062371982E00466679 /* cc-extension.js */,
-				62BDA7D52389FAFA00725A02 /* ToolbarItemIcon.svg */,
 				625713082371982E00466679 /* ToolbarItemIcon.pdf */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
 			);
@@ -310,7 +310,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1120;
-				LastUpgradeCheck = 1120;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = Rayer;
 				TargetAttributes = {
 					625712CC2371982500466679 = {
@@ -382,7 +382,7 @@
 				625713092371982E00466679 /* ToolbarItemIcon.pdf in Resources */,
 				625713042371982E00466679 /* SafariExtensionViewController.xib in Resources */,
 				625713072371982E00466679 /* cc-extension.js in Resources */,
-				62BDA7D62389FAFA00725A02 /* ToolbarItemIcon.svg in Resources */,
+				6220DCB623A50ACA0093A237 /* money.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -591,8 +591,8 @@
 		6257130E2371982E00466679 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-2";
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J9849FB53X;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -602,7 +602,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.rayer.CurrencyConverter-Extension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -613,8 +613,8 @@
 		6257130F2371982E00466679 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-2";
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J9849FB53X;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -624,7 +624,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.rayer.CurrencyConverter-Extension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -649,7 +649,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -673,7 +673,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

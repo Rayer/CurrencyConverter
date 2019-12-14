@@ -8,7 +8,8 @@
 
 ## 鳴謝
 
-主要貨幣API來源是[*fixer.io*](https://fixer.io)，這個提供了每個月1000次的API Call。老實講這個數量可能不太夠，之後會用一個中介server來避免API Call exceed。但是，無論如何這個貨幣來源的資料是來自於這個網站，這個credit是屬於這個網站的。
+- 主要貨幣API來源是[*fixer.io*](https://fixer.io)，這個提供了每個月1000次的API Call。老實講這個數量可能不太夠，之後會用一個中介server來避免API Call exceed。但是，無論如何這個貨幣來源的資料是來自於這個網站，這個credit是屬於這個網站的，這網站API更新得相當迅速且up rate非常優良，再度鳴謝！
+- 特別感謝 [flaticon](www.flaticon.com) 的 [Kiranshastry](https://www.flaticon.com/authors/kiranshastry) 提供了tool bar Icon! 說真的這個pdf格式的icon我還真拿他一籌莫展，再次感謝!
 
 ## 安裝
 
