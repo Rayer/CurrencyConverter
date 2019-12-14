@@ -64,14 +64,38 @@ class CurrencyConverter {
             return false
         }
         print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
-        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: "", rates: rates)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let todayString = formatter.string(from: today)
+        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: todayString, rates: rates)
         return true
     }
     
+    func loadFromMemory() -> Bool {
+        guard let c = currencyRateEntity else {
+            return false
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let record = formatter.date(from: c.date)
+        
+        guard let r = record else {
+            NSLog("loadFromMemory() Date Record not valid! c.date is \(c.date)")
+            return false
+        }
+        
+        guard r.addingTimeInterval(12.0 * 60.0 * 60.0) > Date() else {
+            NSLog("Convert Rate Data in Memory not found or too old, load from Defaults....")
+            return false
+        }
+        
+        return true
+    }
     
     func loadData(completionHandler: @escaping (Error?) -> Void = {_ in }) {
         
-        if currencyRateEntity != nil {
+        if loadFromMemory() {
             completionHandler(nil)
             return
         }
@@ -79,7 +103,7 @@ class CurrencyConverter {
         if loadFromDefaults() {
             completionHandler(nil)
         } else {
-            print("Convert Rate Data not found or too old, load from web....")
+            NSLog("Convert Rate Data in Defaults not found or too old, load from web....")
             loadFromWeb(completionHandler)
         }
         
