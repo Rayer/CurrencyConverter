@@ -9,10 +9,11 @@
 import Foundation
 import Cocoa
 
-struct CurrencyRateEntity : Codable {
+struct CurrencyRateEntity : Decodable {
     var base: String
     var date: String
     var rates: [String:Float32]
+    var fetched_localtime : Date?
 }
 
 class CurrencyConverter {
@@ -37,10 +38,12 @@ class CurrencyConverter {
             } else if let response = response as? HTTPURLResponse,let data = data {
                 print("Status code: \(response.statusCode)")
                 let decoder = JSONDecoder()
-                if let currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
+                if var currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
                     self.currencyRateEntity = currencyRateEntity
                     //Save this to UserDefaults
-                    UserDefaults.standard.set(Date(), forKey: "LastUpdateDate")
+                    let now = Date()
+                    currencyRateEntity.fetched_localtime = now
+                    UserDefaults.standard.set(now, forKey: "LastUpdateDate")
                     UserDefaults.standard.set(currencyRateEntity.rates, forKey: "CurrencyData")
                     UserDefaults.standard.set(currencyRateEntity.base, forKey:"CurrencyBase")
                 }
@@ -56,7 +59,7 @@ class CurrencyConverter {
             return false
         }
         
-        guard record.addingTimeInterval(12.0 * 60.0 * 60.0) > today else {
+        guard record.addingTimeInterval(24.0 * 60.0 * 60.0) > today else {
             return false
         }
         
@@ -68,6 +71,7 @@ class CurrencyConverter {
         formatter.dateFormat = "yyyy-MM-dd"
         let todayString = formatter.string(from: today)
         self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: todayString, rates: rates)
+        self.currencyRateEntity?.fetched_localtime = record
         return true
     }
     
@@ -76,20 +80,18 @@ class CurrencyConverter {
             return false
         }
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let record = formatter.date(from: c.date)
-        
-        guard let r = record else {
-            NSLog("loadFromMemory() Date Record not valid! c.date is \(c.date)")
+        guard let last_update = c.fetched_localtime else {
+            NSLog("loadFromMemory() fetched_localtime is null!")
             return false
         }
         
-        guard r.addingTimeInterval(12.0 * 60.0 * 60.0) > Date() else {
-            NSLog("Convert Rate Data in Memory not found or too old, load from Defaults....")
+        let today = Date()
+        guard last_update.addingTimeInterval(24.0 * 60.0 * 60.0) > today else {
+            NSLog("Convert Rate Data in Memory not found or too old (\(last_update) vs \(today)), load from Defaults....")
             return false
         }
         
+        NSLog("Convert Rate Data in Memory is good (\(last_update) vs \(today))")
         return true
     }
     
