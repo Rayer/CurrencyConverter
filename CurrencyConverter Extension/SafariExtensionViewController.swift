@@ -100,8 +100,10 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     func UpdateRates() {
         let cc = CurrencyConverter.shared
         cc.convert(from: convertFromSym!, to: convertToSym!, unit: baseRateValueField.floatValue) { (result, error) in
-            let resultFixed = String(format: "%.4f", result)
-            self.ratesText.stringValue = ":\(resultFixed)"
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.alwaysShowsDecimalSeparator = true
+            self.ratesText.stringValue = ":\(formatter.string(for: result)!)"
         }
     }
     
