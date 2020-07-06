@@ -29,7 +29,15 @@ class CurrencyConverter {
     }
     
     fileprivate func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
-        let feed_url = URL(string: "http://data.fixer.io/api/latest?access_key=676ac77e5ce5d4b9a57ee6464ff84433&format=1")
+        let feed_url : URL?
+        if let feed_url_str = Bundle.main.object(forInfoDictionaryKey: "CurrencyInfoFeed") as? String {
+            feed_url = URL(string: feed_url_str)
+        } else {
+            feed_url = URL(string: "http://data.fixer.io/api/latest?access_key=676ac77e5ce5d4b9a57ee6464ff84433&format=1")
+        }
+        
+        print("Loading currency data from \(String(describing: feed_url?.absoluteString))")
+
         URLSession.shared.dataTask(with: feed_url!) { (data, response, error) in
             if let error = error {
                 print("Error: \(error.localizedDescription)")
