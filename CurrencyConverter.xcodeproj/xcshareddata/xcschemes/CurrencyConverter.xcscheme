@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1130"
+   LastUpgradeVersion = "1200"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "625712CC2371982500466679"
+               BlueprintIdentifier = "62850397251B936F00E381AA"
                BuildableName = "CurrencyConverter.app"
                BlueprintName = "CurrencyConverter"
                ReferencedContainer = "container:CurrencyConverter.xcodeproj">
@@ -64,7 +64,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "625712CC2371982500466679"
+            BlueprintIdentifier = "62850397251B936F00E381AA"
             BuildableName = "CurrencyConverter.app"
             BlueprintName = "CurrencyConverter"
             ReferencedContainer = "container:CurrencyConverter.xcodeproj">
@@ -81,7 +81,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "625712CC2371982500466679"
+            BlueprintIdentifier = "62850397251B936F00E381AA"
             BuildableName = "CurrencyConverter.app"
             BlueprintName = "CurrencyConverter"
             ReferencedContainer = "container:CurrencyConverter.xcodeproj">
