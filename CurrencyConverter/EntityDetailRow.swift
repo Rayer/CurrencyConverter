@@ -15,9 +15,9 @@ struct EntityDetailRow: View {
     var destCurrencyWithoutFx : String
     var ratio : String
     
-    init(_ model: ConvertHistory) {
-        sourceUrl = model.url!
-        sourceCurrency = "\(model.fromAmount)\(model.fromSymbol ?? "---")"
+    init(_ model: ConvertHistoryDM) {
+        sourceUrl = model.url
+        sourceCurrency = "\(model.fromAmount)\(model.fromSymbol )"
         destCurrencyWithFx = "\(model.fromAmount * model.ratio * (1 + model.fxFee))\(model.toSymbol)"
         destCurrencyWithoutFx = "\(model.fromAmount * model.ratio)\(model.toSymbol)"
         ratio = "\(model.ratio)"

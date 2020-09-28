@@ -9,17 +9,8 @@
 import Foundation
 import CoreData
 
-func generateModel() -> ConvertHistory {
-    let model = ConvertHistory()
-    model.date = Date()
-    model.fromAmount = 10
-    model.fromSymbol = "TWD"
-    model.fxFee = 0.015
-    model.ratio = 31.1
-    model.title = "OMG"
-    model.toSymbol = "USD"
-    model.url = "http://hi.com.tw"
-    return model
+func generateModel() -> ConvertHistoryDM {
+    return ConvertHistoryDM(title: "ExampleTitle", url: "https://example.com", fromSymbol: "USD", toSymbol: "TWD", fromAmount: 22.6, fxFee: 0.02, ratio: 31.3)
 }
 
 func readFromCore() -> [ConvertHistory]? {

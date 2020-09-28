@@ -13,7 +13,7 @@ struct ContentView: View {
 
     var body: some View {
         List(previewTarget, id: \.id) { c in
-            EntityDetailRow(c)
+            EntityDetailRow(ConvertHistoryDM.fromCoreData(c: c))
         }
     }
 }
@@ -23,6 +23,5 @@ struct ContentView_Previews: PreviewProvider {
 
     static var previews: some View {
         ContentView()
-            
     }
 }
