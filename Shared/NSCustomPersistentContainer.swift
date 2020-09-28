@@ -10,9 +10,9 @@ import Foundation
 import CoreData
 
 class NSCustomPersistentContainer: NSPersistentContainer {
-    
+
     override open class func defaultDirectoryURL() -> URL {
-        var storeURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "J9849FB53X.com.rayer.currencyconverter")
+        var storeURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "ag.com.rayer.CurrencyConverter")
         storeURL = storeURL?.appendingPathComponent("CurrencyConverter.sqlite")
         return storeURL!
     }

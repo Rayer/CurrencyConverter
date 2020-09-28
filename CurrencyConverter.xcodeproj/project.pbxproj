@@ -24,6 +24,7 @@
 		6257132623719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		6262F0412522087E0066ADFA /* CurrencyConverter Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 625712F62371982E00466679 /* CurrencyConverter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6262F06925220FA90066ADFA /* NSCustomPersistentContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */; };
 		6285039B251B936F00E381AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6285039A251B936F00E381AA /* AppDelegate.swift */; };
 		6285039D251B936F00E381AA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6285039C251B936F00E381AA /* ContentView.swift */; };
 		628503A0251B936F00E381AA /* CurrencyConverter.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6285039E251B936F00E381AA /* CurrencyConverter.xcdatamodeld */; };
@@ -42,6 +43,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 625712F52371982E00466679;
 			remoteInfo = "CurrencyConverter Extension";
+		};
+		6262F04D25220B280066ADFA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 625712C52371982500466679 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 62850397251B936F00E381AA;
+			remoteInfo = CurrencyConverter;
+		};
+		6262F05325220B2D0066ADFA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 625712C52371982500466679 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 62850397251B936F00E381AA;
+			remoteInfo = CurrencyConverter;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -231,6 +246,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				6262F05425220B2D0066ADFA /* PBXTargetDependency */,
 			);
 			name = CurrencyConverterTests;
 			productName = CurrencyConverterTests;
@@ -248,6 +264,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				6262F04E25220B280066ADFA /* PBXTargetDependency */,
 			);
 			name = CurrencyConverterUITests;
 			productName = CurrencyConverterUITests;
@@ -302,11 +319,11 @@
 				TargetAttributes = {
 					625712DF2371982E00466679 = {
 						CreatedOnToolsVersion = 11.2;
-						TestTargetID = 625712CC2371982500466679;
+						TestTargetID = 62850397251B936F00E381AA;
 					};
 					625712EA2371982E00466679 = {
 						CreatedOnToolsVersion = 11.2;
-						TestTargetID = 625712CC2371982500466679;
+						TestTargetID = 62850397251B936F00E381AA;
 					};
 					625712F52371982E00466679 = {
 						CreatedOnToolsVersion = 11.2;
@@ -412,6 +429,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6262F06925220FA90066ADFA /* NSCustomPersistentContainer.swift in Sources */,
 				62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */,
 				62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */,
 				62222F62251D5F6D00F2EB2C /* CCDataModel.swift in Sources */,
@@ -428,6 +446,16 @@
 			isa = PBXTargetDependency;
 			target = 625712F52371982E00466679 /* CurrencyConverter Extension */;
 			targetProxy = 6262F030252207310066ADFA /* PBXContainerItemProxy */;
+		};
+		6262F04E25220B280066ADFA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 62850397251B936F00E381AA /* CurrencyConverter */;
+			targetProxy = 6262F04D25220B280066ADFA /* PBXContainerItemProxy */;
+		};
+		6262F05425220B2D0066ADFA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 62850397251B936F00E381AA /* CurrencyConverter */;
+			targetProxy = 6262F05325220B2D0066ADFA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -580,7 +608,8 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.rayer.CurrencyConverter-Extension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -602,7 +631,8 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.rayer.CurrencyConverter-Extension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -660,7 +690,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = J9849FB53X;
+				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				INFOPLIST_FILE = CurrencyConverterUITests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -680,7 +710,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = J9849FB53X;
+				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				INFOPLIST_FILE = CurrencyConverterUITests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -714,6 +744,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -740,6 +771,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rayer.CurrencyConverter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

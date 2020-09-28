@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="17192" systemVersion="19G2021" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="17192" systemVersion="19H2" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="CEREntityMO" representedClassName=".CEREntity" syncable="YES" codeGenerationType="class">
         <attribute name="base" optional="YES" attributeType="String"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -12,11 +12,12 @@
         <attribute name="fxFee" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="ratio" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="toSymbol" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="URI"/>
     </entity>
     <elements>
         <element name="CEREntityMO" positionX="-63" positionY="-18" width="128" height="88"/>
-        <element name="ConvertHistory" positionX="-63" positionY="9" width="128" height="163"/>
+        <element name="ConvertHistory" positionX="-63" positionY="9" width="128" height="178"/>
     </elements>
 </model>

@@ -8,6 +8,15 @@
 
 import SafariServices
 
+struct LastResult : Codable {
+    var resultString: String
+    var convertFrom: String
+    var convertTo: String
+    var units: Float
+    var fxRate: Float
+    var ratio: Float
+}
+
 class SafariExtensionHandler: SFSafariExtensionHandler {
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
@@ -62,9 +71,9 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let formattingIndex = UserDefaults.standard.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
-                    UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
-                    
-                    //If everything is fine, store to coredata
+                    //UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
+                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: price)
+                    UserDefaults.standard.set(try? JSONEncoder().encode(lastResult), forKey: "lastResult")
                     
                 }
             } else {
@@ -77,11 +86,19 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         NSLog("contextMenuItemSelected : Command : \(command), UserInfo : \(String(describing: userInfo))")
         if command == "CurrencyExchange" {
             NSLog("Executing Currency Exchange")
-            if let pasteStr = UserDefaults.standard.value(forKey: "lastResult") as? String {
+            if let lastResultData = UserDefaults.standard.value(forKey: "lastResult") as? Data {
+                let lastResult = try! JSONDecoder().decode(LastResult.self, from: lastResultData)
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()
-                pasteBoard.setString(pasteStr, forType: .string)
-                NSLog("Copying to pasteboard : \(pasteStr)")
+                pasteBoard.setString(lastResult.resultString, forType: .string)
+                NSLog("Copying to pasteboard : \(lastResult)")
+
+                //If everyone is OK, save it to core data
+                let history = ConvertHistory(context: persistentContainer.viewContext)
+                history.title = userInfo?["title"] as? String
+                history.url = URL(string: userInfo?["url"] as! String)
+                history.date = Date()
+                
             }
         }
     }

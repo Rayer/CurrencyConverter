@@ -23,32 +23,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "E0199116-1791-49A3-B9F9-ABBFACBE456E"
+            uuid = "1C6D2E30-386B-4E7E-B840-8AF69D762AD1"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "CurrencyConverter Extension/SafariExtensionHandler.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "38"
-            endingLineNumber = "38"
-            landmarkName = "validateContextMenuItem(withCommand:in:userInfo:validationHandler:)"
+            startingLineNumber = "86"
+            endingLineNumber = "86"
+            landmarkName = "contextMenuItemSelected(withCommand:in:userInfo:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "1C6D2E30-386B-4E7E-B840-8AF69D762AD1"
-            shouldBeEnabled = "Yes"
+            uuid = "98DB6EFD-EA98-4813-88D6-ED8CCAB05F68"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "CurrencyConverter Extension/SafariExtensionHandler.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "78"
-            endingLineNumber = "78"
-            landmarkName = "contextMenuItemSelected(withCommand:in:userInfo:)"
+            startingLineNumber = "76"
+            endingLineNumber = "76"
+            landmarkName = "validateContextMenuItem(withCommand:in:userInfo:validationHandler:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
