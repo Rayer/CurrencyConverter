@@ -63,3 +63,28 @@ func saveContext () {
         }
     }
 }
+
+func readFromCore() -> [ConvertHistory]? {
+    let vc = persistentContainer.viewContext
+    let fetchRequst = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+    let objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
+    
+    if let objects = objects {
+        for i in objects.indices {
+            if objects[i].id == nil {
+                objects[i].id = UUID()
+            }
+        }
+        return objects
+    }
+    
+    return nil
+}
+
+func wipeAll() {
+    let vc = persistentContainer.viewContext
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
+    let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+    try! vc.execute(deleteRequest)
+}
+

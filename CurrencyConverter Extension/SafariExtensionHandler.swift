@@ -72,7 +72,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
                     //UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
-                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: price)
+                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: result / unit)
                     UserDefaults.standard.set(try? JSONEncoder().encode(lastResult), forKey: "lastResult")
                     
                 }
@@ -102,6 +102,8 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 history.fromSymbol = lastResult.convertFrom
                 history.toSymbol = lastResult.convertTo
                 history.fxFee = lastResult.fxRate
+                history.ratio = lastResult.ratio
+                history.id = UUID()
                 
                 //Print how many count in CoreData now
                 try? persistentContainer.viewContext.save()
