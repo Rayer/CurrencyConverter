@@ -62,8 +62,8 @@
             filePath = "Shared/NSCustomPersistentContainer.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "81"
-            endingLineNumber = "81"
+            startingLineNumber = "84"
+            endingLineNumber = "84"
             landmarkName = "readFromCore()"
             landmarkType = "9">
          </BreakpointContent>
@@ -97,6 +97,22 @@
             startingLineNumber = "24"
             endingLineNumber = "24"
             landmarkName = "fromCoreData(c:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "E5E16280-DA0C-434D-9D7D-13475D6365F5"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "CurrencyConverter/ConvertHistoryDM.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "31"
+            endingLineNumber = "31"
+            landmarkName = "reload()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

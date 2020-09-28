@@ -9,21 +9,27 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var historicalData = readFromCore()
-
+    @ObservedObject var dataset = ConvertHistoryDMCollection()
+    
+    init() {
+//        NotificationCenter.default.addObserver(dataset, selector: #selector(dataset.reload), name: NSNotification.Name(rawValue: "NSPersistentStoreRemoteChangeNotificationOptionKey"), object: persistentContainer.persistentStoreCoordinator)
+        NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: persistentContainer.persistentStoreCoordinator)
+        dataset.reload()
+    }
+    
     var body: some View {
         
-        TabView(selection: /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Selection@*/.constant(1)/*@END_MENU_TOKEN@*/) {
+        TabView() {
             VStack {
-                List(historicalData!, id: \.id) { c in
+                List(dataset.data!, id: \.id) { c in
                     EntityDetailRow(ConvertHistoryDM.fromCoreData(c: c))
                 }
                 HStack {
                     Button("Reload") {
-                        historicalData = readFromCore()
+                        dataset.reload()
                     }
                     Button("Wipe all") {
-                        historicalData = []
+                        dataset.wipe()
                         wipeAll()
                     }
                 }

@@ -23,5 +23,15 @@ struct ConvertHistoryDM : Identifiable {
     static func fromCoreData(c: ConvertHistory) -> ConvertHistoryDM{
         return ConvertHistoryDM(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFee: c.fxFee, ratio: c.ratio)
     }
-    
+}
+
+class ConvertHistoryDMCollection : ObservableObject {
+    @Published var data : [ConvertHistory]?
+    @objc func reload() {
+        data = readFromCore()
+    }
+    func wipe() {
+        wipeAll()
+        data = []
+    }
 }

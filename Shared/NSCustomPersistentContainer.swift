@@ -27,6 +27,9 @@ var persistentContainer: NSPersistentContainer = {
      error conditions that could cause the creation of the store to fail.
      */
     let container = NSCustomPersistentContainer(name: "CurrencyExchangeRate")
+    let description = container.persistentStoreDescriptions.first
+    description?.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+    description?.setOption(true as NSNumber, forKey: "NSPersistentStoreRemoteChangeNotificationOptionKey")
     //let container = NSPersistentContainer(name: "CurrencyExchangeRate")
 
     container.loadPersistentStores(completionHandler: { (storeDescription, error) in
