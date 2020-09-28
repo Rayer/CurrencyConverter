@@ -63,6 +63,9 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
                     UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
+                    
+                    //If everything is fine, store to coredata
+                    
                 }
             } else {
                 validationHandler(true, nil)

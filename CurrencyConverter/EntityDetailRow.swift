@@ -28,7 +28,7 @@ struct EntityDetailRow: View {
         HStack {
             Text(sourceUrl)
                 .fontWeight(/*@START_MENU_TOKEN@*/.bold/*@END_MENU_TOKEN@*/)
-                .lineLimit(1)
+                .lineLimit(3)
             Text(sourceCurrency)
             Text(destCurrencyWithFx)
             Text(destCurrencyWithoutFx)

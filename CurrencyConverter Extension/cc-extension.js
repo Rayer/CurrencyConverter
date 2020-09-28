@@ -5,7 +5,11 @@ document.addEventListener("DOMContentLoaded", function (event) {
 document.addEventListener("contextmenu", function (event) {
   let selected = window.getSelection().toString();
   if(selected) {
-    safari.extension.setContextMenuEventUserInfo(event, {"selected": selected})
+    safari.extension.setContextMenuEventUserInfo(event, {
+      "selected": selected,
+      "url": window.location.href,
+      "title": document.title
+    })
   }
 });
 

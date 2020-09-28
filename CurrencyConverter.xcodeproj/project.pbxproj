@@ -10,19 +10,20 @@
 		6220DCB623A50ACA0093A237 /* money.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 6220DCB523A50ACA0093A237 /* money.pdf */; };
 		62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */; };
 		62222F62251D5F6D00F2EB2C /* CCDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62222F61251D5F6D00F2EB2C /* CCDataModel.swift */; };
+		62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		625712E52371982E00466679 /* CurrencyConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625712E42371982E00466679 /* CurrencyConverterTests.swift */; };
 		625712FC2371982E00466679 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 625712FB2371982E00466679 /* Cocoa.framework */; };
 		625712FF2371982E00466679 /* SafariExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625712FE2371982E00466679 /* SafariExtensionHandler.swift */; };
 		625713012371982E00466679 /* SafariExtensionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625713002371982E00466679 /* SafariExtensionViewController.swift */; };
 		625713042371982E00466679 /* SafariExtensionViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 625713022371982E00466679 /* SafariExtensionViewController.xib */; };
 		625713072371982E00466679 /* cc-extension.js in Resources */ = {isa = PBXBuildFile; fileRef = 625713062371982E00466679 /* cc-extension.js */; };
-		625713092371982E00466679 /* ToolbarItemIcon.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 625713082371982E00466679 /* ToolbarItemIcon.pdf */; };
 		6257131C23719B5300466679 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131A23719B5300466679 /* CurrencyConverter.swift */; };
 		6257131D23719B5300466679 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131A23719B5300466679 /* CurrencyConverter.swift */; };
 		6257132323719BDC00466679 /* NSCustomPersistentContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */; };
 		6257132423719BDC00466679 /* NSCustomPersistentContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */; };
 		6257132623719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
+		6262F0412522087E0066ADFA /* CurrencyConverter Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 625712F62371982E00466679 /* CurrencyConverter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6285039B251B936F00E381AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6285039A251B936F00E381AA /* AppDelegate.swift */; };
 		6285039D251B936F00E381AA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6285039C251B936F00E381AA /* ContentView.swift */; };
 		628503A0251B936F00E381AA /* CurrencyConverter.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6285039E251B936F00E381AA /* CurrencyConverter.xcdatamodeld */; };
@@ -33,6 +34,30 @@
 		62985BB8238464FB0022ED28 /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
 		62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6262F030252207310066ADFA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 625712C52371982500466679 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 625712F52371982E00466679;
+			remoteInfo = "CurrencyConverter Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6262F0442522087F0066ADFA /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6262F0412522087E0066ADFA /* CurrencyConverter Extension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		6220DCB523A50ACA0093A237 /* money.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = money.pdf; sourceTree = "<group>"; };
@@ -49,11 +74,11 @@
 		625713032371982E00466679 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/SafariExtensionViewController.xib; sourceTree = "<group>"; };
 		625713052371982E00466679 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		625713062371982E00466679 /* cc-extension.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "cc-extension.js"; sourceTree = "<group>"; };
-		625713082371982E00466679 /* ToolbarItemIcon.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = ToolbarItemIcon.pdf; sourceTree = "<group>"; };
 		6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurrencyConverter_Extension.entitlements; sourceTree = "<group>"; };
 		6257131A23719B5300466679 /* CurrencyConverter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CurrencyConverter.swift; sourceTree = "<group>"; };
 		6257131F23719BDB00466679 /* NSCustomPersistentContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NSCustomPersistentContainer.swift; sourceTree = "<group>"; };
 		6257132123719BDC00466679 /* CurrencyExchangeRate.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CurrencyExchangeRate.xcdatamodel; sourceTree = "<group>"; };
+		6262F03A252207FA0066ADFA /* SafariServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SafariServices.framework; path = System/Library/Frameworks/SafariServices.framework; sourceTree = SDKROOT; };
 		62850398251B936F00E381AA /* CurrencyConverter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CurrencyConverter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6285039A251B936F00E381AA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6285039C251B936F00E381AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -136,6 +161,7 @@
 		625712FA2371982E00466679 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				6262F03A252207FA0066ADFA /* SafariServices.framework */,
 				625712FB2371982E00466679 /* Cocoa.framework */,
 			);
 			name = Frameworks;
@@ -151,7 +177,6 @@
 				6220DCB523A50ACA0093A237 /* money.pdf */,
 				625713052371982E00466679 /* Info.plist */,
 				625713062371982E00466679 /* cc-extension.js */,
-				625713082371982E00466679 /* ToolbarItemIcon.pdf */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
 			);
 			path = "CurrencyConverter Extension";
@@ -253,10 +278,12 @@
 				62850394251B936F00E381AA /* Sources */,
 				62850395251B936F00E381AA /* Frameworks */,
 				62850396251B936F00E381AA /* Resources */,
+				6262F0442522087F0066ADFA /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6262F031252207310066ADFA /* PBXTargetDependency */,
 			);
 			name = CurrencyConverter;
 			productName = CurrencyConverter;
@@ -329,7 +356,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				625713092371982E00466679 /* ToolbarItemIcon.pdf in Resources */,
 				625713042371982E00466679 /* SafariExtensionViewController.xib in Resources */,
 				625713072371982E00466679 /* cc-extension.js in Resources */,
 				6220DCB623A50ACA0093A237 /* money.pdf in Resources */,
@@ -387,6 +413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */,
+				62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */,
 				62222F62251D5F6D00F2EB2C /* CCDataModel.swift in Sources */,
 				6285039D251B936F00E381AA /* ContentView.swift in Sources */,
 				6285039B251B936F00E381AA /* AppDelegate.swift in Sources */,
@@ -395,6 +422,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6262F031252207310066ADFA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 625712F52371982E00466679 /* CurrencyConverter Extension */;
+			targetProxy = 6262F030252207310066ADFA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		625713022371982E00466679 /* SafariExtensionViewController.xib */ = {
@@ -537,7 +572,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = J9849FB53X;
+				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -559,7 +594,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = J9849FB53X;
+				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
