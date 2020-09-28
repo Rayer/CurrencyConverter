@@ -14,7 +14,7 @@
         <attribute name="ratio" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="toSymbol" optional="YES" attributeType="String"/>
-        <attribute name="url" optional="YES" attributeType="URI"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
     <elements>
         <element name="CEREntityMO" positionX="-63" positionY="-18" width="128" height="88"/>

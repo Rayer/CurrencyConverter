@@ -96,9 +96,15 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 //If everyone is OK, save it to core data
                 let history = ConvertHistory(context: persistentContainer.viewContext)
                 history.title = userInfo?["title"] as? String
-                history.url = URL(string: userInfo?["url"] as! String)
+                history.url = userInfo?["url"] as? String
                 history.date = Date()
+                history.fromAmount = lastResult.units
+                history.fromSymbol = lastResult.convertFrom
+                history.toSymbol = lastResult.convertTo
+                history.fxFee = lastResult.fxRate
                 
+                //Print how many count in CoreData now
+                try? persistentContainer.viewContext.save()
             }
         }
     }

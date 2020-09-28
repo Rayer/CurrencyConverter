@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>ag.com.rayer.CurrencyConverter</string>
+		<string>$(TeamIdentifierPrefix)com.rayer.CurrencyConverter</string>
 	</array>
 	<key>com.apple.security.files.user-selected.read-only</key>
 	<true/>

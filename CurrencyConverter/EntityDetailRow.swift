@@ -15,11 +15,11 @@ struct EntityDetailRow: View {
     var destCurrencyWithoutFx : String
     var ratio : String
     
-    init(_ model: CCDataModel) {
-        sourceUrl = model.url
-        sourceCurrency = "\(model.sourceAmount)\(model.sourceSymbol)"
-        destCurrencyWithFx = "\(model.destAmount * (1 + model.fxRate))\(model.destSymbol)"
-        destCurrencyWithoutFx = "\(model.destAmount)\(model.destSymbol)"
+    init(_ model: ConvertHistory) {
+        sourceUrl = model.url!
+        sourceCurrency = "\(model.fromAmount)\(model.fromSymbol ?? "---")"
+        destCurrencyWithFx = "\(model.fromAmount * model.ratio * (1 + model.fxFee))\(model.toSymbol)"
+        destCurrencyWithoutFx = "\(model.fromAmount * model.ratio)\(model.toSymbol)"
         ratio = "\(model.ratio)"
         
     }
@@ -41,8 +41,8 @@ struct EntityDetailRow: View {
 }
 
 struct EntityDetailRow_Previews: PreviewProvider {
-    static let model = CCDataModel(url: "https://www.example.com/item/213", sourceSymbol: "USD", destSymbol: "TWD", ratio: 33.2, fxRate: 0.015, sourceAmount: 10.0, destAmount: 332.0)
+
     static var previews: some View {
-        EntityDetailRow(model)
+        EntityDetailRow(generateModel())
     }
 }
