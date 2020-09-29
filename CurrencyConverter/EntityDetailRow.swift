@@ -16,39 +16,60 @@ struct EntityDetailRow: View {
     var destCurrencyWithoutFx : String
     var ratio : String
     @State var popoverFullUrl = false
+    @State var isChecked = false
     
-    init(_ model: ConvertHistoryDM) {
+    init(_ model: ConvertHistoryUIBean) {
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        
         title = (model.title == nil || model.title!.count < 2) ? model.url : model.title!
         sourceUrl = model.url
-        sourceCurrency = "\(model.fromAmount)\(model.fromSymbol )"
-        destCurrencyWithFx = "\(model.fromAmount * model.ratio * (1 + model.fxFee))\(model.toSymbol)"
-        destCurrencyWithoutFx = "\(model.fromAmount * model.ratio)\(model.toSymbol)"
-        ratio = "\(model.ratio)"
+        sourceCurrency = FixedPercision(amount: model.fromAmount, symbol: model.fromSymbol)
+        //destCurrencyWithFx = "\(model.fromAmount * model.ratio * (1 + model.fxFee))\(model.toSymbol)"
+        destCurrencyWithFx = FixedPercision(amount: model.fromAmount * model.ratio * (1 + model.fxFee), symbol: model.toSymbol)
+        destCurrencyWithoutFx = FixedPercision(amount: model.fromAmount * model.ratio, symbol: model.toSymbol)
+        ratio = String(format:"%.3f", model.ratio)
     }
     
     var body: some View {
         HStack {
+            Toggle(isOn: $isChecked) {
+            }
+            .frame(alignment: .center)
+            .padding(.leading)
+            
+            
             Text(title)
                 .fontWeight(.semibold)
                 .font(.system(.subheadline, design: .rounded))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
-                .padding()
+                .frame(width: 300, alignment: .leading)
                 .onHover(perform: { hovering in
                     popoverFullUrl = hovering
                 })
                 .popover(isPresented: $popoverFullUrl, content: {
                     Text(sourceUrl)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
                 })
             
-                
+            Divider()
             Text(sourceCurrency)
+                .frame(width: 60, height: 40, alignment: .trailing)
             Text(destCurrencyWithFx)
+                .frame(width: 60, height: 40, alignment: .trailing)
             Text(destCurrencyWithoutFx)
+                .frame(width: 60, height: 40, alignment: .trailing)
             Text(ratio)
+                .frame(width: 60, height: 40, alignment: .trailing)
             Button(action: {
-                
+                guard let url = URL(string: sourceUrl) else {
+                    return
+                }
+                NSWorkspace.shared.open(url)
             }, label: {
                 Text("Go To Page")
             })
@@ -60,6 +81,13 @@ struct EntityDetailRow: View {
 struct EntityDetailRow_Previews: PreviewProvider {
 
     static var previews: some View {
-        EntityDetailRow(generateModel())
+        Group {
+            EntityDetailRow(generateModel())
+        }
+        //EmptyView()
     }
+}
+
+func FixedPercision(amount: Float, symbol: String) -> String {
+    return String(format: "%.2f %@", amount, symbol)
 }

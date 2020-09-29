@@ -12,7 +12,6 @@ struct ContentView: View {
     @ObservedObject var dataset = ConvertHistoryDMCollection()
     
     init() {
-//        NotificationCenter.default.addObserver(dataset, selector: #selector(dataset.reload), name: NSNotification.Name(rawValue: "NSPersistentStoreRemoteChangeNotificationOptionKey"), object: persistentContainer.persistentStoreCoordinator)
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: persistentContainer.persistentStoreCoordinator)
         dataset.reload()
     }
@@ -22,15 +21,17 @@ struct ContentView: View {
         TabView() {
             VStack {
                 List(dataset.data!, id: \.id) { c in
-                    EntityDetailRow(ConvertHistoryDM.fromCoreData(c: c))
+                    EntityDetailRow(ConvertHistoryUIBean.fromCoreData(c: c))
                 }
                 HStack {
-                    Button("Reload") {
-                        dataset.reload()
-                    }
+//                    Button("Reload") {
+//                        dataset.reload()
+//                    }
                     Button("Wipe all") {
                         dataset.wipe()
                         wipeAll()
+                    }
+                    Button("Wipe selected") {
                     }
                 }
             }
@@ -41,7 +42,7 @@ struct ContentView: View {
                 .tabItem { Text("Settings") }
                 .tag(2)
         }
-        .frame(minWidth: 400, idealWidth: 400, maxWidth: .infinity, minHeight: 400, idealHeight: 400, maxHeight: .infinity, alignment: .center)
+        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
         
     }
 }

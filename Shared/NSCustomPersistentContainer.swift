@@ -70,6 +70,8 @@ func saveContext () {
 func readFromCore() -> [ConvertHistory]? {
     let vc = persistentContainer.viewContext
     let fetchRequst = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+    let sort = NSSortDescriptor(keyPath: \ConvertHistory.date, ascending: false)
+    fetchRequst.sortDescriptors = [sort]
     let objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
     
     if let objects = objects {

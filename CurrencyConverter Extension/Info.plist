@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CurrencyInfoFeed</key>
-	<string>https://api.rayer.idv.tw/currency</string>
+	<string>https://api.rayer.idv.tw/currency?apiKey=Pa1EWFzg785sDLYbj4aWcp3C</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSExtension</key>

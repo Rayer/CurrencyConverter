@@ -10,7 +10,7 @@ import Foundation
 
 //Can't use CoreData in Preview, so we need adapt it.
 
-struct ConvertHistoryDM : Identifiable {
+struct ConvertHistoryUIBean : Identifiable {
     var id: UUID
     var title: String?
     var url: String
@@ -19,9 +19,10 @@ struct ConvertHistoryDM : Identifiable {
     var fromAmount: Float
     var fxFee: Float
     var ratio: Float
+    var isChecked = false
     
-    static func fromCoreData(c: ConvertHistory) -> ConvertHistoryDM{
-        return ConvertHistoryDM(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFee: c.fxFee, ratio: c.ratio)
+    static func fromCoreData(c: ConvertHistory) -> ConvertHistoryUIBean{
+        return ConvertHistoryUIBean(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFee: c.fxFee, ratio: c.ratio)
     }
 }
 
@@ -34,4 +35,5 @@ class ConvertHistoryDMCollection : ObservableObject {
         wipeAll()
         data = []
     }
+
 }
