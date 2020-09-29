@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct EntityDetailRow: View {
     var title: String
@@ -19,14 +20,13 @@ struct EntityDetailRow: View {
     @State var isChecked = false
     
     init(_ model: ConvertHistoryUIBean) {
-        
+                
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         
         title = (model.title == nil || model.title!.count < 2) ? model.url : model.title!
         sourceUrl = model.url
         sourceCurrency = FixedPercision(amount: model.fromAmount, symbol: model.fromSymbol)
-        //destCurrencyWithFx = "\(model.fromAmount * model.ratio * (1 + model.fxFee))\(model.toSymbol)"
         destCurrencyWithFx = FixedPercision(amount: model.fromAmount * model.ratio * (1 + model.fxFee), symbol: model.toSymbol)
         destCurrencyWithoutFx = FixedPercision(amount: model.fromAmount * model.ratio, symbol: model.toSymbol)
         ratio = String(format:"%.3f", model.ratio)
@@ -34,7 +34,7 @@ struct EntityDetailRow: View {
     
     var body: some View {
         HStack {
-            Toggle(isOn: $isChecked) {
+            Toggle(isOn: self.$isChecked) {
             }
             .frame(alignment: .center)
             .padding(.leading)
@@ -75,6 +75,8 @@ struct EntityDetailRow: View {
             })
                 .padding()
         }
+        
+        
     }
 }
 

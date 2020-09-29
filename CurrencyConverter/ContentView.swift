@@ -20,18 +20,19 @@ struct ContentView: View {
         
         TabView() {
             VStack {
-                List(dataset.data!, id: \.id) { c in
-                    EntityDetailRow(ConvertHistoryUIBean.fromCoreData(c: c))
+                List(dataset.data, id: \.id) { c in
+                    EntityDetailRow(c)
                 }
                 HStack {
-//                    Button("Reload") {
-//                        dataset.reload()
-//                    }
+                    Button("Reload(For debugging)") {
+                        dataset.reload()
+                    }
                     Button("Wipe all") {
                         dataset.wipe()
-                        wipeAll()
+                        //wipeAll()
                     }
                     Button("Wipe selected") {
+                        dataset.wipeChecked()
                     }
                 }
             }

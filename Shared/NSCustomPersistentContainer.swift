@@ -93,3 +93,16 @@ func wipeAll() {
     try! vc.execute(deleteRequest)
 }
 
+func wipeById(_ at: UUID) {
+    let vc = persistentContainer.viewContext
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
+    let predicate = NSPredicate(format: "id = \(at.uuid))")
+    fetchRequest.predicate = predicate
+    if let result = try? vc.fetch(fetchRequest) {
+        for object in result {
+            vc.delete(object as! NSManagedObject)
+        }
+    }
+    
+
+}
