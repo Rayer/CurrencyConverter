@@ -44,12 +44,14 @@ class ConvertHistoryDMCollection : ObservableObject {
     }
     
     func wipeChecked() {
-        for i in data.indices {
-            if data[i].isChecked {
-                data.remove(at: i)
-                wipeById(data[i].id)
+        data.enumerated()
+            .filter { $0.element.isChecked }
+            .forEach {
+                wipeById($0.element.id)
             }
-        }
+        data = data.enumerated()
+            .filter { $0.element.isChecked == false }
+            .map { $0.element }
         
     }
 

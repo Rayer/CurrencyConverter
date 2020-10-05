@@ -20,8 +20,10 @@ struct ContentView: View {
         
         TabView() {
             VStack {
-                List(dataset.data, id: \.id) { c in
-                    EntityDetailRow(c)
+                //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
+                List(dataset.data.indices, id:\.self) { index in
+                    Toggle("", isOn: self.$dataset.data[index].isChecked)
+                    EntityDetailRow(self.dataset.data[index])
                 }
                 HStack {
                     Button("Reload(For debugging)") {

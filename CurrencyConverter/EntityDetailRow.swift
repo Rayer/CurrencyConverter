@@ -17,7 +17,7 @@ struct EntityDetailRow: View {
     var destCurrencyWithoutFx : String
     var ratio : String
     @State var popoverFullUrl = false
-    @State var isChecked = false
+    //@State var isChecked = false
     
     init(_ model: ConvertHistoryUIBean) {
                 
@@ -34,10 +34,10 @@ struct EntityDetailRow: View {
     
     var body: some View {
         HStack {
-            Toggle(isOn: self.$isChecked) {
-            }
-            .frame(alignment: .center)
-            .padding(.leading)
+//            Toggle(isOn: self.$isChecked) {
+//            }
+//            .frame(alignment: .center)
+//            .padding(.leading)
             
             
             Text(title)

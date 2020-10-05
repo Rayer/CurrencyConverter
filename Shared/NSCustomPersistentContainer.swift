@@ -96,7 +96,7 @@ func wipeAll() {
 func wipeById(_ at: UUID) {
     let vc = persistentContainer.viewContext
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-    let predicate = NSPredicate(format: "id = \(at.uuid))")
+    let predicate = NSPredicate(format: "id = '\(at)'")
     fetchRequest.predicate = predicate
     if let result = try? vc.fetch(fetchRequest) {
         for object in result {
