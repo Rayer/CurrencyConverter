@@ -103,6 +103,7 @@ func wipeById(_ at: UUID) {
             vc.delete(object as! NSManagedObject)
         }
     }
+    try! vc.save()
     
 
 }
