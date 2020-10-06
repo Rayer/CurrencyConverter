@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="17192" systemVersion="19H2" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="ConvertHistory" representedClassName="ConvertHistory" syncable="YES" codeGenerationType="class">
+    <entity name="ConvertHistory" representedClassName=".ConvertHistory" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="fromAmount" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="fromSymbol" optional="YES" attributeType="String"/>
@@ -11,13 +11,14 @@
         <attribute name="toSymbol" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="FormatStrings" representedClassName="FormatStrings" syncable="YES" codeGenerationType="class">
+    <entity name="FormatString" representedClassName=".FormatString" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="format_string" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
+    <fetchRequest name="FetchRequest" entity="FormatString" predicateString="TRUEPREDICATE"/>
     <elements>
         <element name="ConvertHistory" positionX="-63" positionY="9" width="128" height="178"/>
-        <element name="FormatStrings" positionX="-63" positionY="81" width="128" height="88"/>
+        <element name="FormatString" positionX="-63" positionY="81" width="128" height="88"/>
     </elements>
 </model>

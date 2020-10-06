@@ -14,28 +14,38 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>CurrencyConverterTests.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>625712CC2371982500466679</key>
 		<dict>
 			<key>primary</key>
-			<true />
+			<true/>
 		</dict>
 		<key>625712DF2371982E00466679</key>
 		<dict>
 			<key>primary</key>
-			<true />
+			<true/>
 		</dict>
 		<key>625712EA2371982E00466679</key>
 		<dict>
 			<key>primary</key>
-			<true />
+			<true/>
 		</dict>
 		<key>625712F52371982E00466679</key>
 		<dict>
 			<key>primary</key>
-			<true />
+			<true/>
+		</dict>
+		<key>62850397251B936F00E381AA</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

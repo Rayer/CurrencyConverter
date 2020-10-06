@@ -116,5 +116,197 @@
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "D4C1540A-D869-4D4D-97CD-D72F7E50F3C7"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Shared/FormatStringDataManager.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "91"
+            endingLineNumber = "91"
+            landmarkName = "GetAvailableStringEntities()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "D4C1540A-D869-4D4D-97CD-D72F7E50F3C7 - fca685386c80582c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverter.FormatStringDataManager.GetAvailableStringEntities() -&gt; Swift.Array&lt;CurrencyConverter.FormatStrings&gt;"
+                  moduleName = "CurrencyConverter"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "89"
+                  endingLineNumber = "89"
+                  offsetFromSymbolStart = "629">
+               </Location>
+               <Location
+                  uuid = "D4C1540A-D869-4D4D-97CD-D72F7E50F3C7 - ab39b534d90b2979"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverterTests.FormatStringDataManager.GetAvailableStringEntities() -&gt; Swift.Array&lt;CurrencyConverterTests.FormatStrings&gt;"
+                  moduleName = "CurrencyConverterTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "89"
+                  endingLineNumber = "89"
+                  offsetFromSymbolStart = "629">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "571728E4-BA10-4028-8D85-3B62783B5A9C"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Shared/FormatStringDataManager.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "30"
+            endingLineNumber = "30"
+            landmarkName = "init()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "571728E4-BA10-4028-8D85-3B62783B5A9C - dec97fefcab5e17c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverter.FormatStringDataManager.init() -&gt; CurrencyConverter.FormatStringDataManager"
+                  moduleName = "CurrencyConverter"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "29"
+                  endingLineNumber = "29"
+                  offsetFromSymbolStart = "817">
+               </Location>
+               <Location
+                  uuid = "571728E4-BA10-4028-8D85-3B62783B5A9C - ca1a39209c10e57d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverterTests.FormatStringDataManager.init() -&gt; CurrencyConverterTests.FormatStringDataManager"
+                  moduleName = "CurrencyConverterTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "29"
+                  endingLineNumber = "29"
+                  offsetFromSymbolStart = "817">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "89B90190-3ECB-44D6-BEC3-EE955BAD713A"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Shared/FormatStringDataManager.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "29"
+            endingLineNumber = "29"
+            landmarkName = "init()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "89B90190-3ECB-44D6-BEC3-EE955BAD713A - dec97fefcab5e17c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverter.FormatStringDataManager.init() -&gt; CurrencyConverter.FormatStringDataManager"
+                  moduleName = "CurrencyConverter"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "29"
+                  endingLineNumber = "29"
+                  offsetFromSymbolStart = "825">
+               </Location>
+               <Location
+                  uuid = "89B90190-3ECB-44D6-BEC3-EE955BAD713A - ca1a39209c10e57d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverterTests.FormatStringDataManager.init() -&gt; CurrencyConverterTests.FormatStringDataManager"
+                  moduleName = "CurrencyConverterTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "29"
+                  endingLineNumber = "29"
+                  offsetFromSymbolStart = "825">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "C893F834-2CD4-4C4A-B421-C5EBA2B4FB74"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Shared/FormatStringDataManager.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "90"
+            endingLineNumber = "90"
+            landmarkName = "GetAvailableStringEntities()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "C893F834-2CD4-4C4A-B421-C5EBA2B4FB74 - c89b0213f7d2c1f4"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverter.FormatStringDataManager.GetAvailableStringEntities() -&gt; Swift.Array&lt;CurrencyConverter.FormatString&gt;"
+                  moduleName = "CurrencyConverter"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "93"
+                  endingLineNumber = "93"
+                  offsetFromSymbolStart = "482">
+               </Location>
+               <Location
+                  uuid = "C893F834-2CD4-4C4A-B421-C5EBA2B4FB74 - 4fd8241e60d7ac47"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CurrencyConverterTests.FormatStringDataManager.GetAvailableStringEntities() -&gt; Swift.Array&lt;CurrencyConverterTests.FormatString&gt;"
+                  moduleName = "CurrencyConverterTests"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/rayer/Develop/CurrencyConverter/Shared/FormatStringDataManager.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "93"
+                  endingLineNumber = "93"
+                  offsetFromSymbolStart = "482">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
    </Breakpoints>
 </Bucket>

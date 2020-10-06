@@ -10,7 +10,8 @@ import XCTest
 @testable import CurrencyConverter
 
 class CurrencyConverterTests: XCTestCase {
-
+    
+    
     override func setUp() {
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }
@@ -20,9 +21,10 @@ class CurrencyConverterTests: XCTestCase {
     }
 
     func testFormatter() {
-        let formatter = ConvertPasteboardFormatter(fromSymbol: "USD", fromAmount: 1, toSymbol: "JPY", toAmount: 110)
-        for x in 0...3 {
-            print(formatter.getFormattedString(formatIndex: x))
+        let formatter = FormatStringDataManager.shared
+        print("Start fetching FS...")
+        formatter.GetAvailableStringEntities().forEach { (fs) in
+            print(fs.format_string!)
         }
     }
 

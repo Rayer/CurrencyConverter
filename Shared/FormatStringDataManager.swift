@@ -10,7 +10,7 @@ import Foundation
 import CoreData
 
 class FormatStringDataManager {
-    let shared = FormatStringDataManager()
+    static let shared = FormatStringDataManager()
     private let view = sharedPersistentContainer.viewContext
     let ToAmountPH = "${to_amount}"
     let FromAmountPH = "${from_amount}"
@@ -24,6 +24,13 @@ class FormatStringDataManager {
         "(${from_symbol}) ${from_amount} => (${to_symbol}) ${to_amount}"
     ]
     
+    init() {
+        let count = try! view.count(for: NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString"))
+        if count < 1 {
+            ResetDefault()
+        }
+    }
+    
     func ResetDefault() {
         wipeAll()
         defaultFormattingString.forEach { (s) in
@@ -32,7 +39,7 @@ class FormatStringDataManager {
     }
 
     func AddString(string : String) {
-        let entity = FormatStrings(context: view)
+        let entity = FormatString(context: view)
         entity.date = Date()
         entity.format_string = string
         entity.id = UUID()
@@ -40,7 +47,7 @@ class FormatStringDataManager {
     }
 
     func DeleteString(uuid : UUID) {
-        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatStrings")
+        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString")
         let p = NSPredicate(format: "id='\(uuid)'")
         fr.predicate = p
         if let result = try? view.fetch(fr) {
@@ -64,21 +71,31 @@ class FormatStringDataManager {
     }
 
     func PreviewString(id : UUID) -> String {
-        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatStrings")
+        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString")
         let p = NSPredicate(format: "id='\(id)'")
         fr.predicate = p
         if let result = try? view.fetch(fr) {
             for object in result {
-                let entity = object as! FormatStrings
+                let entity = object as! FormatString
                 return self.PreviewString(string: entity.format_string!)
             }
         }
         return "" //indicates not found
     }
     
+    func GetAvailableStringEntities() -> [FormatString] {
+        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString")
+        let fetched = try! view.fetch(fr) as! [FormatString]
+//        let test = try! view.fetch(fr)
+//        if let objects = fetched {
+//            return objects
+//        }
+        return fetched
+    }
+    
     fileprivate func wipeAll() {
         //WipeAll
-        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatStrings")
+        let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString")
         let dr = NSBatchDeleteRequest(fetchRequest: fr)
         try! view.execute(dr)
     }
