@@ -29,9 +29,11 @@ struct ConvertHistoryUIBean : Identifiable {
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
+    let dataManager = CHDataManager.shared
+    
     @objc func reload() {
         self.data = []
-        guard let cdList = readFromCore() else {
+        guard let cdList = dataManager.readFromCore() else {
             return
         }
         for entry in cdList {
@@ -39,7 +41,7 @@ class ConvertHistoryDMCollection : ObservableObject {
         }
     }
     func wipe() {
-        wipeAll()
+        dataManager.wipeAll()
         self.data = []
     }
     
@@ -47,7 +49,7 @@ class ConvertHistoryDMCollection : ObservableObject {
         data.enumerated()
             .filter { $0.element.isChecked }
             .forEach {
-                wipeById($0.element.id)
+                dataManager.wipeById($0.element.id)
             }
         data = data.enumerated()
             .filter { $0.element.isChecked == false }

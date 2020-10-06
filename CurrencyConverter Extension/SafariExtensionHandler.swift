@@ -94,7 +94,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 NSLog("Copying to pasteboard : \(lastResult)")
 
                 //If everyone is OK, save it to core data
-                let history = ConvertHistory(context: persistentContainer.viewContext)
+                let history = ConvertHistory(context: sharedPersistentContainer.viewContext)
                 history.title = userInfo?["title"] as? String
                 history.url = userInfo?["url"] as? String
                 history.date = Date()
@@ -106,7 +106,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 history.id = UUID()
                 
                 //Print how many count in CoreData now
-                try? persistentContainer.viewContext.save()
+                try? sharedPersistentContainer.viewContext.save()
             }
         }
     }

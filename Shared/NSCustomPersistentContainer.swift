@@ -19,7 +19,7 @@ class NSCustomPersistentContainer: NSPersistentContainer {
 }
 
 // MARK: - Core Data stack
-var persistentContainer: NSPersistentContainer = {
+var sharedPersistentContainer: NSPersistentContainer = {
     /*
      The persistent container for the application. This implementation
      creates and returns a container, having loaded the store for the
@@ -54,7 +54,7 @@ var persistentContainer: NSPersistentContainer = {
 // MARK: - Core Data Saving support
 
 func saveContext () {
-    let context = persistentContainer.viewContext
+    let context = sharedPersistentContainer.viewContext
     if context.hasChanges {
         do {
             try context.save()
@@ -65,45 +65,4 @@ func saveContext () {
             fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
         }
     }
-}
-
-func readFromCore() -> [ConvertHistory]? {
-    let vc = persistentContainer.viewContext
-    let fetchRequst = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
-    let sort = NSSortDescriptor(keyPath: \ConvertHistory.date, ascending: false)
-    fetchRequst.sortDescriptors = [sort]
-    let objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
-    
-    if let objects = objects {
-        for i in objects.indices {
-            if objects[i].id == nil {
-                objects[i].id = UUID()
-            }
-        }
-        return objects
-    }
-    
-    return nil
-}
-
-func wipeAll() {
-    let vc = persistentContainer.viewContext
-    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-    let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-    try! vc.execute(deleteRequest)
-}
-
-func wipeById(_ at: UUID) {
-    let vc = persistentContainer.viewContext
-    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-    let predicate = NSPredicate(format: "id = '\(at)'")
-    fetchRequest.predicate = predicate
-    if let result = try? vc.fetch(fetchRequest) {
-        for object in result {
-            vc.delete(object as! NSManagedObject)
-        }
-    }
-    try! vc.save()
-    
-
 }

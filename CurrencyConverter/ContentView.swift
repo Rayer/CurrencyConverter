@@ -12,7 +12,7 @@ struct ContentView: View {
     @ObservedObject var dataset = ConvertHistoryDMCollection()
     
     init() {
-        NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: persistentContainer.persistentStoreCoordinator)
+        NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
         dataset.reload()
     }
     

@@ -11,7 +11,13 @@
         <attribute name="toSymbol" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
+    <entity name="FormatStrings" representedClassName="FormatStrings" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="format_string" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+    </entity>
     <elements>
         <element name="ConvertHistory" positionX="-63" positionY="9" width="128" height="178"/>
+        <element name="FormatStrings" positionX="-63" positionY="81" width="128" height="88"/>
     </elements>
 </model>
