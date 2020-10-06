@@ -18,32 +18,24 @@ struct ContentView: View {
     
     var body: some View {
         
-        TabView() {
-            VStack {
-                //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
-                List(dataset.data.indices, id:\.self) { index in
-                    Toggle("", isOn: self.$dataset.data[index].isChecked)
-                    EntityDetailRow(self.dataset.data[index])
+        VStack {
+            //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
+            List(dataset.data.indices, id:\.self) { index in
+                Toggle("", isOn: self.$dataset.data[index].isChecked)
+                EntityDetailRow(self.dataset.data[index])
+            }
+            HStack {
+//                Button("Reload(For debugging)") {
+//                    dataset.reload()
+//                }
+                Button("Wipe all") {
+                    dataset.wipe()
+                    //wipeAll()
                 }
-                HStack {
-                    Button("Reload(For debugging)") {
-                        dataset.reload()
-                    }
-                    Button("Wipe all") {
-                        dataset.wipe()
-                        //wipeAll()
-                    }
-                    Button("Wipe selected") {
-                        dataset.wipeChecked()
-                    }
+                Button("Wipe selected") {
+                    dataset.wipeChecked()
                 }
             }
-                .tabItem { Text("Data") }
-                .tag(1)
-            
-            Text("Tab Content 2")
-                .tabItem { Text("Settings") }
-                .tag(2)
         }
         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
         
