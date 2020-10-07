@@ -15,9 +15,9 @@
 
 Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安裝Safari Extension，他必須依附於一個macOS Application，所以必須要像普通App一樣拖拉進Application資料夾且點擊。
 
-1. 從[Release頁面](https://github.com/Rayer/CurrencyConverter/releases)下載`CurrencyConverter.app.zip`，目前版本是1.1。預設我放上去的版本都是開發者簽名過且AppConnect認證過的application。
+1. 從[Release頁面](https://github.com/Rayer/CurrencyConverter/releases)下載`CurrencyConverter.app.zip`，目前版本是1.5。預設我放上去的版本都是開發者簽名過且AppConnect認證過的application。
 2. 就像普通macOS App一樣，把他丟進Application
-3. 執行，按下按鈕
+3. 執行，按下"Open Safari Preference"
 4. 他會自動打開Safari Preference，把Plugin的CurrencyConverter打勾即可。
 
 
@@ -28,10 +28,10 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 1. 自動取得匯率資料，並且提供即時匯率比例轉換。
 1. 提供自動計算信用卡刷卡外幣手續費。
 1. 按下右鍵轉換結果，可以拷貝結果進剪貼簿，拷貝的格式可以在工具列按鈕上設定。
+1. 轉換結果會同步進Application，方便查詢比價以及
 
 
 ## 限制
 
-1. 首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。
+1. ~~首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。~~ 現在我架設自己的server來解決這問題，希望他不要被打爆（不可能吧！？）
 2. 沒有i18n....說真的也不太需要吧
-3. 由於macOS的限制，必須要裝一個沒三小路用的Application才能順帶把Safari App Extension裝上去。

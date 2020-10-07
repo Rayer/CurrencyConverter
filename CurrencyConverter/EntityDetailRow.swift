@@ -81,10 +81,9 @@ struct EntityDetailRow: View {
 }
 
 struct EntityDetailRow_Previews: PreviewProvider {
-
     static var previews: some View {
         Group {
-            EntityDetailRow(generateModel())
+            EntityDetailRow(ConvertHistoryUIBean(id: UUID(), title: "ExampleTitle", url: "https://example.com/it_is_a/very/long_url", fromSymbol: "USD", toSymbol: "TWD", fromAmount: 22.6, fxFee: 0.02, ratio: 31.3))
         }
         //EmptyView()
     }
