@@ -10,12 +10,26 @@ import SwiftUI
 import SafariServices
 
 struct ContentView: View {
+    
     @ObservedObject var dataset = ConvertHistoryDMCollection()
+    @State var showInstallButton = true
     
     init() {
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
+//        checkExtInstall()
         dataset.reload()
     }
+
+//    func checkExtInstall() {
+//        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { (state, error) in
+//            if let state = state {
+//                self.showInstallButton = !state.isEnabled
+//                print("State enabled : \(state.isEnabled)")
+//                print("State enabled2 : \(!state.isEnabled)")
+//                print("Will install button show : \(self.showInstallButton)")
+//            }
+//        }
+//    }
     
     var body: some View {
         
@@ -39,40 +53,22 @@ struct ContentView: View {
                     }
                 }.padding(.all, 5)
                 Spacer()
-                Button("Open Safari Plugin Preference") {
-                    SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
-                        if let _ = error {
-                            // Insert code to inform the user that something went wrong.
-                            
+                if self.showInstallButton {
+                    Button("Enable/Disable Extension") {
+                        SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
+                            if let _ = error {
+                                // Insert code to inform the user that something went wrong.
+                            }
                         }
-                    }
-                    
-                }.padding(.all, 5)
+                        
+                    }.padding(.all, 5)
+                }
+
             }
         }
         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
     }
-    
-    func checkExtInstalled() -> Bool {
-        return true
-    }
 }
-
-//
-//func checkAppExtension() {
-//    SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { (state, error) in
-//        DispatchQueue.main.async {
-//            if (state?.isEnabled ?? false) {
-//                self.label.stringValue = "MyApp Extension for Safari is enabled"
-//                self.statusImage.image = NSImage(named: "enabled")
-//            } else {
-//                self.label.stringValue = "MyApp Extension for Safari is currently disabled"
-//                self.statusImage.image = NSImage(named: "disabled")
-//            }
-//        }
-//    }
-//}
-
 
 struct ContentView_Previews: PreviewProvider {
 

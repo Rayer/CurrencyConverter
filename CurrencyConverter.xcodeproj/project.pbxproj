@@ -562,6 +562,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
@@ -585,6 +586,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
@@ -656,6 +658,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"CurrencyConverter/Preview Content\"";
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -683,6 +686,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"CurrencyConverter/Preview Content\"";
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;

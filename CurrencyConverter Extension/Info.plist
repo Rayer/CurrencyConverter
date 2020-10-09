@@ -19,7 +19,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CurrencyInfoFeed</key>
 	<string>https://api.rayer.idv.tw/currency?apiKey=Pa1EWFzg785sDLYbj4aWcp3C</string>
 	<key>LSMinimumSystemVersion</key>
