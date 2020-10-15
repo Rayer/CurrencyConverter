@@ -50,14 +50,14 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
             formatter.numberStyle = .decimal
             if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
                 
-                let convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String? ?? "TWD"
-                let convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
+                let convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as! String? ?? "TWD"
+                let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as! String? ?? "TWD"
                 let unit = Float32(truncating: selected)
                 
                 CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: unit) { (result, error) in
                     
                     //Add credit card FX rate
-                    let fxIndex = UserDefaults.standard.value(forKey: "fxRateIndex") as! Int? ?? 1
+                    let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as! Int? ?? 1
                     var fxRate : Float32 = 0.0
                     if fxIndex == 1 {
                         fxRate = 0.015
@@ -68,12 +68,11 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let price = result * (1 + fxRate)
                     
                     let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
-                    let formattingIndex = UserDefaults.standard.value(forKey: "FormatIndex") as? Int ?? 0
+                    let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
-                    //UserDefaults.standard.set(lastCurrencyExchangeStr as String, forKey: "lastResult")
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: result / unit)
-                    UserDefaults.standard.set(try? JSONEncoder().encode(lastResult), forKey: "lastResult")
+                    sharedUserDefaults.set(try? JSONEncoder().encode(lastResult), forKey: "lastResult")
                     
                 }
             } else {
@@ -86,7 +85,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         NSLog("contextMenuItemSelected : Command : \(command), UserInfo : \(String(describing: userInfo))")
         if command == "CurrencyExchange" {
             NSLog("Executing Currency Exchange")
-            if let lastResultData = UserDefaults.standard.value(forKey: "lastResult") as? Data {
+            if let lastResultData = sharedUserDefaults.value(forKey: "lastResult") as? Data {
                 let lastResult = try! JSONDecoder().decode(LastResult.self, from: lastResultData)
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()

@@ -51,6 +51,10 @@ var sharedPersistentContainer: NSPersistentContainer = {
     return container
 }()
 
+var sharedUserDefaults: UserDefaults = {
+    return UserDefaults(suiteName: "8AA96R6MF3.com.rayer.CurrencyConverter")!
+}()
+
 // MARK: - Core Data Saving support
 
 func saveContext () {
@@ -66,3 +70,4 @@ func saveContext () {
         }
     }
 }
+

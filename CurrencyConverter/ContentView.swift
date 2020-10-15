@@ -33,38 +33,43 @@ struct ContentView: View {
     
     var body: some View {
         
-        VStack {
-            //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
-            List(dataset.data.indices, id:\.self) { index in
-                Toggle("", isOn: self.$dataset.data[index].isChecked)
-                EntityDetailRow(self.dataset.data[index])
-            }
-            HStack {
-//                Button("Reload(For debugging)") {
-//                    dataset.reload()
-//                }
-                HStack {
-                    Button("Wipe all") {
-                        dataset.wipe()
-                        //wipeAll()
-                    }
-                    Button("Wipe selected") {
-                        dataset.wipeChecked()
-                    }
-                }.padding(.all, 5)
-                Spacer()
-                if self.showInstallButton {
-                    Button("Enable/Disable Extension") {
-                        SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
-                            if let _ = error {
-                                // Insert code to inform the user that something went wrong.
-                            }
-                        }
-                        
-                    }.padding(.all, 5)
+        
+        TabView(selection: /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Selection@*/.constant(1)/*@END_MENU_TOKEN@*/) {
+            VStack {
+                //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
+                List(dataset.data.indices, id:\.self) { index in
+                    Toggle("", isOn: self.$dataset.data[index].isChecked)
+                    EntityDetailRow(self.dataset.data[index])
                 }
-
+                HStack {
+                    HStack {
+                        Button("Wipe all") {
+                            dataset.wipe()
+                            //wipeAll()
+                        }
+                        Button("Wipe selected") {
+                            dataset.wipeChecked()
+                        }
+                    }.padding(.all, 5)
+                    Spacer()
+                    if self.showInstallButton {
+                        Button("Enable/Disable Extension") {
+                            SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
+                                if let _ = error {
+                                    // Insert code to inform the user that something went wrong.
+                                }
+                            }
+                            
+                        }.padding(.all, 5)
+                    }
+                }
             }
+                .tabItem { Text("Stored Records") }.tag(1)
+            
+            Text("Tab Content 2")
+                .tabItem { Text("Configurations") }.tag(2)
+            APISyncInfoView(host: APISyncInfoDataModel(sharedUserDefaults))
+                .tabItem { Text("API Sync Records") }.tag(3)
         }
         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
     }

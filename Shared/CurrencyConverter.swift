@@ -14,6 +14,7 @@ struct CurrencyRateEntity : Decodable {
     var date: String
     var rates: [String:Float32]
     var fetched_localtime : Date?
+    var timestamp: Int
 }
 
 class CurrencyConverter {
@@ -51,9 +52,11 @@ class CurrencyConverter {
                     //Save this to UserDefaults
                     let now = Date()
                     currencyRateEntity.fetched_localtime = now
-                    UserDefaults.standard.set(now, forKey: "LastUpdateDate")
-                    UserDefaults.standard.set(currencyRateEntity.rates, forKey: "CurrencyData")
-                    UserDefaults.standard.set(currencyRateEntity.base, forKey:"CurrencyBase")
+                    sharedUserDefaults.set(now, forKey: "LastUpdateDate")
+                    sharedUserDefaults.set(currencyRateEntity.rates, forKey: "CurrencyData")
+                    sharedUserDefaults.set(currencyRateEntity.base, forKey:"CurrencyBase")
+                    sharedUserDefaults.set(currencyRateEntity.timestamp, forKey: "CurrencyDataTime")
+                    sharedUserDefaults.set(String(data: data, encoding: .utf8), forKey: "CurrencyDataRaw")
                 }
             }
             completionHandler(nil)
@@ -63,7 +66,7 @@ class CurrencyConverter {
     func loadFromDefaults() -> Bool {
         let today = Date()
         
-        guard let record = UserDefaults.standard.value(forKey: "LastUpdateDate") as! Date? else {
+        guard let record = sharedUserDefaults.value(forKey: "LastUpdateDate") as! Date? else {
             return false
         }
         
@@ -71,14 +74,17 @@ class CurrencyConverter {
             return false
         }
         
-        guard let rates = UserDefaults.standard.value(forKey: "CurrencyData") as! [String:Float32]? else {
+        guard let rates = sharedUserDefaults.value(forKey: "CurrencyData") as! [String:Float32]? else {
             return false
         }
+        
+        let dataTimestamp = sharedUserDefaults.integer(forKey: "CurrencyDataTime")
+        
         print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let todayString = formatter.string(from: today)
-        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: todayString, rates: rates)
+        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: todayString, rates: rates, timestamp: dataTimestamp)
         self.currencyRateEntity?.fetched_localtime = record
         return true
     }

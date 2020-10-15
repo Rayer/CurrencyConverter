@@ -42,7 +42,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     override func viewDidLoad() {
         
         fxRateBtnList = [fxRateBtn0, fxRateBtn15, fxRateBtn2]
-        let fxRateIndex = UserDefaults.standard.value(forKey: "fxRateIndex") as! Int? ?? 1
+        let fxRateIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as! Int? ?? 1
         fxRateBtnList.forEach { $0.state = .off }
         fxRateBtnList[fxRateIndex].state = .on
         
@@ -53,11 +53,11 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
             self.convertToListBtn.removeAllItems()
             self.convertListBtn.addItems(withTitles: self.symbols!)
             self.convertToListBtn.addItems(withTitles: self.symbols!)
-            self.convertFromSym = UserDefaults.standard.value(forKey: "convertFromSym") as! String? ?? "USD"
-            self.convertToSym = UserDefaults.standard.value(forKey: "convertToSym") as! String? ?? "TWD"
+            self.convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as! String? ?? "USD"
+            self.convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as! String? ?? "TWD"
             self.convertListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertFromSym ?? "USD") ?? 0)
             self.convertToListBtn.selectItem(at: self.symbols!.firstIndex(of: self.convertToSym ?? "TWD") ?? 0)
-            self.baseRateValueField.floatValue = UserDefaults.standard.value(forKey: "baseRateValue") as! Float32? ?? 1.0
+            self.baseRateValueField.floatValue = sharedUserDefaults.value(forKey: "baseRateValue") as! Float32? ?? 1.0
             self.UpdateFormatters()
             self.UpdateRates()
         }
@@ -65,14 +65,14 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
 
     @IBAction func OnBaseRateValueChanged(_ sender: NSTextField) {
         let baseRateValue = sender.floatValue
-        UserDefaults.standard.set(baseRateValue as Float32, forKey: "baseRateValue")
+        sharedUserDefaults.set(baseRateValue as Float32, forKey: "baseRateValue")
         UpdateRates()
     }
     
     @IBAction func OnConvertFromClicked(_ sender: NSPopUpButton) {
         let selected = symbols![sender.indexOfSelectedItem]
         NSLog("ConvertFrom value selected : \(selected)")
-        UserDefaults.standard.set(selected as String, forKey: "convertFromSym")
+        sharedUserDefaults.set(selected as String, forKey: "convertFromSym")
         convertFromSym = selected
         UpdateRates()
         UpdateFormatters()
@@ -81,7 +81,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     @IBAction func OnConvertToClicked(_ sender: NSPopUpButton) {
         let selected = symbols![sender.indexOfSelectedItem]
         NSLog("ConvertTo value selected : \(selected)")
-        UserDefaults.standard.set(selected as String, forKey: "convertToSym")
+        sharedUserDefaults.set(selected as String, forKey: "convertToSym")
         convertToSym = selected
         UpdateRates()
         UpdateFormatters()
@@ -89,12 +89,12 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     @IBAction func OnFormatBtnClicked(_ sender: NSPopUpButton) {
         let index = sender.indexOfSelectedItem
-        UserDefaults.standard.set(index, forKey: "FormatIndex")
+        sharedUserDefaults.set(index, forKey: "FormatIndex")
     }
     
     @IBAction func OnFxRateBtnClicked(_ sender: NSButton) {
         let index = self.fxRateBtnList.firstIndex(of: sender)
-        UserDefaults.standard.set(index, forKey: "fxRateIndex")
+        sharedUserDefaults.set(index, forKey: "fxRateIndex")
     }
     
     func UpdateRates() {
@@ -113,7 +113,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
             let cpf = ConvertPasteboardFormatter(fromSymbol: self.convertFromSym!, fromAmount: 1, toSymbol: self.convertToSym!, toAmount: result)
             self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings())
         }
-        let formatIndex = UserDefaults.standard.value(forKey: "FormatIndex") as! Int? ?? 0
+        let formatIndex = sharedUserDefaults.value(forKey: "FormatIndex") as! Int? ?? 0
         self.formatterListBtn.selectItem(at: formatIndex)
     }
 }
