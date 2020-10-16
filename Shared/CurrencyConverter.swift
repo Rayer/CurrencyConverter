@@ -29,7 +29,7 @@ class CurrencyConverter {
         print("Setting context : \(String(describing: context))")
     }
     
-    fileprivate func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
+    func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
         let feed_url : URL?
         if let feed_url_str = Bundle.main.object(forInfoDictionaryKey: "CurrencyInfoFeed") as? String {
             feed_url = URL(string: feed_url_str)

@@ -9,12 +9,44 @@
 import SwiftUI
 
 struct APISyncInfoView: View {
-    @State var host : APISyncInfoDataModel
+    @ObservedObject var host : APISyncInfoDataModel
     var body: some View {
         VStack {
-            Text("Last updated : " + (host.lastUpdate ?? "----"))
-            Text("Parsed data time stamp : " + (host.parsedPayloadUpdate ?? "----"))
-            Text("Raw Data : " + (host.rawData ?? "----"))
+            HStack {
+                Text("Last updated : ")
+                    .font(.system(.body, design: Font.Design.rounded))
+                    .frame(width: 200, alignment: .leading)
+                Text(host.lastUpdate ?? "----")
+                Spacer()
+            }.frame(alignment: .leading)
+            HStack {
+                Text("Parsed data time stamp : ")
+                    .font(.system(.body, design: Font.Design.rounded))
+                    .frame(width: 200, alignment: .leading)
+                Text(host.parsedPayloadUpdate ?? "----")
+                Spacer()
+            }.frame(alignment: .leading)
+            HStack {
+                Text("Raw Data : ")
+                    .font(.system(.body, design: Font.Design.rounded))
+                    .frame(width: 200, alignment: .leading)
+                ScrollView {
+                    Text(host.rawData ?? "----")
+                }
+            }.frame(alignment: .leading)
+            Spacer()
+            HStack {
+                Button("Reload from API") {
+                    host.sync()
+                }
+                Button("Copy Raw Data to Clipboard") {
+                    let pasteBoard = NSPasteboard.general
+                    pasteBoard.clearContents()
+                    if let rawData = host.rawData {
+                        pasteBoard.setString(rawData, forType: .string)
+                    }
+                }
+            }.frame(alignment: .leading)
         }
     }
 }
