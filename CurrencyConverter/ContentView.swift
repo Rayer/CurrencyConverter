@@ -13,28 +13,17 @@ struct ContentView: View {
     
     @ObservedObject var dataset = ConvertHistoryDMCollection()
     @State var showInstallButton = true
+    @State var currentTab = 0
     
     init() {
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
-//        checkExtInstall()
         dataset.reload()
     }
 
-//    func checkExtInstall() {
-//        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { (state, error) in
-//            if let state = state {
-//                self.showInstallButton = !state.isEnabled
-//                print("State enabled : \(state.isEnabled)")
-//                print("State enabled2 : \(!state.isEnabled)")
-//                print("Will install button show : \(self.showInstallButton)")
-//            }
-//        }
-//    }
-    
     var body: some View {
         
         
-        TabView(selection: /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Selection@*/.constant(1)/*@END_MENU_TOKEN@*/) {
+        TabView(selection: self.$currentTab) {
             VStack {
                 //https://stackoverflow.com/questions/60994255/swiftui-get-toggle-state-from-items-inside-a-list
                 List(dataset.data.indices, id:\.self) { index in
@@ -63,13 +52,27 @@ struct ContentView: View {
                         }.padding(.all, 5)
                     }
                 }
+            }.tabItem {
+                Text("Stored Records")
+                
+            }.tag(0)
+            .onAppear() {
+                self.currentTab = 0
             }
-                .tabItem { Text("Stored Records") }.tag(1)
             
-            Text("Tab Content 2")
-                .tabItem { Text("Configurations") }.tag(2)
+            ScrollView(.vertical, showsIndicators: true, content: {
+                CreditCardManageView()
+            })
+            .tabItem { Text("Credit Cards") }.tag(1)
+            .onAppear() {
+                self.currentTab = 1
+            }
+            
             APISyncInfoView(host: APISyncInfoDataModel(sharedUserDefaults))
-                .tabItem { Text("API Sync Records") }.tag(3)
+                .tabItem { Text("API Sync Records") }.tag(2)
+                .onAppear() {
+                    self.currentTab = 2
+                }
         }
         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
     }

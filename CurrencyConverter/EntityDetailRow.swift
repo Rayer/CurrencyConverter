@@ -11,10 +11,12 @@ import Combine
 
 struct EntityDetailRow: View {
     var title: String
-    var sourceUrl : String
-    var sourceCurrency : String
-    var destCurrencyWithFx : String
-    var destCurrencyWithoutFx : String
+    var sourceUrl: String
+    var sourceCurrency: String
+    var destCurrencyWithFx: String
+    var destCurrencyWithoutFx: String
+    //var firstEstimatedPrice: String
+    //var secondEstimatedPrice: String
     var ratio : String
     @State var popoverFullUrl = false
     //@State var isChecked = false
@@ -65,6 +67,13 @@ struct EntityDetailRow: View {
                 .frame(width: 60, height: 40, alignment: .trailing)
             Text(ratio)
                 .frame(width: 60, height: 40, alignment: .trailing)
+            VStack {
+                Picker(selection: .constant(1), label: EmptyView()){
+                    Text("1").tag(1)
+                    Text("2").tag(2)
+                }
+                Text("------")
+            }.frame(width: 100, height: 40, alignment: .trailing)
             Button(action: {
                 guard let url = URL(string: sourceUrl) else {
                     return
