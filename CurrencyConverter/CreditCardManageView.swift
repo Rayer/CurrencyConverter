@@ -17,33 +17,38 @@ struct CreditCardManageView: View {
             Picker(selection: self.$creditCardTypeSelection, label: Text("Credit Card Type")){
                 Text("Cash-back based").tag(1)
                 Text("Mileage or point based").tag(2)
-            }.padding()
+            }
+            .pickerStyle(RadioGroupPickerStyle())
+            .padding()
             
              
-            UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique", bindedValue: self.$model.creditCardName)
+            UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique", bindedValue: self.$model.creditCardName).padding()
             
             Picker(selection: self.$model.clearinghouseCurrency, label: Text("Clearinghouse Currency")){
                 ForEach(self.model.clearinghouseCurrencyList, id:\.self) { (symbol) in
-                    Text(symbol)
+                    Text("\(CountryCurrency.shared.getFlag(symbol: symbol)) \(symbol)").tag(symbol)
                 }
-            }
+            }.padding()
             
-            if self.creditCardTypeSelection == 1 {
-                UnifiedView(title: "Domenstic Cash-Back Rate", description: "Cash Back rate while applying domenstic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomensticRate, isValid: self.model.cbDomensticRateValidate)
-                UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate)
-                UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate)
- 
-            
-            } else if self.creditCardTypeSelection == 2 {
+            Group {
+                if self.creditCardTypeSelection == 1 {
+                    UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate)
+                    UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate)
+                    UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate)
+                    
+                    
+                } else if self.creditCardTypeSelection == 2 {
+                    
+                    UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applyiny domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate)
+                    UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate)
+                    UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate)
+                    UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid)
+                }
+            }.padding()
 
-                UnifiedView(title: "Mileage/Point domenstic rate", description: "Mileage(Point) rate while applyiny domenstic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomensticRate, isValid: self.model.mDomensticRateValidate)
-                UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate)
-                UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate)
-                UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid)
-            }
             Spacer()
             Button("Add Card!") {
-                
+                print("\(model.clearinghouseCurrency)")
             }
         }
     }

@@ -15,12 +15,12 @@ class CreditCardManagerViewModel : ObservableObject {
     var clearinghouseCurrencyList: [String] = []
     @Published var FxRate = "1.5"
     @Published var FxRateValidate = true
-    @Published var cbDomensticRate = ""
-    @Published var cbDomensticRateValidate = true
+    @Published var cbDomesticRate = ""
+    @Published var cbDomesticRateValidate = true
     @Published var cbInternationalRate = ""
     @Published var cbInternationalRateValidate = true
-    @Published var mDomensticRate = ""
-    @Published var mDomensticRateValidate = true
+    @Published var mDomesticRate = ""
+    @Published var mDomesticRateValidate = true
     @Published var mInternationalRate = ""
     @Published var mInternationalRateValidate = true
     @Published var mEstimatedValuePerMile = ""
@@ -40,10 +40,10 @@ class CreditCardManagerViewModel : ObservableObject {
             .assign(to: \.FxRateValidate, on: self)
             .store(in: &cancellableSet)
         
-        self.$cbDomensticRate
+        self.$cbDomesticRate
             .receive(on: RunLoop.main)
             .map(self.isNumber(input:))
-            .assign(to: \.cbDomensticRateValidate, on: self)
+            .assign(to: \.cbDomesticRateValidate, on: self)
             .store(in: &cancellableSet)
         
         self.$cbInternationalRate
@@ -52,10 +52,10 @@ class CreditCardManagerViewModel : ObservableObject {
             .assign(to: \.cbInternationalRateValidate, on: self)
             .store(in: &cancellableSet)
         
-        self.$mDomensticRate
+        self.$mDomesticRate
             .receive(on: RunLoop.main)
             .map(self.isNumber(input:))
-            .assign(to: \.mDomensticRateValidate, on: self)
+            .assign(to: \.mDomesticRateValidate, on: self)
             .store(in: &cancellableSet)
         
         self.$mInternationalRate
