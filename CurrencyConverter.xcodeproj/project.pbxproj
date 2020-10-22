@@ -45,6 +45,8 @@
 		62B81E51254219120015CC19 /* CurrencyCountry.json in Resources */ = {isa = PBXBuildFile; fileRef = 62B81E50254219120015CC19 /* CurrencyCountry.json */; };
 		62B81E52254219120015CC19 /* CurrencyCountry.json in Resources */ = {isa = PBXBuildFile; fileRef = 62B81E50254219120015CC19 /* CurrencyCountry.json */; };
 		62B81E53254219120015CC19 /* CurrencyCountry.json in Resources */ = {isa = PBXBuildFile; fileRef = 62B81E50254219120015CC19 /* CurrencyCountry.json */; };
+		62B81E63254240C60015CC19 /* CreditCardProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6267904B253E4F700071A9A7 /* CreditCardProfile.swift */; };
+		62B81E67254240C70015CC19 /* CreditCardProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6267904B253E4F700071A9A7 /* CreditCardProfile.swift */; };
 		62C49F25252AA14600ED2E72 /* CHDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C49F24252AA14600ED2E72 /* CHDataManager.swift */; };
 		62C49F26252AA14600ED2E72 /* CHDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C49F24252AA14600ED2E72 /* CHDataManager.swift */; };
 		62C49F27252AA14600ED2E72 /* CHDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C49F24252AA14600ED2E72 /* CHDataManager.swift */; };
@@ -392,6 +394,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				62C49F25252AA14600ED2E72 /* CHDataManager.swift in Sources */,
+				62B81E67254240C70015CC19 /* CreditCardProfile.swift in Sources */,
 				62B81E4A2542155D0015CC19 /* CurrencySymbolMap.swift in Sources */,
 				6257132323719BDC00466679 /* SharedPersistent.swift in Sources */,
 				6257132623719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */,
@@ -414,6 +417,7 @@
 				625713012371982E00466679 /* SafariExtensionViewController.swift in Sources */,
 				62C49F2E252AA15400ED2E72 /* FormatStringDataManager.swift in Sources */,
 				6257132723719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */,
+				62B81E63254240C60015CC19 /* CreditCardProfile.swift in Sources */,
 				625712FF2371982E00466679 /* SafariExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

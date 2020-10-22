@@ -9,7 +9,12 @@
 import Foundation
 import Combine
 
+enum CreditCardType {
+    case CashBack, Mileage
+}
+
 class CreditCardManagerViewModel : ObservableObject {
+    @Published var creditCardType = CreditCardType.CashBack
     @Published var creditCardName = ""
     @Published var clearinghouseCurrency = "TWD"
     var clearinghouseCurrencyList: [String] = []
@@ -25,6 +30,7 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var mInternationalRateValidate = true
     @Published var mEstimatedValuePerMile = ""
     @Published var mEstimatedValuePerMileValid = true
+    @Published var savedProfile : [CreditCardProfileEntity] = []
     private var cancellableSet: Set<AnyCancellable> = []
     
     
@@ -33,6 +39,8 @@ class CreditCardManagerViewModel : ObservableObject {
         c.getSymbols { (symbols, error) in
             self.clearinghouseCurrencyList = symbols?.sorted() ?? [""]
         }
+        
+        self.savedProfile = FetchAllCreditCardProfiles()
         
         self.$FxRate
             .receive(on: RunLoop.main)
@@ -88,6 +96,35 @@ class CreditCardManagerViewModel : ObservableObject {
         }
         
         return true
+    }
+    
+    func persist() {
+        switch self.creditCardType {
+            case .CashBack:
+                //Validate cashback
+                if FxRateValidate && cbDomesticRateValidate && cbInternationalRateValidate {
+                    let c = CashBackCreditCardProfile()
+                    c.name = self.creditCardName
+                    c.currencySymbol = self.clearinghouseCurrency
+                    c.fxRate = Float(self.FxRate)!
+                    c.cashBackRateDomestic = Float(cbDomesticRate)!
+                    c.cashBackRateInternational = Float(cbInternationalRate)!
+                    SaveCreditCardProfile(profile: c)
+                }
+            case .Mileage:
+                //Validate mileage
+                if FxRateValidate && mDomesticRateValidate && mInternationalRateValidate && mEstimatedValuePerMileValid {
+                    let m = MileageCreditCardProfile()
+                    m.name = self.creditCardName
+                    m.currencySymbol = self.clearinghouseCurrency
+                    m.fxRate = Float(self.FxRate)!
+                    m.mileageRatioDomestic = Float(self.mDomesticRate)!
+                    m.mileageRatioInternational = Float(self.mInternationalRate)!
+                    m.mileageEstimatedValue = Float(self.mEstimatedValuePerMile)!
+                    SaveCreditCardProfile(profile: m)
+                }
+        }
+        self.savedProfile = FetchAllCreditCardProfiles()
     }
     
 }

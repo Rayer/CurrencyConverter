@@ -11,14 +11,26 @@
         <attribute name="toSymbol" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
+    <entity name="CreditCardProfileEntity" representedClassName=".CreditCardProfileEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="clearinghouseCurrency" optional="YES" attributeType="String"/>
+        <attribute name="fxRate" optional="YES" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="properties" optional="YES" attributeType="String"/>
+        <attribute name="type" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="name"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
     <entity name="FormatString" representedClassName=".FormatString" syncable="YES" codeGenerationType="class">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="format_string" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
-    <fetchRequest name="FetchRequest" entity="FormatString" predicateString="TRUEPREDICATE"/>
     <elements>
         <element name="ConvertHistory" positionX="-63" positionY="9" width="128" height="178"/>
+        <element name="CreditCardProfileEntity" positionX="-63" positionY="81" width="128" height="118"/>
         <element name="FormatString" positionX="-63" positionY="81" width="128" height="88"/>
     </elements>
 </model>
