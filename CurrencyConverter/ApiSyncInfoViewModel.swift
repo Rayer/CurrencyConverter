@@ -8,8 +8,8 @@
 
 import Foundation
 
-class APISyncInfoDataModel : ObservableObject {
-    @Published var data: APISyncInfoDataModel?
+class ApiSyncInfoViewModel : ObservableObject {
+    @Published var data: ApiSyncInfoViewModel?
     var userDefaults: UserDefaults
     var lastUpdate: String?
     var parsedPayloadUpdate: String?

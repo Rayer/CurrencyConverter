@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		621C843E253745F200DC7ECC /* APISyncInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621C843D253745F200DC7ECC /* APISyncInfoView.swift */; };
-		621C84462537492900DC7ECC /* APISyncInfoDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621C84452537492900DC7ECC /* APISyncInfoDataModel.swift */; };
+		621C84462537492900DC7ECC /* ApiSyncInfoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */; };
 		6220DCB623A50ACA0093A237 /* money.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 6220DCB523A50ACA0093A237 /* money.pdf */; };
 		62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */; };
 		62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
@@ -81,7 +81,7 @@
 
 /* Begin PBXFileReference section */
 		621C843D253745F200DC7ECC /* APISyncInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APISyncInfoView.swift; sourceTree = "<group>"; };
-		621C84452537492900DC7ECC /* APISyncInfoDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APISyncInfoDataModel.swift; sourceTree = "<group>"; };
+		621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiSyncInfoViewModel.swift; sourceTree = "<group>"; };
 		6220DCB523A50ACA0093A237 /* money.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = money.pdf; sourceTree = "<group>"; };
 		62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityDetailRow.swift; sourceTree = "<group>"; };
 		625712E02371982E00466679 /* CurrencyConverterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurrencyConverterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -227,7 +227,7 @@
 				62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */,
 				6262F08425222C300066ADFA /* ConvertHistoryUIBean.swift */,
 				621C843D253745F200DC7ECC /* APISyncInfoView.swift */,
-				621C84452537492900DC7ECC /* APISyncInfoDataModel.swift */,
+				621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */,
 				6267904B253E4F700071A9A7 /* CreditCardProfile.swift */,
 				62679050253F0D330071A9A7 /* CreditCardManageView.swift */,
 				62679055253F2F1F0071A9A7 /* CreditCardManagerViewModel.swift */,
@@ -409,7 +409,7 @@
 			files = (
 				6262F06925220FA90066ADFA /* SharedPersistent.swift in Sources */,
 				6262F07F252226100066ADFA /* PreviewConvertHistory.swift in Sources */,
-				621C84462537492900DC7ECC /* APISyncInfoDataModel.swift in Sources */,
+				621C84462537492900DC7ECC /* ApiSyncInfoViewModel.swift in Sources */,
 				62C49F27252AA14600ED2E72 /* CHDataManager.swift in Sources */,
 				621C843E253745F200DC7ECC /* APISyncInfoView.swift in Sources */,
 				62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */,

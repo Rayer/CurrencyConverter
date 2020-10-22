@@ -68,7 +68,7 @@ struct ContentView: View {
                 self.currentTab = 1
             }
             
-            APISyncInfoView(host: APISyncInfoDataModel(sharedUserDefaults))
+            APISyncInfoView(host: ApiSyncInfoViewModel(sharedUserDefaults))
                 .tabItem { Text("API Sync Records") }.tag(2)
                 .onAppear() {
                     self.currentTab = 2

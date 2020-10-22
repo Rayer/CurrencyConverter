@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct APISyncInfoView: View {
-    @ObservedObject var host : APISyncInfoDataModel
+    @ObservedObject var host : ApiSyncInfoViewModel
     var body: some View {
         VStack {
             HStack {
@@ -53,6 +53,6 @@ struct APISyncInfoView: View {
 
 struct APISyncInfoView_Previews: PreviewProvider {
     static var previews: some View {
-        APISyncInfoView(host: APISyncInfoDataModel(sharedUserDefaults))
+        APISyncInfoView(host: ApiSyncInfoViewModel(sharedUserDefaults))
     }
 }
