@@ -16,6 +16,7 @@ enum CreditCardType {
 class CreditCardManagerViewModel : ObservableObject {
     @Published var creditCardType = CreditCardType.CashBack
     @Published var creditCardName = ""
+    @Published var isUpdateCard = false
     @Published var clearinghouseCurrency = "TWD"
     var clearinghouseCurrencyList: [String] = []
     @Published var FxRate = "1.5"
@@ -41,7 +42,15 @@ class CreditCardManagerViewModel : ObservableObject {
         }
         
         self.savedProfile = FetchAllCreditCardProfiles()
-        
+
+        self.$creditCardName
+            .receive(on: RunLoop.main)
+            .map { (input: String) -> Bool in
+                IsCardExist(name: input)
+            }
+            .assign(to: \.isUpdateCard, on: self)
+            .store(in: &cancellableSet)
+
         self.$FxRate
             .receive(on: RunLoop.main)
             .map(self.isPercentNumber(input:))
@@ -125,6 +134,29 @@ class CreditCardManagerViewModel : ObservableObject {
                 }
         }
         self.savedProfile = FetchAllCreditCardProfiles()
+    }
+
+    func loadProfile(_ profile: CreditCardProfileEntity) {
+        self.creditCardName = profile.name ?? "---"
+        self.FxRate = "\(profile.fxRate)"
+        self.clearinghouseCurrency = profile.clearinghouseCurrency ?? ""
+        let decoder = JSONDecoder()
+        switch profile.type {
+        case 0:
+            self.creditCardType = .CashBack
+            let profile = try! decoder.decode(CashBackCreditCardProfile.self, from: (profile.properties?.data(using: .utf8))!)
+            cbDomesticRate = "\(profile.cashBackRateDomestic)"
+            cbInternationalRate = "\(profile.cashBackRateInternational)"
+        case 1:
+            self.creditCardType = .Mileage
+            let profile = try! decoder.decode(MileageCreditCardProfile.self, from: (profile.properties?.data(using: .utf8))!)
+            mDomesticRate = "\(profile.mileageRatioDomestic)"
+            mInternationalRate = "\(profile.mileageRatioInternational)"
+            mEstimatedValuePerMile = "\(profile.mileageEstimatedValue)"
+
+        default:
+            return
+        }
     }
     
 }

@@ -52,19 +52,6 @@ func FetchAllCreditCardProfiles() -> [CreditCardProfileEntity] {
     let vc = sharedPersistentContainer.viewContext
     let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "CreditCardProfileEntity")
     let r = try! vc.fetch(fr) as! [CreditCardProfileEntity]
-//    return r.map { (entity) -> CreditCardProfile in
-//        var profile : CreditCardProfile
-//        let decoder = JSONDecoder()
-//        if entity.type == 0 {
-//            profile = try! decoder.decode(CashBackCreditCardProfile.self, from: (entity.properties?.data(using: .utf8))!)
-//        } else {
-//            profile = try! decoder.decode(MileageCreditCardProfile.self, from: (entity.properties?.data(using: .utf8))!)
-//        }
-//        profile.name = entity.name!
-//        profile.currencySymbol = entity.clearinghouseCurrency!
-//        profile.fxRate = entity.fxRate
-//        return profile
-//    }
     return r
 }
 
@@ -81,7 +68,15 @@ func SaveCreditCardProfile(profile: CreditCardProfile) {
     } catch {
         print(error)
     }
-    
+}
+
+func IsCardExist(name: String) -> Bool {
+    let vc = sharedPersistentContainer.viewContext
+    let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "CreditCardProfileEntity")
+    let pr = NSPredicate(format: "name='\(name)'")
+    fr.predicate = pr
+    let count = try! vc.count(for: fr)
+    return count > 0
 }
 
 class CashBackCreditCardProfile : CreditCardProfile, Codable {
