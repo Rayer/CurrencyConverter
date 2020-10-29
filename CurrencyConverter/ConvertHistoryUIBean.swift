@@ -56,5 +56,15 @@ class ConvertHistoryDMCollection : ObservableObject {
             .map { $0.element }
         
     }
+    
+    func renewFx() {
+        dataManager.readFromCore()?.forEach({ (entity) in
+            CurrencyConverter.shared.convert(from: entity.fromSymbol!, to: entity.toSymbol!, unit: entity.fromAmount) { (result, error) in
+                entity.ratio = result / entity.fromAmount
+            }
+        })
+        try! sharedPersistentContainer.viewContext.save()
+        self.reload()
+    }
 
 }

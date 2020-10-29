@@ -9,29 +9,38 @@
 import SwiftUI
 import Combine
 
+class EntityDetailRowViewModel: ObservableObject{
+    @Published var title: String = ""
+    @Published var sourceUrl: String = ""
+    @Published var sourceCurrency: String = ""
+    @Published var destCurrencyWithFx: String = ""
+    @Published var destCurrencyWithoutFx: String = ""
+    @Published var ratio : String = ""
+    @Published var creditCardInfo : [String] = []
+    @Published var selectedCreditCard = 0
+    
+}
+
 struct EntityDetailRow: View {
-    var title: String
-    var sourceUrl: String
-    var sourceCurrency: String
-    var destCurrencyWithFx: String
-    var destCurrencyWithoutFx: String
-    //var firstEstimatedPrice: String
-    //var secondEstimatedPrice: String
-    var ratio : String
+    
+    @ObservedObject var model = EntityDetailRowViewModel()
     @State var popoverFullUrl = false
-    //@State var isChecked = false
     
     init(_ model: ConvertHistoryUIBean) {
                 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         
-        title = (model.title == nil || model.title!.count < 2) ? model.url : model.title!
-        sourceUrl = model.url
-        sourceCurrency = FixedPercision(amount: model.fromAmount, symbol: model.fromSymbol)
-        destCurrencyWithFx = FixedPercision(amount: model.fromAmount * model.ratio * (1 + model.fxFee), symbol: model.toSymbol)
-        destCurrencyWithoutFx = FixedPercision(amount: model.fromAmount * model.ratio, symbol: model.toSymbol)
-        ratio = String(format:"%.3f", model.ratio)
+        self.model.title = (model.title == nil || model.title!.count < 2) ? model.url : model.title!
+        self.model.sourceUrl = model.url
+        self.model.sourceCurrency = FixedPercision(amount: model.fromAmount, symbol: model.fromSymbol)
+        self.model.destCurrencyWithFx = FixedPercision(amount: model.fromAmount * model.ratio * (1 + model.fxFee), symbol: model.toSymbol)
+        self.model.destCurrencyWithoutFx = FixedPercision(amount: model.fromAmount * model.ratio, symbol: model.toSymbol)
+        self.model.ratio = String(format:"%.3f", model.ratio)
+        
+        FetchAllCreditCardProfiles().forEach { (profile) in
+            self.model.creditCardInfo.append("\(profile.name) - \(profile.estimatedPrice(price: model.ratio * model.fromAmount, targetSymbol: model.toSymbol))")
+        }
     }
     
     var body: some View {
@@ -42,7 +51,7 @@ struct EntityDetailRow: View {
 //            .padding(.leading)
             
             
-            Text(title)
+            Text(model.title)
                 .fontWeight(.semibold)
                 .font(.system(.subheadline, design: .rounded))
                 .fixedSize(horizontal: false, vertical: true)
@@ -53,29 +62,32 @@ struct EntityDetailRow: View {
                     popoverFullUrl = hovering
                 })
                 .popover(isPresented: $popoverFullUrl, content: {
-                    Text(sourceUrl)
+                    Text(model.sourceUrl)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(3)
                 })
             
             Divider()
-            Text(sourceCurrency)
+            Text(model.sourceCurrency)
                 .frame(width: 60, height: 40, alignment: .trailing)
-            Text(destCurrencyWithFx)
+            Text(model.destCurrencyWithFx)
                 .frame(width: 60, height: 40, alignment: .trailing)
-            Text(destCurrencyWithoutFx)
+            Text(model.destCurrencyWithoutFx)
                 .frame(width: 60, height: 40, alignment: .trailing)
-            Text(ratio)
+            Text(model.ratio)
                 .frame(width: 60, height: 40, alignment: .trailing)
             VStack {
-                Picker(selection: .constant(1), label: EmptyView()){
-                    Text("1").tag(1)
-                    Text("2").tag(2)
+                Picker(selection: $model.selectedCreditCard, label: EmptyView()){
+                    ForEach(model.creditCardInfo.indices, id: \.self) { (index) in
+                        Text(model.creditCardInfo[index]).tag(index)
+                    }
+
                 }
+                
                 Text("------")
             }.frame(width: 100, height: 40, alignment: .trailing)
             Button(action: {
-                guard let url = URL(string: sourceUrl) else {
+                guard let url = URL(string: model.sourceUrl) else {
                     return
                 }
                 NSWorkspace.shared.open(url)

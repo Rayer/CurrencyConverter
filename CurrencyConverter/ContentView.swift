@@ -39,6 +39,9 @@ struct ContentView: View {
                         Button("Wipe selected") {
                             dataset.wipeChecked()
                         }
+                        Button("Renew currency exchange rate") {
+                            dataset.renewFx()
+                        }
                     }.padding(.all, 5)
                     Spacer()
                     if self.showInstallButton {

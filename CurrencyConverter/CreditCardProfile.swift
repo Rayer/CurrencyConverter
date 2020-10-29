@@ -48,11 +48,32 @@ func LoadCreditCardProfile(name: String) -> CreditCardProfile? {
     
 }
 
-func FetchAllCreditCardProfiles() -> [CreditCardProfileEntity] {
+func FetchAllCreditCardProfileEntities() -> [CreditCardProfileEntity] {
     let vc = sharedPersistentContainer.viewContext
     let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "CreditCardProfileEntity")
     let r = try! vc.fetch(fr) as! [CreditCardProfileEntity]
     return r
+}
+
+func FetchAllCreditCardProfiles() -> [CreditCardProfile] {
+    var profiles: [CreditCardProfile] = []
+    FetchAllCreditCardProfileEntities().forEach { (entity) in
+        var p: CreditCardProfile = entity.type == 0 ? CashBackCreditCardProfile() : MileageCreditCardProfile()
+        p.name = entity.name!
+        p.fxRate = entity.fxRate
+        p.currencySymbol = entity.clearinghouseCurrency!
+        let decoder = JSONDecoder()
+        switch entity.type {
+            case 0:
+                p = try! decoder.decode(CashBackCreditCardProfile.self, from: entity.properties!.data(using: .utf8)!)
+            case 1:
+                p = try! decoder.decode(MileageCreditCardProfile.self, from: entity.properties!.data(using: .utf8)!)
+            default:
+                return
+        }
+        profiles.append(p)
+    }
+    return profiles
 }
 
 func SaveCreditCardProfile(profile: CreditCardProfile) {
@@ -68,6 +89,15 @@ func SaveCreditCardProfile(profile: CreditCardProfile) {
     } catch {
         print(error)
     }
+}
+
+func DeleteCreditCard(name: String) {
+    let vc = sharedPersistentContainer.viewContext
+    let fr = NSFetchRequest<NSFetchRequestResult>(entityName: "CreditCardProfileEntity")
+    let pr = NSPredicate(format: "name='\(name)'")
+    fr.predicate = pr
+    let bd = NSBatchDeleteRequest(fetchRequest: fr)
+    try! vc.execute(bd)
 }
 
 func IsCardExist(name: String) -> Bool {
@@ -88,9 +118,9 @@ class CashBackCreditCardProfile : CreditCardProfile, Codable {
     var cashBackRateDomestic: Float = 0.0
     func estimatedPrice(price: Float, targetSymbol: String) -> Float {
         if targetSymbol == currencySymbol {
-            return price * cashBackRateDomestic
+            return price - (price * cashBackRateDomestic * 0.01)
         }
-        return price * fxRate * (1 - cashBackRateInternational)
+        return price * (1 + fxRate * 0.01) - (price * cashBackRateInternational * 0.01)
     }
     
     func generateProperties() -> String {
@@ -111,9 +141,9 @@ class MileageCreditCardProfile : CreditCardProfile, Codable {
     
     func estimatedPrice(price: Float, targetSymbol: String) -> Float {
         if targetSymbol == currencySymbol {
-            return price - (price * mileageRatioDomestic * mileageEstimatedValue)
+            return price - (price * mileageRatioDomestic * 0.01 * mileageEstimatedValue)
         }
-        return (price * fxRate) - (price * mileageRatioInternational * mileageEstimatedValue)
+        return (price * (1 + fxRate * 0.01)) - (price * mileageRatioInternational * 0.01 * mileageEstimatedValue)
     }
     
     func generateProperties() -> String {

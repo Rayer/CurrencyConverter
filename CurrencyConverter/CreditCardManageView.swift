@@ -56,20 +56,23 @@ struct CreditCardManageView: View {
                         .onTapGesture {
                             model.loadProfile(profile)
                         }
+                        .foregroundColor(profile.name! == self.model.creditCardName ? .red : .none)
                 }
             }
             
             Spacer()
 
-            if model.isUpdateCard {
-                Button("Update Card") {
+            HStack {
+                
+                Button(model.isUpdateCard ? "Update Card" : "Add Card") {
                     model.persist()
                 }.padding()
-            } else {
-                Button("Add Card") {
-                    model.persist()
-                }.padding()
+                
+                Button("Delete Card") {
+                    model.deleteByCardName(model.creditCardName)
+                }.disabled(!model.isUpdateCard)
             }
+
 
         }
     }

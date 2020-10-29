@@ -32,6 +32,7 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var mEstimatedValuePerMile = ""
     @Published var mEstimatedValuePerMileValid = true
     @Published var savedProfile : [CreditCardProfileEntity] = []
+    @Published var savedProfileOrder = -1
     private var cancellableSet: Set<AnyCancellable> = []
     
     
@@ -41,7 +42,7 @@ class CreditCardManagerViewModel : ObservableObject {
             self.clearinghouseCurrencyList = symbols?.sorted() ?? [""]
         }
         
-        self.savedProfile = FetchAllCreditCardProfiles()
+        self.savedProfile = FetchAllCreditCardProfileEntities()
 
         self.$creditCardName
             .receive(on: RunLoop.main)
@@ -49,6 +50,17 @@ class CreditCardManagerViewModel : ObservableObject {
                 IsCardExist(name: input)
             }
             .assign(to: \.isUpdateCard, on: self)
+            .store(in: &cancellableSet)
+        
+        self.$creditCardName
+            .receive(on: RunLoop.main)
+            .map { (input: String) -> Int in
+                if let index = self.savedProfile.firstIndex(where: { $0.name == input }) {
+                    return index
+                }
+                return -1
+            }
+            .assign(to: \.savedProfileOrder, on: self)
             .store(in: &cancellableSet)
 
         self.$FxRate
@@ -108,6 +120,11 @@ class CreditCardManagerViewModel : ObservableObject {
     }
     
     func persist() {
+        
+        if IsCardExist(name: self.creditCardName) {
+            deleteByCardName(self.creditCardName)
+        }
+        
         switch self.creditCardType {
             case .CashBack:
                 //Validate cashback
@@ -133,7 +150,12 @@ class CreditCardManagerViewModel : ObservableObject {
                     SaveCreditCardProfile(profile: m)
                 }
         }
-        self.savedProfile = FetchAllCreditCardProfiles()
+        self.savedProfile = FetchAllCreditCardProfileEntities()
+    }
+    
+    func deleteByCardName(_ cardname: String) {
+        DeleteCreditCard(name: cardname)
+        self.savedProfile = FetchAllCreditCardProfileEntities()
     }
 
     func loadProfile(_ profile: CreditCardProfileEntity) {
