@@ -68,12 +68,19 @@ struct EntityDetailRow: View {
                 })
             
             Divider()
-            Text(model.sourceCurrency)
-                .frame(width: 60, height: 40, alignment: .trailing)
-            Text(model.destCurrencyWithFx)
-                .frame(width: 60, height: 40, alignment: .trailing)
-            Text(model.destCurrencyWithoutFx)
-                .frame(width: 60, height: 40, alignment: .trailing)
+            
+            VStack(alignment: .leading) {
+                Text(model.sourceCurrency)
+                    .frame(width: 120, height: 20, alignment: .trailing)
+                    .font(.system(Font.TextStyle.caption, design: .rounded))
+                Text(model.destCurrencyWithoutFx)
+                    .frame(width: 120, height: 20, alignment: .trailing)
+                    .font(.system(Font.TextStyle.caption, design: .rounded))
+                Text(model.destCurrencyWithFx)
+                    .frame(width: 120, height: 20, alignment: .trailing)
+                    .font(.system(Font.TextStyle.caption, design: .rounded))
+            }
+
             Text(model.ratio)
                 .frame(width: 60, height: 40, alignment: .trailing)
             VStack {
@@ -111,5 +118,6 @@ struct EntityDetailRow_Previews: PreviewProvider {
 }
 
 func FixedPercision(amount: Float, symbol: String) -> String {
-    return String(format: "%.2f %@", amount, symbol)
+    let symbols = CountryCurrency.shared
+    return String(format: "%@ %.2f %@", symbols.getSymbolPrefix(symbol: symbol), amount, symbols.getFlag(symbol: symbol))
 }

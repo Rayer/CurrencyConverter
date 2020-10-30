@@ -50,6 +50,14 @@ class CountryCurrency {
     }
     
     func getFlag(symbol: String) -> String {
-        return data[symbol]?.emoji ?? ""
+        return data[symbol]?.emoji ?? " "
+    }
+    
+    func getSymbolPrefix(symbol: String) -> String {
+        return data[symbol]?.symbol_native ?? " "
+    }
+    
+    func getName(symbol: String) -> String {
+        return data[symbol]?.name ?? "???"
     }
 }

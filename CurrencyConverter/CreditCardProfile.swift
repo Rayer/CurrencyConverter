@@ -141,9 +141,9 @@ class MileageCreditCardProfile : CreditCardProfile, Codable {
     
     func estimatedPrice(price: Float, targetSymbol: String) -> Float {
         if targetSymbol == currencySymbol {
-            return price - (price * mileageRatioDomestic * 0.01 * mileageEstimatedValue)
+            return price - (price * mileageRatioDomestic * mileageEstimatedValue)
         }
-        return (price * (1 + fxRate * 0.01)) - (price * mileageRatioInternational * 0.01 * mileageEstimatedValue)
+        return (price * (1 + fxRate * 0.01)) - (price * mileageRatioInternational * mileageEstimatedValue)
     }
     
     func generateProperties() -> String {
