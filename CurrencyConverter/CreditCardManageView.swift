@@ -33,17 +33,25 @@ struct CreditCardManageView: View {
                     
                     Group {
                         if self.model.creditCardType == CreditCardType.CashBack {
-                            UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate, is2liner: true)
-                            UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate, is2liner: true)
-                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true)
+                            UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate, is2liner: true,                           textFieldWidth: 80)
+
+                            UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate, is2liner: true,                           textFieldWidth: 80)
+
+                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
+                                textFieldWidth: 80)
                             
                             
                         } else if self.model.creditCardType == CreditCardType.Mileage {
                             
-                            UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate, is2liner: true)
-                            UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate, is2liner: true)
-                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true)
-                            UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid, is2liner: true)
+                            UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate, is2liner: true,
+                                textFieldWidth: 80)
+                            UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate, is2liner: true,
+                                textFieldWidth: 80)
+
+                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
+                                textFieldWidth: 80)
+                            UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid, is2liner: true,                           textFieldWidth: 80)
+
                         }
                     }
                     .padding(.horizontal)
@@ -94,6 +102,7 @@ struct UnifiedView: View {
     var bindedValue: Binding<String>
     var isValid: Bool = false
     var is2liner = false
+    var textFieldWidth : CGFloat?
     
     init(title: String, description: String, bindedValue: Binding<String>, is2liner: Bool) {
         self.title = title
@@ -102,13 +111,14 @@ struct UnifiedView: View {
         self.is2liner = is2liner
     }
     
-    init(title: String, description: String, errorMessage: String, bindedValue: Binding<String>, isValid: Bool, is2liner: Bool) {
+    init(title: String, description: String, errorMessage: String, bindedValue: Binding<String>, isValid: Bool, is2liner: Bool, textFieldWidth: CGFloat? = nil) {
         self.title = title
         self.description = description
         self.bindedValue = bindedValue
         self.errorMessage = errorMessage
         self.isValid = isValid
         self.is2liner = is2liner
+        self.textFieldWidth = textFieldWidth
     }
     
     var body: some View {
@@ -116,7 +126,13 @@ struct UnifiedView: View {
             if is2liner {
                 HStack(alignment: .top) {
                     Text(title)
-                    TextField(description, text: bindedValue)
+                    if let width = self.textFieldWidth {
+                        Spacer()
+                        TextField(description, text: bindedValue)
+                            .frame(width: width, alignment: .trailing)
+                    } else {
+                        TextField(description, text: bindedValue)
+                    }
                 }
             } else {
                 Text(title)

@@ -45,11 +45,6 @@ struct EntityDetailRow: View {
     
     var body: some View {
         HStack {
-//            Toggle(isOn: self.$isChecked) {
-//            }
-//            .frame(alignment: .center)
-//            .padding(.leading)
-            
             
             Text(model.title)
                 .fontWeight(.semibold)
@@ -88,10 +83,7 @@ struct EntityDetailRow: View {
                     ForEach(model.creditCardInfo.indices, id: \.self) { (index) in
                         Text(model.creditCardInfo[index]).tag(index)
                     }
-
                 }
-                
-                Text("------")
             }.frame(width: 100, height: 40, alignment: .trailing)
             Button(action: {
                 guard let url = URL(string: model.sourceUrl) else {

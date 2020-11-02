@@ -71,13 +71,15 @@ struct ContentView: View {
                 self.currentTab = 1
             }
             
+            #if DEBUG
             APISyncInfoView(host: ApiSyncInfoViewModel(sharedUserDefaults))
                 .tabItem { Text("API Sync Records") }.tag(2)
                 .onAppear() {
                     self.currentTab = 2
                 }
+            #endif
         }
-        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity, alignment: .center)
+        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity, alignment: .center)
     }
 }
 
