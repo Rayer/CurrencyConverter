@@ -22,8 +22,7 @@ struct CreditCardManageView: View {
                     .pickerStyle(RadioGroupPickerStyle())
                     .padding()
                     
-                    
-                    UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique", bindedValue: self.$model.creditCardName, is2liner: false).padding()
+                    UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique and between length of 1 to 24", errorMessage: "Invalid name, it must be between 1-24", bindedValue: self.$model.creditCardName, isValid: self.model.creditCardNameValid, is2liner: false).padding()
                     
                     Picker(selection: self.$model.clearinghouseCurrency, label: Text("Clearinghouse Currency")){
                         ForEach(self.model.clearinghouseCurrencyList, id:\.self) { (symbol) in
@@ -33,24 +32,24 @@ struct CreditCardManageView: View {
                     
                     Group {
                         if self.model.creditCardType == CreditCardType.CashBack {
-                            UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate, is2liner: true,                           textFieldWidth: 80)
+                            UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate, is2liner: true,                           textFieldWidth: 80, withSuffix: "%")
 
-                            UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate, is2liner: true,                           textFieldWidth: 80)
+                            UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate, is2liner: true,                           textFieldWidth: 80, withSuffix: "%")
 
                             UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
-                                textFieldWidth: 80)
+                                textFieldWidth: 80, withSuffix: "%")
                             
                             
                         } else if self.model.creditCardType == CreditCardType.Mileage {
                             
                             UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate, is2liner: true,
-                                textFieldWidth: 80)
+                                textFieldWidth: 80, withSuffix: "per dollar")
                             UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate, is2liner: true,
-                                textFieldWidth: 80)
+                                textFieldWidth: 80, withSuffix: "per dollar")
 
                             UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
-                                textFieldWidth: 80)
-                            UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid, is2liner: true,                           textFieldWidth: 80)
+                                textFieldWidth: 80, withSuffix: "%")
+                            UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid, is2liner: true,                           textFieldWidth: 80, withSuffix: " ")
 
                         }
                     }
@@ -103,6 +102,7 @@ struct UnifiedView: View {
     var isValid: Bool = false
     var is2liner = false
     var textFieldWidth : CGFloat?
+    var suffix : String?
     
     init(title: String, description: String, bindedValue: Binding<String>, is2liner: Bool) {
         self.title = title
@@ -111,7 +111,7 @@ struct UnifiedView: View {
         self.is2liner = is2liner
     }
     
-    init(title: String, description: String, errorMessage: String, bindedValue: Binding<String>, isValid: Bool, is2liner: Bool, textFieldWidth: CGFloat? = nil) {
+    init(title: String, description: String, errorMessage: String, bindedValue: Binding<String>, isValid: Bool, is2liner: Bool, textFieldWidth: CGFloat? = nil, withSuffix: String? = nil) {
         self.title = title
         self.description = description
         self.bindedValue = bindedValue
@@ -119,6 +119,7 @@ struct UnifiedView: View {
         self.isValid = isValid
         self.is2liner = is2liner
         self.textFieldWidth = textFieldWidth
+        self.suffix = withSuffix
     }
     
     var body: some View {
@@ -132,6 +133,9 @@ struct UnifiedView: View {
                             .frame(width: width, alignment: .trailing)
                     } else {
                         TextField(description, text: bindedValue)
+                    }
+                    if let s = self.suffix {
+                        Text(s)
                     }
                 }
             } else {

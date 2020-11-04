@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -336,7 +336,7 @@
 				};
 			};
 			buildConfigurationList = 625712C82371982500466679 /* Build configuration list for PBXProject "CurrencyConverter" */;
-			compatibilityVersion = "Xcode 9.3";
+			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -602,7 +602,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
@@ -626,7 +626,7 @@
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "CurrencyConverter Extension/Info.plist";
@@ -698,7 +698,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"CurrencyConverter/Preview Content\"";
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -726,7 +726,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"CurrencyConverter/Preview Content\"";
 				DEVELOPMENT_TEAM = 8AA96R6MF3;
 				ENABLE_HARDENED_RUNTIME = YES;

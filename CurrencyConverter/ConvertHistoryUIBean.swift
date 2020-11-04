@@ -17,14 +17,33 @@ struct ConvertHistoryUIBean : Identifiable {
     var fromSymbol: String
     var toSymbol: String
     var fromAmount: Float
-    var fxFee: Float
+    
+    var toAmount : Float {
+        get {
+            return fromAmount * ratio
+        }
+    }
+    
+    var fxFee : Float {
+        get {
+            return toAmount * fxFeeRate
+        }
+    }
+    
+    var toAmountWithFx : Float {
+        get {
+            return toAmount + fxFee
+        }
+    }
+    
+    var fxFeeRate: Float
     var ratio: Float
     var isChecked = false
     
     static func fromCoreData(c: ConvertHistory) -> ConvertHistoryUIBean{
-        return ConvertHistoryUIBean(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFee: c.fxFee, ratio: c.ratio)
+        //due to some migration concern, entity still "fxFee" to represent "fxFeeRate"
+        return ConvertHistoryUIBean(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFeeRate: c.fxFee, ratio: c.ratio)
     }
-    
 }
 
 class ConvertHistoryDMCollection : ObservableObject {

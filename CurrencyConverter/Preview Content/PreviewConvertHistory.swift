@@ -10,5 +10,5 @@ import Foundation
 import CoreData
 
 func generateModel() -> ConvertHistoryUIBean {
-    return ConvertHistoryUIBean(id: UUID(), title: "ExampleTitle", url: "https://example.com/it_is_a/very/long_url", fromSymbol: "USD", toSymbol: "TWD", fromAmount: 22.6, fxFee: 0.02, ratio: 31.3)
+    return ConvertHistoryUIBean(id: UUID(), title: "ExampleTitle", url: "https://example.com/it_is_a/very/long_url", fromSymbol: "USD", toSymbol: "TWD", fromAmount: 22.6, fxFeeRate: 0.02, ratio: 31.3)
 }

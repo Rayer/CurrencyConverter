@@ -17,6 +17,7 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var creditCardType = CreditCardType.CashBack
     @Published var creditCardName = ""
     @Published var isUpdateCard = false
+    @Published var creditCardNameValid = true
     @Published var clearinghouseCurrency = "TWD"
     var clearinghouseCurrencyList: [String] = []
     @Published var FxRate = "1.5"
@@ -43,7 +44,15 @@ class CreditCardManagerViewModel : ObservableObject {
         }
         
         self.savedProfile = FetchAllCreditCardProfileEntities()
-
+        
+        self.$creditCardName
+            .receive(on: RunLoop.main)
+            .map { (input: String) -> Bool in
+                return input.count > 0 && input.count < 24
+            }
+            .assign(to: \.creditCardNameValid, on: self)
+            .store(in: &cancellableSet)
+        
         self.$creditCardName
             .receive(on: RunLoop.main)
             .map { (input: String) -> Bool in
@@ -118,6 +127,7 @@ class CreditCardManagerViewModel : ObservableObject {
         
         return true
     }
+
     
     func persist() {
         
@@ -128,7 +138,7 @@ class CreditCardManagerViewModel : ObservableObject {
         switch self.creditCardType {
             case .CashBack:
                 //Validate cashback
-                if FxRateValidate && cbDomesticRateValidate && cbInternationalRateValidate {
+                if creditCardNameValid && FxRateValidate && cbDomesticRateValidate && cbInternationalRateValidate  {
                     let c = CashBackCreditCardProfile()
                     c.name = self.creditCardName
                     c.currencySymbol = self.clearinghouseCurrency
@@ -139,7 +149,7 @@ class CreditCardManagerViewModel : ObservableObject {
                 }
             case .Mileage:
                 //Validate mileage
-                if FxRateValidate && mDomesticRateValidate && mInternationalRateValidate && mEstimatedValuePerMileValid {
+                if creditCardNameValid && FxRateValidate && mDomesticRateValidate && mInternationalRateValidate && mEstimatedValuePerMileValid {
                     let m = MileageCreditCardProfile()
                     m.name = self.creditCardName
                     m.currencySymbol = self.clearinghouseCurrency
