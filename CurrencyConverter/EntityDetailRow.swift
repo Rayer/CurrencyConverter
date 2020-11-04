@@ -90,6 +90,7 @@ struct EntityDetailRow: View {
                 })
                 .popover(isPresented: $popoverFullUrl, content: {
                     Text(model.sourceUrl)
+                        .frame(minWidth: 120, idealWidth: 400, maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(3)
                 })
