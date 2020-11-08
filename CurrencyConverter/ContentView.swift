@@ -47,8 +47,9 @@ struct ContentView: View {
                     if self.showInstallButton {
                         Button("Enable/Disable Extension") {
                             SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
-                                if let _ = error {
+                                if let e = error {
                                     // Insert code to inform the user that something went wrong.
+                                    print("Error opening preference for extension : \(e)")
                                 }
                             }
                             

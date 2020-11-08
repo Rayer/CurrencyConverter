@@ -17,6 +17,7 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var creditCardType = CreditCardType.CashBack
     @Published var creditCardName = ""
     @Published var isUpdateCard = false
+    @Published var creditCardNameValid = true
     @Published var clearinghouseCurrency = "TWD"
     var clearinghouseCurrencyList: [String] = []
     @Published var FxRate = "1.5"
@@ -25,6 +26,12 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var cbDomesticRateValidate = true
     @Published var cbInternationalRate = ""
     @Published var cbInternationalRateValidate = true
+    @Published var mConvertType = 0 {
+        didSet {
+            mInternationalRate = String.init(format: "%.4f", (1 / (Float(mInternationalRate) ?? 1)))
+            mDomesticRate = String.init(format: "%.4f", (1 / (Float(mDomesticRate) ?? 1)))
+        }
+    }
     @Published var mDomesticRate = ""
     @Published var mDomesticRateValidate = true
     @Published var mInternationalRate = ""
@@ -43,7 +50,15 @@ class CreditCardManagerViewModel : ObservableObject {
         }
         
         self.savedProfile = FetchAllCreditCardProfileEntities()
-
+        
+        self.$creditCardName
+            .receive(on: RunLoop.main)
+            .map { (input: String) -> Bool in
+                return input.count > 0 && input.count < 24
+            }
+            .assign(to: \.creditCardNameValid, on: self)
+            .store(in: &cancellableSet)
+        
         self.$creditCardName
             .receive(on: RunLoop.main)
             .map { (input: String) -> Bool in
@@ -98,6 +113,9 @@ class CreditCardManagerViewModel : ObservableObject {
             .map(self.isNumber(input:))
             .assign(to: \.mEstimatedValuePerMileValid, on: self)
             .store(in: &cancellableSet)
+        
+        
+        
     }
     
     func isNumber(input: String) -> Bool {
@@ -118,6 +136,7 @@ class CreditCardManagerViewModel : ObservableObject {
         
         return true
     }
+
     
     func persist() {
         
@@ -128,24 +147,29 @@ class CreditCardManagerViewModel : ObservableObject {
         switch self.creditCardType {
             case .CashBack:
                 //Validate cashback
-                if FxRateValidate && cbDomesticRateValidate && cbInternationalRateValidate {
+                if creditCardNameValid && FxRateValidate && cbDomesticRateValidate && cbInternationalRateValidate  {
                     let c = CashBackCreditCardProfile()
                     c.name = self.creditCardName
                     c.currencySymbol = self.clearinghouseCurrency
                     c.fxRate = Float(self.FxRate)!
-                    c.cashBackRateDomestic = Float(cbDomesticRate)!
-                    c.cashBackRateInternational = Float(cbInternationalRate)!
+                    c.cashBackRateDomestic = Float(cbDomesticRate)! / 100
+                    c.cashBackRateInternational = Float(cbInternationalRate)! / 100
                     SaveCreditCardProfile(profile: c)
                 }
             case .Mileage:
                 //Validate mileage
-                if FxRateValidate && mDomesticRateValidate && mInternationalRateValidate && mEstimatedValuePerMileValid {
+                if creditCardNameValid && FxRateValidate && mDomesticRateValidate && mInternationalRateValidate && mEstimatedValuePerMileValid {
                     let m = MileageCreditCardProfile()
                     m.name = self.creditCardName
                     m.currencySymbol = self.clearinghouseCurrency
                     m.fxRate = Float(self.FxRate)!
-                    m.mileageRatioDomestic = Float(self.mDomesticRate)!
-                    m.mileageRatioInternational = Float(self.mInternationalRate)!
+                    if mConvertType == 0 {
+                        m.mileageRatioDomestic = 1 / Float(self.mDomesticRate)!
+                        m.mileageRatioInternational = 1 / Float(self.mInternationalRate)!
+                    } else {
+                        m.mileageRatioDomestic = Float(self.mDomesticRate)!
+                        m.mileageRatioInternational = Float(self.mInternationalRate)!
+                    }
                     m.mileageEstimatedValue = Float(self.mEstimatedValuePerMile)!
                     SaveCreditCardProfile(profile: m)
                 }
@@ -167,13 +191,13 @@ class CreditCardManagerViewModel : ObservableObject {
         case 0:
             self.creditCardType = .CashBack
             let profile = try! decoder.decode(CashBackCreditCardProfile.self, from: (profile.properties?.data(using: .utf8))!)
-            cbDomesticRate = "\(profile.cashBackRateDomestic)"
-            cbInternationalRate = "\(profile.cashBackRateInternational)"
+            cbDomesticRate = "\(profile.cashBackRateDomestic * 100)"
+            cbInternationalRate = "\(profile.cashBackRateInternational * 100)"
         case 1:
             self.creditCardType = .Mileage
             let profile = try! decoder.decode(MileageCreditCardProfile.self, from: (profile.properties?.data(using: .utf8))!)
-            mDomesticRate = "\(profile.mileageRatioDomestic)"
-            mInternationalRate = "\(profile.mileageRatioInternational)"
+            mDomesticRate = "\(1 / profile.mileageRatioDomestic)"
+            mInternationalRate = "\(1 / profile.mileageRatioInternational)"
             mEstimatedValuePerMile = "\(profile.mileageEstimatedValue)"
 
         default:

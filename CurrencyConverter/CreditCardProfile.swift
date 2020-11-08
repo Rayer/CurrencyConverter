@@ -13,7 +13,8 @@ protocol CreditCardProfile {
     var name : String {get set}
     var currencySymbol: String {get set}
     var fxRate : Float {get set}
-    func estimatedPrice(price: Float, targetSymbol: String) -> Float
+    func estimatedPrice(price: Float, sourceSymbol: String) -> Float
+    func estimateRewardAmount(price: Float, sourceSymbol: String) -> Float
     func generateProperties() -> String
     func getType() -> Int
 }
@@ -110,22 +111,28 @@ func IsCardExist(name: String) -> Bool {
 }
 
 class CashBackCreditCardProfile : CreditCardProfile, Codable {
-    
+
     var currencySymbol: String = "TWD"
     var fxRate: Float = 1.5
     var name: String = ""
     var cashBackRateInternational: Float = 0.0
     var cashBackRateDomestic: Float = 0.0
-    func estimatedPrice(price: Float, targetSymbol: String) -> Float {
-        if targetSymbol == currencySymbol {
-            return price - (price * cashBackRateDomestic * 0.01)
+    func estimatedPrice(price: Float, sourceSymbol: String) -> Float {
+
+        if sourceSymbol == currencySymbol {
+            return price - (price * cashBackRateDomestic)
         }
-        return price * (1 + fxRate * 0.01) - (price * cashBackRateInternational * 0.01)
+        return price * (1 + fxRate * 0.01) - (price * cashBackRateInternational)
+    }
+    
+    func estimateRewardAmount(price: Float, sourceSymbol: String) -> Float {
+        return price * ((sourceSymbol == currencySymbol) ? cashBackRateDomestic : cashBackRateInternational)
     }
     
     func generateProperties() -> String {
         return String(decoding: try! JSONEncoder().encode(self), as: UTF8.self)
     }
+    
     func getType() -> Int {
         0
     }
@@ -139,11 +146,15 @@ class MileageCreditCardProfile : CreditCardProfile, Codable {
     var mileageRatioDomestic: Float = 0.0
     var mileageEstimatedValue: Float = 0.0
     
-    func estimatedPrice(price: Float, targetSymbol: String) -> Float {
-        if targetSymbol == currencySymbol {
+    func estimatedPrice(price: Float, sourceSymbol: String) -> Float {
+        if sourceSymbol == currencySymbol {
             return price - (price * mileageRatioDomestic * mileageEstimatedValue)
         }
         return (price * (1 + fxRate * 0.01)) - (price * mileageRatioInternational * mileageEstimatedValue)
+    }
+    
+    func estimateRewardAmount(price: Float, sourceSymbol: String) -> Float {
+        return price * ((sourceSymbol == currencySymbol) ? mileageRatioDomestic : mileageRatioInternational)
     }
     
     func generateProperties() -> String {
