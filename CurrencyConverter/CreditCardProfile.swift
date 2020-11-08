@@ -118,14 +118,15 @@ class CashBackCreditCardProfile : CreditCardProfile, Codable {
     var cashBackRateInternational: Float = 0.0
     var cashBackRateDomestic: Float = 0.0
     func estimatedPrice(price: Float, sourceSymbol: String) -> Float {
+
         if sourceSymbol == currencySymbol {
-            return price - (price * cashBackRateDomestic * 0.01)
+            return price - (price * cashBackRateDomestic)
         }
-        return price * (1 + fxRate * 0.01) - (price * cashBackRateInternational * 0.01)
+        return price * (1 + fxRate * 0.01) - (price * cashBackRateInternational)
     }
     
     func estimateRewardAmount(price: Float, sourceSymbol: String) -> Float {
-        return price * ((sourceSymbol == currencySymbol) ? cashBackRateDomestic : cashBackRateInternational) * 0.01
+        return price * ((sourceSymbol == currencySymbol) ? cashBackRateDomestic : cashBackRateInternational)
     }
     
     func generateProperties() -> String {

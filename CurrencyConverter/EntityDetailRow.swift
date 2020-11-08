@@ -23,6 +23,7 @@ class EntityDetailRowViewModel: ObservableObject{
     @Published var selectedCreditCardIndex = 0
     @Published var selectedCardRewardDetail = ""
     @Published var totalFxFee : [String] = []
+    @Published var creditCardProfiles : [CreditCardProfile] = []
     
 }
 
@@ -44,7 +45,8 @@ struct EntityDetailRow: View {
         self.model.ratio = String(format:"%.3f", bean.ratio)
                 
         var bestPrice : Float?
-        FetchAllCreditCardProfiles().forEach { (profile) in
+        self.model.creditCardProfiles = FetchAllCreditCardProfiles()
+        self.model.creditCardProfiles.forEach { (profile) in
             let estimatedPrice = profile.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol)
             self.model.creditCardInfo.append("\(profile.name) - \(FixedPercision(amount: estimatedPrice, symbol: profile.currencySymbol))")
             

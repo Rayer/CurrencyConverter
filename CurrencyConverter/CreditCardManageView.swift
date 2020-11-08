@@ -42,10 +42,17 @@ struct CreditCardManageView: View {
                             
                         } else if self.model.creditCardType == CreditCardType.Mileage {
                             
+                            Picker(selection: $model.mConvertType, label: Text("Convert Type"), content:{
+                                Text("Dollars per point").tag(0)
+                                Text("Points per dollar").tag(1)
+                            })
+                            .pickerStyle(SegmentedPickerStyle())
+
+                            
                             UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate, is2liner: true,
-                                textFieldWidth: 80, withSuffix: "per dollar")
+                                        textFieldWidth: 80, withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar")
                             UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate, is2liner: true,
-                                textFieldWidth: 80, withSuffix: "per dollar")
+                                textFieldWidth: 80, withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar")
 
                             UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
                                 textFieldWidth: 80, withSuffix: "%")
@@ -64,6 +71,7 @@ struct CreditCardManageView: View {
                             model.loadProfile(profile)
                         }
                         .foregroundColor(profile.name! == self.model.creditCardName ? .red : .none)
+                        .frame(minWidth: 100, idealWidth: 100, maxWidth: .infinity)
                 }
             }
             
