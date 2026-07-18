@@ -20,12 +20,28 @@ struct CurrencyRateEntity : Decodable {
 class CurrencyConverter {
     var currencyRateEntity: CurrencyRateEntity?
     var context: NSExtensionContext?
+    typealias RateTransport = (URL, @escaping (Data?, URLResponse?, Error?) -> Void) -> Void
+
+    private let clock: () -> Date
+    private let defaults: UserDefaults
+    private let transport: RateTransport
     
     static let shared = CurrencyConverter()
-    private init(){}
+    private init() {
+        clock = Date.init
+        defaults = sharedUserDefaults
+        transport = { url, completion in
+            URLSession.shared.dataTask(with: url, completionHandler: completion).resume()
+        }
+    }
 
-    init(context: NSExtensionContext? = nil) {
+    init(context: NSExtensionContext? = nil, clock: @escaping () -> Date = Date.init, defaults: UserDefaults = sharedUserDefaults, transport: RateTransport? = nil) {
         self.context = context
+        self.clock = clock
+        self.defaults = defaults
+        self.transport = transport ?? { url, completion in
+            URLSession.shared.dataTask(with: url, completionHandler: completion).resume()
+        }
         print("Setting context : \(String(describing: context))")
     }
     
@@ -39,7 +55,7 @@ class CurrencyConverter {
         
         print("Loading currency data from \(String(describing: feed_url?.absoluteString))")
 
-        URLSession.shared.dataTask(with: feed_url!) { (data, response, error) in
+        transport(feed_url!, { (data, response, error) in
             if let error = error {
                 print("Error: \(error.localizedDescription)")
                 completionHandler(error)
@@ -50,35 +66,35 @@ class CurrencyConverter {
                 if var currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
                     self.currencyRateEntity = currencyRateEntity
                     //Save this to UserDefaults
-                    let now = Date()
+                    let now = self.clock()
                     currencyRateEntity.fetched_localtime = now
-                    sharedUserDefaults.set(now, forKey: "LastUpdateDate")
-                    sharedUserDefaults.set(currencyRateEntity.rates, forKey: "CurrencyData")
-                    sharedUserDefaults.set(currencyRateEntity.base, forKey:"CurrencyBase")
-                    sharedUserDefaults.set(currencyRateEntity.timestamp, forKey: "CurrencyDataTime")
-                    sharedUserDefaults.set(String(data: data, encoding: .utf8), forKey: "CurrencyDataRaw")
+                    self.defaults.set(now, forKey: "LastUpdateDate")
+                    self.defaults.set(currencyRateEntity.rates, forKey: "CurrencyData")
+                    self.defaults.set(currencyRateEntity.base, forKey:"CurrencyBase")
+                    self.defaults.set(currencyRateEntity.timestamp, forKey: "CurrencyDataTime")
+                    self.defaults.set(String(data: data, encoding: .utf8), forKey: "CurrencyDataRaw")
                 }
             }
             completionHandler(nil)
-        }.resume()
+        })
     }
     
     func loadFromDefaults() -> Bool {
-        let today = Date()
+        let today = clock()
         
-        guard let record = sharedUserDefaults.value(forKey: "LastUpdateDate") as! Date? else {
+        guard let record = defaults.value(forKey: "LastUpdateDate") as! Date? else {
             return false
         }
         
-        guard record.addingTimeInterval(24.0 * 60.0 * 60.0) > today else {
+        guard LegacyCachePolicy.isFresh(lastUpdated: record, now: today) else {
             return false
         }
         
-        guard let rates = sharedUserDefaults.value(forKey: "CurrencyData") as! [String:Float32]? else {
+        guard let rates = defaults.value(forKey: "CurrencyData") as! [String:Float32]? else {
             return false
         }
         
-        let dataTimestamp = sharedUserDefaults.integer(forKey: "CurrencyDataTime")
+        let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
         
         print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
         let formatter = DateFormatter()
@@ -99,8 +115,8 @@ class CurrencyConverter {
             return false
         }
         
-        let today = Date()
-        guard last_update.addingTimeInterval(24.0 * 60.0 * 60.0) > today else {
+        let today = clock()
+        guard LegacyCachePolicy.isFresh(lastUpdated: last_update, now: today) else {
             NSLog("Convert Rate Data in Memory not found or too old (\(last_update) vs \(today)), load from Defaults....")
             return false
         }
@@ -132,10 +148,10 @@ class CurrencyConverter {
                 return
             }
             
-            let fromRate = self.currencyRateEntity?.rates[from]!
-            let toRate = self.currencyRateEntity?.rates[to]!
-            
-            completionHandler((unit / fromRate!) * toRate!, nil)
+            switch LegacyConversionMath.direct(unit: unit, fromRate: self.currencyRateEntity?.rates[from], toRate: self.currencyRateEntity?.rates[to]) {
+            case .success(let result): completionHandler(result, nil)
+            case .failure(let error): completionHandler(0.0, error)
+            }
         }
     }
     

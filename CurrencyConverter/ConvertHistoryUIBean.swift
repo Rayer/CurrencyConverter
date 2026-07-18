@@ -20,19 +20,19 @@ struct ConvertHistoryUIBean : Identifiable {
     
     var toAmount : Float {
         get {
-            return fromAmount * ratio
+            return LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
         }
     }
     
     var fxFee : Float {
         get {
-            return toAmount * fxFeeRate
+            return LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
         }
     }
     
     var toAmountWithFx : Float {
         get {
-            return toAmount + fxFee
+            return LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
         }
     }
     
