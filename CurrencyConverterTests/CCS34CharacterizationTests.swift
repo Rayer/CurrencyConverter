@@ -1,6 +1,37 @@
 import XCTest
 @testable import CurrencyConverter
 
+private final class TestConvertHistoryRecord: ConvertHistoryRecord {
+    var id: UUID?
+    var title: String?
+    var url: String?
+    var fromSymbol: String?
+    var toSymbol: String?
+    var fromAmount: Float
+    var fxFee: Float
+    var ratio: Float
+    
+    init(
+        id: UUID? = UUID(),
+        title: String? = "",
+        url: String? = nil,
+        fromSymbol: String?,
+        toSymbol: String?,
+        fromAmount: Float = 0,
+        fxFee: Float = 0,
+        ratio: Float = 1
+    ) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.fromSymbol = fromSymbol
+        self.toSymbol = toSymbol
+        self.fromAmount = fromAmount
+        self.fxFee = fxFee
+        self.ratio = ratio
+    }
+}
+
 final class CCS34ConversionCharacterizationTests: XCTestCase {
     func testFixedRateDirectConversionUsesBaseRateMath() {
         let result = LegacyConversionMath.direct(unit: 2, fromRate: 4, toRate: 1)
@@ -183,6 +214,169 @@ final class CCS34PersistenceCharacterizationTests: XCTestCase {
 }
 
 final class CCS34HistoryCharacterizationTests: XCTestCase {
+    func testSameCurrencyHistoryValuesAreNormalizedForNewWrites() {
+        let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+            fromSymbol: "USD", toSymbol: "USD", fxFeeRate: 0.02, ratio: 0.5
+        )
+
+        XCTAssertEqual(values.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(values.ratio, 1, accuracy: 0.0001)
+    }
+
+    func testLegacySameCurrencyHistoryRecordIsNormalizedByUIBean() {
+        let source = TestConvertHistoryRecord(
+            fromSymbol: "USD",
+            toSymbol: "USD",
+            fromAmount: 200,
+            fxFee: 0.02,
+            ratio: 0.5
+        )
+        let sourceId = source.id
+        let sourceTitle = source.title
+        let sourceUrl = source.url
+        let bean = ConvertHistoryUIBean.fromCoreData(c: source)
+
+        XCTAssertEqual(bean.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.ratio, 1, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmount, bean.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmountWithFx, bean.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(source.id, sourceId)
+        XCTAssertEqual(source.title, sourceTitle)
+        XCTAssertEqual(source.url, sourceUrl)
+        XCTAssertEqual(source.fromSymbol, "USD")
+        XCTAssertEqual(source.toSymbol, "USD")
+        XCTAssertEqual(source.fromAmount, 200, accuracy: 0.0001)
+        XCTAssertEqual(source.fxFee, 0.02, accuracy: 0.0001)
+        XCTAssertEqual(source.ratio, 0.5, accuracy: 0.0001)
+    }
+
+    func testLegacyOptionalAndUnknownSymbolShapesFollowSameCurrencyContract() {
+        let cases: [(from: String?, to: String?, name: String)] = [
+            (nil, nil, "nil-nil"),
+            (nil, "", "nil-empty"),
+            ("", "", "empty-empty"),
+            ("US", "US", "short-equal"),
+            ("USD ", "USD ", "whitespace-equal"),
+            ("usd", "usd", "lowercase-equal"),
+            ("???", "???", "punctuation-equal"),
+            ("US", "TWD", "short-cross")
+        ]
+
+        for testCase in cases {
+            let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                fromSymbol: testCase.from, toSymbol: testCase.to, fxFeeRate: 0.02, ratio: 0.5
+            )
+            let shouldNormalize = testCase.from?.isEmpty == false && testCase.to?.isEmpty == false && testCase.from == testCase.to
+            XCTAssertEqual(values.fxFeeRate, shouldNormalize ? 0 : 0.02, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(values.ratio, shouldNormalize ? 1 : 0.5, accuracy: 0.0001, testCase.name)
+
+            let row = TestConvertHistoryRecord(
+                fromSymbol: testCase.from,
+                toSymbol: testCase.to,
+                fromAmount: 0.5,
+                fxFee: 0.02,
+                ratio: 0.5
+            )
+            let bean = ConvertHistoryUIBean.fromCoreData(c: row)
+
+            XCTAssertEqual(row.fromSymbol, testCase.from, testCase.name)
+            XCTAssertEqual(row.toSymbol, testCase.to, testCase.name)
+            XCTAssertEqual(row.fxFee, 0.02, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(row.ratio, 0.5, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(row.fromAmount, 0.5, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(bean.fxFeeRate, shouldNormalize ? 0 : 0.02, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(bean.ratio, shouldNormalize ? 1 : 0.5, accuracy: 0.0001, testCase.name)
+        }
+    }
+
+    func testEntityDetailRowPresentationUsesNormalizedProductionBeanAndBestPriceInputs() throws {
+        let source = TestConvertHistoryRecord(
+            id: UUID(),
+            title: "Product",
+            url: "https://example.com",
+            fromSymbol: "USD",
+            toSymbol: "USD",
+            fromAmount: 200,
+            fxFee: 0.02,
+            ratio: 31.3
+        )
+        let bean = ConvertHistoryUIBean.fromCoreData(c: source)
+        var domestic = CashBackCreditCardProfile()
+        domestic.name = "Domestic"
+        domestic.currencySymbol = "USD"
+        domestic.fxRate = 0.0
+        domestic.cashBackRateDomestic = 0.02
+        domestic.cashBackRateInternational = 0.0
+        var international = CashBackCreditCardProfile()
+        international.name = "International"
+        international.currencySymbol = "USD"
+        international.fxRate = 1.5
+        international.cashBackRateDomestic = 0.03
+        international.cashBackRateInternational = 0.0
+
+        XCTAssertEqual(source.id, bean.id)
+        XCTAssertEqual(source.title, "Product")
+        XCTAssertEqual(source.url, "https://example.com")
+        XCTAssertEqual(source.fromSymbol, "USD")
+        XCTAssertEqual(source.toSymbol, "USD")
+        XCTAssertEqual(source.fxFee, 0.02, accuracy: 0.0001)
+        XCTAssertEqual(source.ratio, 31.3, accuracy: 0.0001)
+        XCTAssertEqual(source.fromAmount, 200, accuracy: 0.0001)
+        XCTAssertEqual(bean.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.ratio, 1, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmount, 200, accuracy: 0.0001)
+
+        let presentation = EntityDetailRowPresentationInput(bean: bean)
+        XCTAssertEqual(presentation.sourceAmount, source.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.sourceSymbol, bean.fromSymbol)
+        XCTAssertEqual(presentation.destinationAmount, source.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.destinationAmountWithFee, source.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.destinationAmountWithFee, bean.toAmountWithFx, accuracy: 0.0001)
+        XCTAssertEqual(presentation.ratio, 1, accuracy: 0.0001)
+        XCTAssertEqual(presentation.cardInputAmount, bean.toAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.cardInputAmount, 200, accuracy: 0.0001)
+
+        let profiles: [CreditCardProfile] = [domestic, international]
+        let estimatedPricesWithPresentationInput = profiles.map {
+            $0.estimatedPrice(price: presentation.cardInputAmount, sourceSymbol: presentation.sourceSymbol)
+        }
+        let estimatedPricesWithBeanInput = profiles.map {
+            $0.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol)
+        }
+        XCTAssertEqual(estimatedPricesWithPresentationInput.count, estimatedPricesWithBeanInput.count)
+        for i in estimatedPricesWithPresentationInput.indices {
+            XCTAssertEqual(
+                estimatedPricesWithPresentationInput[i],
+                estimatedPricesWithBeanInput[i],
+                accuracy: 0.0001
+            )
+        }
+        let bestPrice = min(
+            estimatedPricesWithPresentationInput[0], estimatedPricesWithPresentationInput[1]
+        )
+        XCTAssertEqual(bestPrice, estimatedPricesWithPresentationInput.min()!, accuracy: 0.0001)
+    }
+
+    func testCrossCurrencyHistoryValuesRemainUnchanged() {
+        let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+            fromSymbol: "USD", toSymbol: "TWD", fxFeeRate: 0.015, ratio: 0.5
+        )
+
+        XCTAssertEqual(values.fxFeeRate, 0.015, accuracy: 0.0001)
+        XCTAssertEqual(values.ratio, 0.5, accuracy: 0.0001)
+    }
+
+    func testSameCurrencyZeroAmountHistoryRemainsSafe() {
+        let bean = ConvertHistoryUIBean(
+            id: UUID(), title: nil, url: "", fromSymbol: "USD", toSymbol: "USD",
+            fromAmount: 0, fxFeeRate: 0, ratio: 1
+        )
+
+        XCTAssertEqual(bean.toAmount, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.fxFee, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmountWithFx, 0, accuracy: 0.0001)
+    }
+
     func testConvertHistoryUIBeanCalculatesAmountAndFeeInclusively() {
         let toAmount = LegacyConvertHistoryCalculations.toAmount(fromAmount: 200, ratio: 0.25)
         XCTAssertEqual(toAmount, 50, accuracy: 0.0001)

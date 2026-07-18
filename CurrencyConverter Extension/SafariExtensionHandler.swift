@@ -91,8 +91,14 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 history.fromAmount = lastResult.units
                 history.fromSymbol = lastResult.convertFrom
                 history.toSymbol = lastResult.convertTo
-                history.fxFee = lastResult.fxRate
-                history.ratio = lastResult.ratio
+                let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                    fromSymbol: lastResult.convertFrom,
+                    toSymbol: lastResult.convertTo,
+                    fxFeeRate: lastResult.fxRate,
+                    ratio: lastResult.ratio
+                )
+                history.fxFee = values.fxFeeRate
+                history.ratio = values.ratio
                 history.id = UUID()
                 
                 //Print how many count in CoreData now

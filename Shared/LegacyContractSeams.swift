@@ -48,6 +48,25 @@ struct LegacyContextMenuCalculation: Equatable {
 }
 
 enum LegacyConvertHistoryCalculations {
+    struct HistoryValues: Equatable {
+        let fxFeeRate: Float
+        let ratio: Float
+    }
+
+    static func normalizedHistoryValues(
+        fromSymbol: String?,
+        toSymbol: String?,
+        fxFeeRate: Float,
+        ratio: Float
+    ) -> HistoryValues {
+        guard let fromSymbol, let toSymbol,
+              !fromSymbol.isEmpty, !toSymbol.isEmpty,
+              fromSymbol == toSymbol else {
+            return HistoryValues(fxFeeRate: fxFeeRate, ratio: ratio)
+        }
+        return HistoryValues(fxFeeRate: 0, ratio: 1)
+    }
+
     static func toAmount(fromAmount: Float, ratio: Float) -> Float { fromAmount * ratio }
     static func fxFee(toAmount: Float, fxFeeRate: Float) -> Float { toAmount * fxFeeRate }
     static func toAmountWithFx(toAmount: Float, fxFeeRate: Float) -> Float {

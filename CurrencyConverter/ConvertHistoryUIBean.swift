@@ -8,43 +8,7 @@
 
 import Foundation
 
-//Can't use CoreData in Preview, so we need adapt it.
-
-struct ConvertHistoryUIBean : Identifiable {
-    var id: UUID
-    var title: String?
-    var url: String
-    var fromSymbol: String
-    var toSymbol: String
-    var fromAmount: Float
-    
-    var toAmount : Float {
-        get {
-            return LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
-        }
-    }
-    
-    var fxFee : Float {
-        get {
-            return LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
-        }
-    }
-    
-    var toAmountWithFx : Float {
-        get {
-            return LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
-        }
-    }
-    
-    var fxFeeRate: Float
-    var ratio: Float
-    var isChecked = false
-    
-    static func fromCoreData(c: ConvertHistory) -> ConvertHistoryUIBean{
-        //due to some migration concern, entity still "fxFee" to represent "fxFeeRate"
-        return ConvertHistoryUIBean(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFeeRate: c.fxFee, ratio: c.ratio)
-    }
-}
+extension ConvertHistory: ConvertHistoryRecord {}
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
