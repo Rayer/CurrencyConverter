@@ -36,18 +36,29 @@ private final class CCS17ControlledTransport {
 }
 
 private final class CCS17MemoryDefaults: UserDefaults {
+    private let lock = NSLock()
     private var storage: [String: Any] = [:]
 
     override func object(forKey defaultName: String) -> Any? {
-        storage[defaultName]
+        lock.lock()
+        defer { lock.unlock() }
+        return storage[defaultName]
     }
 
     override func set(_ value: Any?, forKey defaultName: String) {
-        storage[defaultName] = value
+        lock.lock()
+        defer { lock.unlock() }
+        if let value = value {
+            storage[defaultName] = value
+        } else {
+            storage.removeValue(forKey: defaultName)
+        }
     }
 
     override func integer(forKey defaultName: String) -> Int {
-        storage[defaultName] as? Int ?? 0
+        lock.lock()
+        defer { lock.unlock() }
+        return storage[defaultName] as? Int ?? 0
     }
 
     override func value(forKey key: String) -> Any? {
@@ -62,9 +73,37 @@ private final class CCS17ObservedConverter: CurrencyConverter {
         XCTAssertEqual(refreshEntry.wait(timeout: .now() + 1), .success)
     }
 
-    override func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
-        super.loadFromWeb(completionHandler)
+    override func loadFromCacheMiss(_ completionHandler: @escaping (Error?) -> Void) {
+        super.loadFromCacheMiss(completionHandler)
         refreshEntry.signal()
+    }
+}
+
+private final class CCS17LateJoinConverter: CurrencyConverter {
+    private let lock = NSLock()
+    private var cacheMissCount = 0
+    private let secondCacheMissEntered = DispatchSemaphore(value: 0)
+    private let releaseSecondCacheMiss = DispatchSemaphore(value: 0)
+
+    func waitForSecondCacheMiss() {
+        XCTAssertEqual(secondCacheMissEntered.wait(timeout: .now() + 1), .success)
+    }
+
+    func releasePausedCacheMiss() {
+        releaseSecondCacheMiss.signal()
+    }
+
+    override func loadFromCacheMiss(_ completionHandler: @escaping (Error?) -> Void) {
+        lock.lock()
+        cacheMissCount += 1
+        let shouldPause = cacheMissCount == 2
+        lock.unlock()
+
+        if shouldPause {
+            secondCacheMissEntered.signal()
+            XCTAssertEqual(releaseSecondCacheMiss.wait(timeout: .now() + 1), .success)
+        }
+        super.loadFromCacheMiss(completionHandler)
     }
 }
 
@@ -219,6 +258,66 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         }
         wait(for: [retryExpectation], timeout: 1)
         XCTAssertEqual(transportCount, 2)
+    }
+
+    func testLateCacheMissJoinsFreshCacheAfterRefreshFinishes() {
+        let transport = CCS17ControlledTransport()
+        let converter = CCS17LateJoinConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+        let firstCompletion = expectation(description: "first refresh completion")
+
+        converter.loadData { error in
+            XCTAssertNil(error)
+            firstCompletion.fulfill()
+        }
+        transport.waitForRequest()
+        XCTAssertEqual(transport.requestCount, 1)
+
+        let secondCompletion = expectation(description: "late cache miss completion")
+        DispatchQueue.global().async {
+            converter.loadData { error in
+                XCTAssertNil(error)
+                secondCompletion.fulfill()
+            }
+        }
+        converter.waitForSecondCacheMiss()
+
+        transport.finishNext(
+            data: self.successData,
+            response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        )
+        wait(for: [firstCompletion], timeout: 1)
+
+        converter.releasePausedCacheMiss()
+        wait(for: [secondCompletion], timeout: 1)
+        XCTAssertEqual(transport.requestCount, 1)
+    }
+
+    func testConcurrentCurrencyRateEntitySnapshotsAreSafe() {
+        let converter = makeStaleConverter(transport: CCS17ControlledTransport())
+        let work = DispatchGroup()
+        let queue = DispatchQueue.global()
+
+        for index in 0..<100 {
+            work.enter()
+            queue.async {
+                converter.currencyRateEntity = CurrencyRateEntity(
+                    base: "EUR",
+                    date: "2026-07-18",
+                    rates: ["USD": Float32(index)],
+                    fetched_localtime: self.now,
+                    timestamp: index
+                )
+                work.leave()
+            }
+
+            work.enter()
+            queue.async {
+                _ = converter.currencyRateEntity?.rates["USD"]
+                work.leave()
+            }
+        }
+
+        XCTAssertEqual(work.wait(timeout: .now() + 1), .success)
     }
 
     private func makeStaleConverter(transport: CCS17ControlledTransport) -> CurrencyConverter {
