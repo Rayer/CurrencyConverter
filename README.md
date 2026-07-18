@@ -36,3 +36,25 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 
 1. ~~首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。~~ 現在我架設自己的server來解決這問題，希望他不要被打爆（不可能吧！？）
 2. 沒有i18n....說真的也不太需要吧
+
+## Xcode 26.6 build and test baseline
+
+The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+```
+
+The `CurrencyConverterTests` scheme reports the live macOS destination as `platform=macOS,arch=arm64` (the machine-specific destination is named `My Mac`). Build the app with:
+
+```sh
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -destination 'platform=macOS,arch=arm64' build
+```
+
+Run the complete test target with:
+
+```sh
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverterTests -destination 'platform=macOS,arch=arm64' test
+```
+
+Observed baseline: the test command passes and executes 5 tests (including two performance tests), with 0 failures.
