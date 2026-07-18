@@ -35,8 +35,8 @@ private final class CCS17ControlledTransport {
     func finishNext(data: Data? = nil, response: URLResponse? = nil, error: Error? = nil) -> Bool {
         lock.lock()
         guard !pendingCompletions.isEmpty else {
-            XCTFail("No pending transport completions to drain")
             lock.unlock()
+            XCTFail("No pending transport completions to drain")
             return false
         }
         let completion = pendingCompletions.removeFirst()
@@ -79,6 +79,7 @@ private final class CCS17MemoryDefaults: UserDefaults {
 
 private final class CCS17ObservedConverter: CurrencyConverter {
     private let refreshEntry = DispatchSemaphore(value: 0)
+    private let directLoadEntry = DispatchSemaphore(value: 0)
 
     func waitForRefreshEntry() -> Bool {
         if refreshEntry.wait(timeout: .now() + 2) != .success {
@@ -88,9 +89,22 @@ private final class CCS17ObservedConverter: CurrencyConverter {
         return true
     }
 
+    func waitForDirectLoadEntry() -> Bool {
+        if directLoadEntry.wait(timeout: .now() + 2) != .success {
+            XCTFail("waitForDirectLoadEntry timeout")
+            return false
+        }
+        return true
+    }
+
     override func loadFromCacheMiss(_ completionHandler: @escaping (Error?) -> Void) {
         super.loadFromCacheMiss(completionHandler)
         refreshEntry.signal()
+    }
+
+    override func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
+        super.loadFromWeb(completionHandler)
+        directLoadEntry.signal()
     }
 }
 
@@ -120,7 +134,10 @@ private final class CCS17LateJoinConverter: CurrencyConverter {
 
         if shouldPause {
             secondCacheMissEntered.signal()
-            XCTAssertEqual(releaseSecondCacheMiss.wait(timeout: .now() + 1), .success)
+            guard releaseSecondCacheMiss.wait(timeout: .now() + 2) == .success else {
+                XCTFail("releaseSecondCacheMiss timeout")
+                return
+            }
         }
         super.loadFromCacheMiss(completionHandler)
     }
@@ -138,10 +155,11 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         completionExpectation.assertForOverFulfill = true
         let results = LockedResults()
 
-        startConcurrentLoads(on: converter, count: 16) { error in
+        let didLaunch = startConcurrentLoads(on: converter, count: 16) { error in
             results.append(error: error, rate: converter.currencyRateEntity?.rates["USD"])
             completionExpectation.fulfill()
         }
+        guard didLaunch else { return }
         guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
         for _ in 0..<16 {
@@ -168,10 +186,11 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         let results = LockedResults()
         let failure = NSError(domain: "CCS17", code: 17)
 
-        startConcurrentLoads(on: converter, count: 16) { error in
+        let didLaunchFailCase = startConcurrentLoads(on: converter, count: 16) { error in
             results.append(error: error, rate: nil)
             completionExpectation.fulfill()
         }
+        guard didLaunchFailCase else { return }
         guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
         for _ in 0..<16 {
@@ -224,10 +243,11 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         let memoryExpectation = expectation(description: "fresh memory callers complete")
         memoryExpectation.expectedFulfillmentCount = 8
         memoryExpectation.assertForOverFulfill = true
-        startConcurrentLoads(on: memoryConverter, count: 8) { error in
+        let didLaunchMemory = startConcurrentLoads(on: memoryConverter, count: 8) { error in
             XCTAssertNil(error)
             memoryExpectation.fulfill()
         }
+        guard didLaunchMemory else { return }
         wait(for: [memoryExpectation], timeout: 1)
         XCTAssertEqual(memoryTransport.requestCount, 0)
 
@@ -240,10 +260,11 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         let defaultsExpectation = expectation(description: "fresh defaults callers complete")
         defaultsExpectation.expectedFulfillmentCount = 8
         defaultsExpectation.assertForOverFulfill = true
-        startConcurrentLoads(on: defaultsConverter, count: 8) { error in
+        let didLaunchDefaults = startConcurrentLoads(on: defaultsConverter, count: 8) { error in
             XCTAssertNil(error)
             defaultsExpectation.fulfill()
         }
+        guard didLaunchDefaults else { return }
         wait(for: [defaultsExpectation], timeout: 1)
         XCTAssertEqual(defaultsTransport.requestCount, 0)
     }
@@ -336,7 +357,10 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(work.wait(timeout: .now() + 1), .success)
+        guard work.wait(timeout: .now() + 2) == .success else {
+            XCTFail("currency rate snapshot test timeout")
+            return
+        }
     }
 
     private func makeStaleConverter(transport: CCS17ControlledTransport) -> CurrencyConverter {
@@ -351,7 +375,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         on converter: CurrencyConverter,
         count: Int,
         completion: @escaping (Error?) -> Void
-    ) {
+    ) -> Bool {
         let ready = DispatchGroup()
         let start = DispatchSemaphore(value: 0)
         for _ in 0..<count {
@@ -362,10 +386,14 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
                 converter.loadData(completionHandler: completion)
             }
         }
-        XCTAssertEqual(ready.wait(timeout: .now() + 2), .success)
+        guard ready.wait(timeout: .now() + 2) == .success else {
+            XCTFail("startConcurrentLoads ready timeout")
+            return false
+        }
         for _ in 0..<count {
             start.signal()
         }
+        return true
     }
 
     func testConcurrentDirectLoadFromWebCallsCoalesceWithFreshCache() {
@@ -390,6 +418,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             }
         }
         guard transport.waitForRequest() else { return }
+        guard converter.waitForDirectLoadEntry() else { return }
 
         DispatchQueue.global().async {
             converter.loadFromWeb { error in
@@ -397,6 +426,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
                 completionExpectation.fulfill()
             }
         }
+        guard converter.waitForDirectLoadEntry() else { return }
         XCTAssertEqual(transport.requestCount, 1)
 
         guard transport.finishNext(
