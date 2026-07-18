@@ -32,7 +32,7 @@ struct EntityDetailRow: View {
     @ObservedObject var model = EntityDetailRowViewModel()
     @State var popoverFullUrl = false
     
-    init(_ bean: ConvertHistoryUIBean) {
+    init(_ bean: ConvertHistoryUIBean, creditCardProfiles: [CreditCardProfile] = FetchAllCreditCardProfiles()) {
                 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -45,7 +45,7 @@ struct EntityDetailRow: View {
         self.model.ratio = String(format:"%.3f", bean.ratio)
                 
         var bestPrice : Float?
-        self.model.creditCardProfiles = FetchAllCreditCardProfiles()
+        self.model.creditCardProfiles = creditCardProfiles
         self.model.creditCardProfiles.forEach { (profile) in
             let estimatedPrice = profile.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol)
             self.model.creditCardInfo.append("\(profile.name) - \(FixedPercision(amount: estimatedPrice, symbol: profile.currencySymbol))")

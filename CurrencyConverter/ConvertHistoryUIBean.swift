@@ -40,7 +40,7 @@ struct ConvertHistoryUIBean : Identifiable {
     var ratio: Float
     var isChecked = false
     
-    static func fromCoreData(c: ConvertHistory) -> ConvertHistoryUIBean{
+    static func fromCoreData(c: ConvertHistoryRecord) -> ConvertHistoryUIBean{
         //due to some migration concern, entity still "fxFee" to represent "fxFeeRate"
         return make(
             id: c.id, title: c.title, url: c.url,
@@ -53,18 +53,29 @@ struct ConvertHistoryUIBean : Identifiable {
         id: UUID?, title: String?, url: String?, fromSymbol: String?, toSymbol: String?,
         fromAmount: Float, fxFeeRate: Float, ratio: Float
     ) -> ConvertHistoryUIBean {
-        let fromSymbol = fromSymbol ?? ""
-        let toSymbol = toSymbol ?? ""
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
             fromSymbol: fromSymbol, toSymbol: toSymbol, fxFeeRate: fxFeeRate, ratio: ratio
         )
         return ConvertHistoryUIBean(
             id: id ?? UUID(), title: title ?? "", url: url ?? "",
-            fromSymbol: fromSymbol, toSymbol: toSymbol, fromAmount: fromAmount,
+            fromSymbol: fromSymbol ?? "", toSymbol: toSymbol ?? "", fromAmount: fromAmount,
             fxFeeRate: values.fxFeeRate, ratio: values.ratio
         )
     }
 }
+
+protocol ConvertHistoryRecord {
+    var id: UUID? { get }
+    var title: String? { get }
+    var url: String? { get }
+    var fromSymbol: String? { get }
+    var toSymbol: String? { get }
+    var fromAmount: Float { get }
+    var fxFee: Float { get }
+    var ratio: Float { get }
+}
+
+extension ConvertHistory: ConvertHistoryRecord {}
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
