@@ -290,41 +290,71 @@ final class CCS34HistoryCharacterizationTests: XCTestCase {
     }
 
     func testEntityDetailRowPresentationUsesNormalizedProductionBeanAndBestPriceInputs() throws {
-        let bean = ConvertHistoryUIBean(
-            id: UUID(), title: "Product", url: "https://example.com", fromSymbol: "USD", toSymbol: "TWD",
-            fromAmount: 200, fxFeeRate: 0.02, ratio: 31.3
+        let source = TestConvertHistoryRecord(
+            id: UUID(),
+            title: "Product",
+            url: "https://example.com",
+            fromSymbol: "USD",
+            toSymbol: "USD",
+            fromAmount: 200,
+            fxFee: 0.02,
+            ratio: 31.3
         )
+        let bean = ConvertHistoryUIBean.fromCoreData(c: source)
         var domestic = CashBackCreditCardProfile()
         domestic.name = "Domestic"
-        domestic.currencySymbol = "TWD"
-        domestic.fxRate = 1.5
+        domestic.currencySymbol = "USD"
+        domestic.fxRate = 0.0
         domestic.cashBackRateDomestic = 0.02
-        domestic.cashBackRateInternational = 0.01
+        domestic.cashBackRateInternational = 0.0
         var international = CashBackCreditCardProfile()
         international.name = "International"
         international.currencySymbol = "USD"
-        international.fxRate = 0.5
-        international.cashBackRateDomestic = 0.01
-        international.cashBackRateInternational = 0.03
+        international.fxRate = 1.5
+        international.cashBackRateDomestic = 0.03
+        international.cashBackRateInternational = 0.0
+
+        XCTAssertEqual(source.id, bean.id)
+        XCTAssertEqual(source.title, "Product")
+        XCTAssertEqual(source.url, "https://example.com")
+        XCTAssertEqual(source.fromSymbol, "USD")
+        XCTAssertEqual(source.toSymbol, "USD")
+        XCTAssertEqual(source.fxFee, 0.02, accuracy: 0.0001)
+        XCTAssertEqual(source.ratio, 31.3, accuracy: 0.0001)
+        XCTAssertEqual(source.fromAmount, 200, accuracy: 0.0001)
+        XCTAssertEqual(bean.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.ratio, 1, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmount, 200, accuracy: 0.0001)
 
         let presentation = EntityDetailRowPresentationInput(bean: bean)
-        XCTAssertEqual(presentation.sourceAmount, bean.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.sourceAmount, source.fromAmount, accuracy: 0.0001)
         XCTAssertEqual(presentation.sourceSymbol, bean.fromSymbol)
-        XCTAssertEqual(presentation.destinationAmount, bean.toAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.destinationAmount, source.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.destinationAmountWithFee, source.fromAmount, accuracy: 0.0001)
         XCTAssertEqual(presentation.destinationAmountWithFee, bean.toAmountWithFx, accuracy: 0.0001)
-        XCTAssertEqual(presentation.ratio, bean.ratio, accuracy: 0.0001)
+        XCTAssertEqual(presentation.ratio, 1, accuracy: 0.0001)
         XCTAssertEqual(presentation.cardInputAmount, bean.toAmount, accuracy: 0.0001)
+        XCTAssertEqual(presentation.cardInputAmount, 200, accuracy: 0.0001)
+
         let profiles: [CreditCardProfile] = [domestic, international]
-        let estimatedPrices = profiles.map {
+        let estimatedPricesWithPresentationInput = profiles.map {
             $0.estimatedPrice(price: presentation.cardInputAmount, sourceSymbol: presentation.sourceSymbol)
         }
-        XCTAssertEqual(estimatedPrices, profiles.map {
+        let estimatedPricesWithBeanInput = profiles.map {
             $0.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol)
-        })
+        }
+        XCTAssertEqual(estimatedPricesWithPresentationInput.count, estimatedPricesWithBeanInput.count)
+        for i in estimatedPricesWithPresentationInput.indices {
+            XCTAssertEqual(
+                estimatedPricesWithPresentationInput[i],
+                estimatedPricesWithBeanInput[i],
+                accuracy: 0.0001
+            )
+        }
         let bestPrice = min(
-            estimatedPrices[0], estimatedPrices[1]
+            estimatedPricesWithPresentationInput[0], estimatedPricesWithPresentationInput[1]
         )
-        XCTAssertEqual(bestPrice, estimatedPrices.min()!, accuracy: 0.0001)
+        XCTAssertEqual(bestPrice, estimatedPricesWithPresentationInput.min()!, accuracy: 0.0001)
     }
 
     func testCrossCurrencyHistoryValuesRemainUnchanged() {
