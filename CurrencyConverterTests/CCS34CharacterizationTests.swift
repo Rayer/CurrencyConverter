@@ -77,6 +77,99 @@ final class CCS34PersistenceCharacterizationTests: XCTestCase {
         XCTAssertEqual(LegacyContextMenuFXFeePolicy.rate(for: 99), 0)
     }
 
+    func testSameCurrencyContextMenuIgnoresSelectedFXFee() {
+        let sameCurrencyCases: [(feeIndex: Int, rawResult: Float32)] = [
+            (0, 10),
+            (1, 21),
+            (2, 33)
+        ]
+
+        for testCase in sameCurrencyCases {
+            let calculation = LegacyContextMenuCalculation.calculate(
+                rawResult: testCase.rawResult,
+                unit: 100,
+                sourceCurrency: "USD",
+                targetCurrency: "USD",
+                feeIndex: testCase.feeIndex
+            )
+
+            XCTAssertEqual(calculation.finalAmount, 100, accuracy: 0.0001)
+            XCTAssertEqual(calculation.appliedFXFee, 0, accuracy: 0.0001)
+            XCTAssertEqual(calculation.ratio, 1, accuracy: 0.0001)
+        }
+    }
+
+    func testCrossCurrencyContextMenuPreservesSelectedFXFee() {
+        let crossCurrencyCases: [(feeIndex: Int, appliedFXFee: Float32, expectedFinalAmount: Float32)] = [
+            (0, 0, 50),
+            (1, 0.015, 50.75),
+            (2, 0.02, 51)
+        ]
+
+        for testCase in crossCurrencyCases {
+            let calculation = LegacyContextMenuCalculation.calculate(
+                rawResult: 50,
+                unit: 100,
+                sourceCurrency: "USD",
+                targetCurrency: "TWD",
+                feeIndex: testCase.feeIndex
+            )
+
+            XCTAssertEqual(calculation.finalAmount, testCase.expectedFinalAmount, accuracy: 0.0001)
+            XCTAssertEqual(calculation.appliedFXFee, testCase.appliedFXFee, accuracy: 0.0001)
+            XCTAssertEqual(calculation.ratio, 0.5, accuracy: 0.0001)
+        }
+    }
+
+    func testCrossCurrencyContextMenuRatioDivisionBehaviorWithZeroUnits() {
+        let nonZeroRawResultForZeroUnit = [
+            LegacyContextMenuCalculation.calculate(
+                rawResult: 7,
+                unit: 0,
+                sourceCurrency: "USD",
+                targetCurrency: "TWD",
+                feeIndex: 1
+            ),
+            LegacyContextMenuCalculation.calculate(
+                rawResult: 0,
+                unit: 0,
+                sourceCurrency: "USD",
+                targetCurrency: "TWD",
+                feeIndex: 2
+            )
+        ]
+
+        XCTAssertTrue(nonZeroRawResultForZeroUnit[0].ratio.isInfinite)
+        XCTAssertEqual(nonZeroRawResultForZeroUnit[0].finalAmount, 7.105, accuracy: 0.0001)
+        XCTAssertEqual(nonZeroRawResultForZeroUnit[0].appliedFXFee, 0.015, accuracy: 0.0001)
+
+        XCTAssertTrue(nonZeroRawResultForZeroUnit[1].ratio.isNaN)
+        XCTAssertEqual(nonZeroRawResultForZeroUnit[1].finalAmount, 0, accuracy: 0.0001)
+        XCTAssertEqual(nonZeroRawResultForZeroUnit[1].appliedFXFee, 0.02, accuracy: 0.0001)
+    }
+
+    func testSameCurrencyLastResultRoundTripsCalculationValues() throws {
+        let calculation = LegacyContextMenuCalculation.calculate(
+            rawResult: 100,
+            unit: 100,
+            sourceCurrency: "USD",
+            targetCurrency: "USD",
+            feeIndex: 2
+        )
+        let result = LastResult(
+            resultString: "100.00 USD",
+            convertFrom: "USD",
+            convertTo: "USD",
+            units: 100,
+            fxRate: calculation.appliedFXFee,
+            ratio: calculation.ratio
+        )
+
+        XCTAssertEqual(try LastResultPersistence.decode(LastResultPersistence.encode(result)), result)
+        XCTAssertEqual(result.fxRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.ratio, 1, accuracy: 0.0001)
+    }
+
     func testLastResultRoundTripsThroughIsolatedDefaultsData() throws {
         let result = LastResult(resultString: "2.03 USD", convertFrom: "TWD", convertTo: "USD", units: 8, fxRate: 0.015, ratio: 0.25)
         let suiteName = "CCS34-last-result-\(UUID().uuidString)"

@@ -25,6 +25,28 @@ enum LegacyContextMenuFXFeePolicy {
     }
 }
 
+struct LegacyContextMenuCalculation: Equatable {
+    let finalAmount: Float32
+    let appliedFXFee: Float32
+    let ratio: Float32
+
+    static func calculate(
+        rawResult: Float32,
+        unit: Float32,
+        sourceCurrency: String,
+        targetCurrency: String,
+        feeIndex: Int
+    ) -> LegacyContextMenuCalculation {
+        let sameCurrency = sourceCurrency == targetCurrency
+        let appliedFXFee = sameCurrency ? 0 : LegacyContextMenuFXFeePolicy.rate(for: feeIndex)
+        return LegacyContextMenuCalculation(
+            finalAmount: sameCurrency ? unit : rawResult * (1 + appliedFXFee),
+            appliedFXFee: appliedFXFee,
+            ratio: sameCurrency ? 1 : rawResult / unit
+        )
+    }
+}
+
 enum LegacyConvertHistoryCalculations {
     static func toAmount(fromAmount: Float, ratio: Float) -> Float { fromAmount * ratio }
     static func fxFee(toAmount: Float, fxFeeRate: Float) -> Float { toAmount * fxFeeRate }
