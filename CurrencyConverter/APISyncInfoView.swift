@@ -27,6 +27,13 @@ struct APISyncInfoView: View {
                 Spacer()
             }.frame(alignment: .leading)
             HStack {
+                Text("Rate status : ")
+                    .font(.system(.body, design: Font.Design.rounded))
+                    .frame(width: 200, alignment: .leading)
+                Text(host.rateStatus.message)
+                Spacer()
+            }.frame(alignment: .leading)
+            HStack {
                 Text("Raw Data : ")
                     .font(.system(.body, design: Font.Design.rounded))
                     .frame(width: 200, alignment: .leading)

@@ -12,8 +12,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
         if messageName == "CCInitialize" {
-            CurrencyConverter.shared.loadData { (Error) in
-                print("CurrencyConverter Initialized")
+            CurrencyConverter.shared.loadData { _ in
             }
         }
     }
@@ -41,14 +40,18 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
             formatter.numberStyle = .decimal
             if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
                 
-                let convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as! String? ?? "TWD"
-                let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as! String? ?? "TWD"
+                let convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as? String ?? "TWD"
+                let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as? String ?? "TWD"
                 let unit = Float32(truncating: selected)
                 
-                CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: unit) { (result, error) in
+                CurrencyConverter.shared.convertWithStatus(from: convertFromSym, to: convertToSym, unit: unit) { result, status, error in
+                    guard error == nil else {
+                        validationHandler(true, (error as? RateDataError)?.message ?? status.message)
+                        return
+                    }
                     
                     //Add credit card FX rate
-                    let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as! Int? ?? 1
+                    let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as? Int ?? 1
                     let calculation = LegacyContextMenuCalculation.calculate(
                         rawResult: result,
                         unit: unit,
@@ -61,9 +64,10 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
-                    validationHandler(false, lastCurrencyExchangeStr)
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
                     sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
+                    let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
+                    validationHandler(false, title)
                     
                 }
             } else {

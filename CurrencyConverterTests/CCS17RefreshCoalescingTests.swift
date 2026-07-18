@@ -200,7 +200,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         wait(for: [completionExpectation], timeout: 1)
 
         XCTAssertEqual(results.count, 16)
-        XCTAssertTrue(results.errors.allSatisfy { ($0 as NSError?) === failure })
+        XCTAssertTrue(results.errors.allSatisfy { ($0 as? RateDataError) == .transport })
         XCTAssertEqual(results.nilErrorCount, 0)
     }
 
@@ -211,7 +211,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         let failure = NSError(domain: "CCS17", code: 18)
 
         converter.loadData { error in
-            XCTAssertTrue((error as NSError?) === failure)
+            XCTAssertEqual(error as? RateDataError, .transport)
             failureExpectation.fulfill()
         }
         guard transport.waitForRequest() else { return }
@@ -285,7 +285,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
 
         let firstExpectation = expectation(description: "synchronous failure completion")
         converter.loadData { error in
-            XCTAssertTrue((error as NSError?) === failure)
+            XCTAssertEqual(error as? RateDataError, .transport)
             firstExpectation.fulfill()
         }
         wait(for: [firstExpectation], timeout: 1)
