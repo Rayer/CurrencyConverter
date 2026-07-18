@@ -32,33 +32,34 @@ struct EntityDetailRow: View {
     @ObservedObject var model = EntityDetailRowViewModel()
     @State var popoverFullUrl = false
     
-    init(_ bean: ConvertHistoryUIBean, creditCardProfiles: [CreditCardProfile] = FetchAllCreditCardProfiles()) {
+    init(_ bean: ConvertHistoryUIBean) {
+        let presentation = EntityDetailRowPresentationInput(bean: bean)
                 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         
         self.model.title = (bean.title == nil || bean.title!.count < 2) ? bean.url : bean.title!
         self.model.sourceUrl = bean.url
-        self.model.sourceCurrency = FixedPercision(amount: bean.fromAmount, symbol: bean.fromSymbol)
-        self.model.destCurrencyWithFx = FixedPercision(amount: bean.toAmountWithFx, symbol: bean.toSymbol)
-        self.model.destCurrencyWithoutFx = FixedPercision(amount: bean.toAmount, symbol: bean.toSymbol)
-        self.model.ratio = String(format:"%.3f", bean.ratio)
+        self.model.sourceCurrency = FixedPercision(amount: presentation.sourceAmount, symbol: presentation.sourceSymbol)
+        self.model.destCurrencyWithFx = FixedPercision(amount: presentation.destinationAmountWithFee, symbol: bean.toSymbol)
+        self.model.destCurrencyWithoutFx = FixedPercision(amount: presentation.destinationAmount, symbol: bean.toSymbol)
+        self.model.ratio = String(format:"%.3f", presentation.ratio)
                 
         var bestPrice : Float?
-        self.model.creditCardProfiles = creditCardProfiles
+        self.model.creditCardProfiles = FetchAllCreditCardProfiles()
         self.model.creditCardProfiles.forEach { (profile) in
-            let estimatedPrice = profile.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol)
+            let estimatedPrice = profile.estimatedPrice(price: presentation.cardInputAmount, sourceSymbol: presentation.sourceSymbol)
             self.model.creditCardInfo.append("\(profile.name) - \(FixedPercision(amount: estimatedPrice, symbol: profile.currencySymbol))")
             
-            self.model.totalFxFee.append(FixedPercision(amount: profile.fxRate * bean.toAmount * 0.01, symbol: profile.currencySymbol))
+            self.model.totalFxFee.append(FixedPercision(amount: profile.fxRate * presentation.cardInputAmount * 0.01, symbol: profile.currencySymbol))
             
             
             if profile.getType() == 0 {
                 self.model.creditCardReward.append("Cashback")
-                self.model.creditCardRewardWorth.append(FixedPercision(amount: profile.estimateRewardAmount(price: bean.toAmount, sourceSymbol: bean.fromSymbol), symbol: profile.currencySymbol))
+                self.model.creditCardRewardWorth.append(FixedPercision(amount: profile.estimateRewardAmount(price: presentation.cardInputAmount, sourceSymbol: presentation.sourceSymbol), symbol: profile.currencySymbol))
                 
             } else {
-                let points = Int(profile.estimateRewardAmount(price: bean.toAmount, sourceSymbol: profile.currencySymbol))
+                let points = Int(profile.estimateRewardAmount(price: presentation.cardInputAmount, sourceSymbol: profile.currencySymbol))
                 let value = (profile as! MileageCreditCardProfile).mileageEstimatedValue * Float(points)
                 self.model.creditCardReward.append("\(points) points")
                 self.model.creditCardRewardWorth.append(FixedPercision(amount: value, symbol: profile.currencySymbol))

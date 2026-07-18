@@ -11,6 +11,10 @@
 		621C84462537492900DC7ECC /* ApiSyncInfoViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */; };
 		6220DCB623A50ACA0093A237 /* money.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 6220DCB523A50ACA0093A237 /* money.pdf */; };
 		62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */; };
+		63CC34112531982E00466679 /* EntityDetailRowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34102531982E00466679 /* EntityDetailRowPresentation.swift */; };
+		63CC34142531982E00466679 /* EntityDetailRowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34102531982E00466679 /* EntityDetailRowPresentation.swift */; };
+		63CC34152531982E00466679 /* ConvertHistoryUIBeanProduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34122531982E00466679 /* ConvertHistoryUIBeanProduction.swift */; };
+		63CC34162531982E00466679 /* ConvertHistoryUIBeanProduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34122531982E00466679 /* ConvertHistoryUIBeanProduction.swift */; };
 		62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */; };
 		62514B28252C01A000E00D3F /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131A23719B5300466679 /* CurrencyConverter.swift */; };
 		625712E52371982E00466679 /* CurrencyConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625712E42371982E00466679 /* CurrencyConverterTests.swift */; };
@@ -32,6 +36,7 @@
 		6262F07F252226100066ADFA /* PreviewConvertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6262F07E252226100066ADFA /* PreviewConvertHistory.swift */; };
 		6262F08525222C300066ADFA /* ConvertHistoryUIBean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6262F08425222C300066ADFA /* ConvertHistoryUIBean.swift */; };
 		6267904C253E4F700071A9A7 /* CreditCardProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6267904B253E4F700071A9A7 /* CreditCardProfile.swift */; };
+		62B81E67254240C70015CC19 /* CreditCardProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6267904B253E4F700071A9A7 /* CreditCardProfile.swift */; };
 		62679051253F0D330071A9A7 /* CreditCardManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62679050253F0D330071A9A7 /* CreditCardManageView.swift */; };
 		62679056253F2F1F0071A9A7 /* CreditCardManagerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62679055253F2F1F0071A9A7 /* CreditCardManagerViewModel.swift */; };
 		6285039B251B936F00E381AA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6285039A251B936F00E381AA /* AppDelegate.swift */; };
@@ -93,6 +98,8 @@
 		621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiSyncInfoViewModel.swift; sourceTree = "<group>"; };
 		6220DCB523A50ACA0093A237 /* money.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = money.pdf; sourceTree = "<group>"; };
 		62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityDetailRow.swift; sourceTree = "<group>"; };
+		63CC34102531982E00466679 /* EntityDetailRowPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityDetailRowPresentation.swift; sourceTree = "<group>"; };
+		63CC34122531982E00466679 /* ConvertHistoryUIBeanProduction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvertHistoryUIBeanProduction.swift; sourceTree = "<group>"; };
 		625712E02371982E00466679 /* CurrencyConverterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CurrencyConverterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		625712E42371982E00466679 /* CurrencyConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyConverterTests.swift; sourceTree = "<group>"; };
 		63CC34002371982E00466679 /* LegacyContractSeams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyContractSeams.swift; sourceTree = "<group>"; };
@@ -218,6 +225,7 @@
 		6257131E23719B9800466679 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				63CC34122531982E00466679 /* ConvertHistoryUIBeanProduction.swift */,
 				63CC34002371982E00466679 /* LegacyContractSeams.swift */,
 				6257132023719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld */,
 				6257131F23719BDB00466679 /* SharedPersistent.swift */,
@@ -242,6 +250,7 @@
 				6285039E251B936F00E381AA /* CurrencyConverter.xcdatamodeld */,
 				628503A3251B937100E381AA /* Preview Content */,
 				62222F5B251CF1C900F2EB2C /* EntityDetailRow.swift */,
+				63CC34102531982E00466679 /* EntityDetailRowPresentation.swift */,
 				6262F08425222C300066ADFA /* ConvertHistoryUIBean.swift */,
 				621C843D253745F200DC7ECC /* APISyncInfoView.swift */,
 				621C84452537492900DC7ECC /* ApiSyncInfoViewModel.swift */,
@@ -399,6 +408,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				62C49F25252AA14600ED2E72 /* CHDataManager.swift in Sources */,
+				62B81E67254240C70015CC19 /* CreditCardProfile.swift in Sources */,
 				62B81E4A2542155D0015CC19 /* CurrencySymbolMap.swift in Sources */,
 				6257132323719BDC00466679 /* SharedPersistent.swift in Sources */,
 				6257132623719BDC00466679 /* CurrencyExchangeRate.xcdatamodeld in Sources */,
@@ -406,6 +416,8 @@
 				62C49F2D252AA15400ED2E72 /* FormatStringDataManager.swift in Sources */,
 				625712E52371982E00466679 /* CurrencyConverterTests.swift in Sources */,
 				63CC34012371982E00466679 /* LegacyContractSeams.swift in Sources */,
+				63CC34152531982E00466679 /* ConvertHistoryUIBeanProduction.swift in Sources */,
+				63CC34142531982E00466679 /* EntityDetailRowPresentation.swift in Sources */,
 				63CC34032371982E00466679 /* CCS34CharacterizationTests.swift in Sources */,
 				6257131C23719B5300466679 /* CurrencyConverter.swift in Sources */,
 			);
@@ -439,6 +451,7 @@
 				62C49F27252AA14600ED2E72 /* CHDataManager.swift in Sources */,
 				621C843E253745F200DC7ECC /* APISyncInfoView.swift in Sources */,
 				62222F5C251CF1C900F2EB2C /* EntityDetailRow.swift in Sources */,
+				63CC34112531982E00466679 /* EntityDetailRowPresentation.swift in Sources */,
 				62222F7B251D83F600F2EB2C /* CurrencyExchangeRate.xcdatamodeld in Sources */,
 				6285039D251B936F00E381AA /* ContentView.swift in Sources */,
 				6267904C253E4F700071A9A7 /* CreditCardProfile.swift in Sources */,
@@ -446,6 +459,7 @@
 				6262F08525222C300066ADFA /* ConvertHistoryUIBean.swift in Sources */,
 				62514B28252C01A000E00D3F /* CurrencyConverter.swift in Sources */,
 				63CC34012371982E00466679 /* LegacyContractSeams.swift in Sources */,
+				63CC34162531982E00466679 /* ConvertHistoryUIBeanProduction.swift in Sources */,
 				62679051253F0D330071A9A7 /* CreditCardManageView.swift in Sources */,
 				62C49F2F252AA15400ED2E72 /* FormatStringDataManager.swift in Sources */,
 				6285039B251B936F00E381AA /* AppDelegate.swift in Sources */,

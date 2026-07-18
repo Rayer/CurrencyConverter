@@ -60,18 +60,11 @@ enum LegacyConvertHistoryCalculations {
         ratio: Float
     ) -> HistoryValues {
         guard let fromSymbol, let toSymbol,
-              isCanonicalCurrencySymbol(fromSymbol),
-              isCanonicalCurrencySymbol(toSymbol),
+              !fromSymbol.isEmpty, !toSymbol.isEmpty,
               fromSymbol == toSymbol else {
             return HistoryValues(fxFeeRate: fxFeeRate, ratio: ratio)
         }
         return HistoryValues(fxFeeRate: 0, ratio: 1)
-    }
-
-    private static func isCanonicalCurrencySymbol(_ symbol: String) -> Bool {
-        symbol.count == 3 && symbol.unicodeScalars.allSatisfy { scalar in
-            scalar.value >= 65 && scalar.value <= 90
-        }
     }
 
     static func toAmount(fromAmount: Float, ratio: Float) -> Float { fromAmount * ratio }
