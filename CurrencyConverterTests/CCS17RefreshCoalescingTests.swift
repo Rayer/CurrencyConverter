@@ -200,7 +200,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         wait(for: [completionExpectation], timeout: 1)
 
         XCTAssertEqual(results.count, 16)
-        XCTAssertTrue(results.errors.allSatisfy { ($0 as NSError?) === failure })
+        XCTAssertTrue(results.errors.allSatisfy { ($0 as? RateDataError) == .transport })
         XCTAssertEqual(results.nilErrorCount, 0)
     }
 
@@ -211,7 +211,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         let failure = NSError(domain: "CCS17", code: 18)
 
         converter.loadData { error in
-            XCTAssertTrue((error as NSError?) === failure)
+            XCTAssertEqual(error as? RateDataError, .transport)
             failureExpectation.fulfill()
         }
         guard transport.waitForRequest() else { return }
@@ -285,7 +285,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
 
         let firstExpectation = expectation(description: "synchronous failure completion")
         converter.loadData { error in
-            XCTAssertTrue((error as NSError?) === failure)
+            XCTAssertEqual(error as? RateDataError, .transport)
             firstExpectation.fulfill()
         }
         wait(for: [firstExpectation], timeout: 1)
@@ -377,10 +377,10 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         completion: @escaping (Error?) -> Void
     ) -> Bool {
         let ready = DispatchGroup()
-        let start = DispatchSemaphore(value: 0)
+        let start = CCS17StartGate()
         for _ in 0..<count {
             ready.enter()
-            DispatchQueue.global().async {
+            DispatchQueue.global(qos: .userInitiated).async {
                 ready.leave()
                 start.wait()
                 converter.loadData(completionHandler: completion)
@@ -391,7 +391,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             return false
         }
         for _ in 0..<count {
-            start.signal()
+            start.open()
         }
         return true
     }
@@ -443,6 +443,26 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         XCTAssertEqual(results.count, 2)
         XCTAssertTrue(results.errors.allSatisfy { $0 == nil })
         XCTAssertTrue(results.rates.allSatisfy { $0 == Float32(1) })
+    }
+}
+
+private final class CCS17StartGate {
+    private let condition = NSCondition()
+    private var isOpen = false
+
+    func wait() {
+        condition.lock()
+        while !isOpen {
+            condition.wait()
+        }
+        condition.unlock()
+    }
+
+    func open() {
+        condition.lock()
+        isOpen = true
+        condition.broadcast()
+        condition.unlock()
     }
 }
 

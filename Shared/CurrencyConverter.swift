@@ -20,6 +20,12 @@ struct CurrencyRateEntity : Decodable {
 class CurrencyConverter {
     private let currencyRateEntityLock = NSLock()
     private var currencyRateEntityStorage: CurrencyRateEntity?
+    private var rateDataStatusStorage = RateDataStatus(
+        source: nil,
+        isStale: false,
+        lastUpdated: nil,
+        lastRefreshError: nil
+    )
     var currencyRateEntity: CurrencyRateEntity? {
         get {
             currencyRateEntityLock.lock()
@@ -29,8 +35,20 @@ class CurrencyConverter {
         set {
             currencyRateEntityLock.lock()
             currencyRateEntityStorage = newValue
+            rateDataStatusStorage = RateDataStatus(
+                source: newValue == nil ? nil : .memory,
+                isStale: newValue?.fetched_localtime.map { !LegacyCachePolicy.isFresh(lastUpdated: $0, now: clock()) } ?? false,
+                lastUpdated: newValue?.fetched_localtime,
+                lastRefreshError: nil
+            )
             currencyRateEntityLock.unlock()
         }
+    }
+
+    var rateDataStatus: RateDataStatus {
+        currencyRateEntityLock.lock()
+        defer { currencyRateEntityLock.unlock() }
+        return rateDataStatusStorage
     }
 
     var context: NSExtensionContext?
@@ -104,87 +122,128 @@ class CurrencyConverter {
         } else {
             feed_url = URL(string: "http://data.fixer.io/api/latest?access_key=676ac77e5ce5d4b9a57ee6464ff84433&format=1")
         }
-        
-        print("Loading currency data from \(String(describing: feed_url?.absoluteString))")
 
-        transport(feed_url!, { (data, response, error) in
-            if let error = error {
-                print("Error: \(error.localizedDescription)")
-                completionHandler(error)
+        guard let feed_url else {
+            let error = RateDataError.unavailable
+            self.recordRefreshFailure(error)
+            completionHandler(error)
+            return
+        }
+
+        transport(feed_url, { (data, response, error) in
+            if error != nil {
+                let refreshError = RateDataError.transport
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
                 return
-            } else if let response = response as? HTTPURLResponse,let data = data {
-                print("Status code: \(response.statusCode)")
-                let decoder = JSONDecoder()
-                if var currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
-                    let now = self.clock()
-                    currencyRateEntity.fetched_localtime = now
-                    self.currencyRateEntity = currencyRateEntity
-
-                    // Save this to UserDefaults.
-                    self.defaultsLock.lock()
-                    self.defaults.set(now, forKey: "LastUpdateDate")
-                    self.defaults.set(currencyRateEntity.rates, forKey: "CurrencyData")
-                    self.defaults.set(currencyRateEntity.base, forKey:"CurrencyBase")
-                    self.defaults.set(currencyRateEntity.timestamp, forKey: "CurrencyDataTime")
-                    self.defaults.set(String(data: data, encoding: .utf8), forKey: "CurrencyDataRaw")
-                    self.defaultsLock.unlock()
-                }
             }
+
+            guard let response = response as? HTTPURLResponse else {
+                let refreshError = RateDataError.unavailable
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
+
+            guard (200..<300).contains(response.statusCode) else {
+                let refreshError = RateDataError.httpStatus(response.statusCode)
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
+
+            guard let data else {
+                let refreshError = RateDataError.unavailable
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
+
+            let decodedEntity: CurrencyRateEntity
+            do {
+                decodedEntity = try JSONDecoder().decode(CurrencyRateEntity.self, from: data)
+            } catch {
+                let refreshError = RateDataError.decode
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
+
+            guard self.isValidRateEntity(decodedEntity) else {
+                let refreshError = RateDataError.invalidPayload
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
+
+            let now = self.clock()
+            var validatedEntity = decodedEntity
+            validatedEntity.fetched_localtime = now
+            self.commitWebSnapshot(validatedEntity, rawData: data, fetchedAt: now)
             completionHandler(nil)
         })
     }
     
     func loadFromDefaults() -> Bool {
-        let today = clock()
-
         defaultsLock.lock()
         let recordValue = defaults.value(forKey: "LastUpdateDate")
         let ratesValue = defaults.value(forKey: "CurrencyData")
         let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
         defaultsLock.unlock()
 
-        let record = recordValue as! Date?
-        guard let record = record else {
+        guard let record = recordValue as? Date,
+              let rates = ratesValue as? [String: Float32] else {
             return false
         }
 
-        guard LegacyCachePolicy.isFresh(lastUpdated: record, now: today) else {
-            return false
-        }
-
-        let rates = ratesValue as! [String:Float32]?
-        guard let rates else {
-            return false
-        }
-
-        print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
+        let today = clock()
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        let todayString = formatter.string(from: today)
-        self.currencyRateEntity = CurrencyRateEntity(
-            base: "EUR", date: todayString, rates: rates, fetched_localtime: record, timestamp: dataTimestamp
+        let entity = CurrencyRateEntity(
+            base: "EUR", date: formatter.string(from: today), rates: rates,
+            fetched_localtime: record, timestamp: dataTimestamp
         )
-        return true
+        guard isValidRateEntity(entity) else {
+            return false
+        }
+
+        currencyRateEntityLock.lock()
+        let hasValidMemory = currencyRateEntityStorage.map(isUsableRateEntity) ?? false
+        let hadRefreshError = rateDataStatusStorage.lastRefreshError != nil
+        if !hasValidMemory {
+            currencyRateEntityStorage = entity
+            rateDataStatusStorage = RateDataStatus(
+                source: .defaults,
+                isStale: !LegacyCachePolicy.isFresh(lastUpdated: record, now: today),
+                lastUpdated: record,
+                lastRefreshError: rateDataStatusStorage.lastRefreshError
+            )
+        }
+        let currentSource = rateDataStatusStorage.source
+        currencyRateEntityLock.unlock()
+        return currentSource == .defaults && LegacyCachePolicy.isFresh(lastUpdated: record, now: today) && !hadRefreshError
     }
     
     func loadFromMemory() -> Bool {
-        guard let c = currencyRateEntity else {
+        currencyRateEntityLock.lock()
+        guard let c = currencyRateEntityStorage,
+              isUsableRateEntity(c),
+              let lastUpdate = c.fetched_localtime else {
+            currencyRateEntityLock.unlock()
             return false
         }
-        
-        guard let last_update = c.fetched_localtime else {
-            NSLog("loadFromMemory() fetched_localtime is null!")
-            return false
-        }
-        
         let today = clock()
-        guard LegacyCachePolicy.isFresh(lastUpdated: last_update, now: today) else {
-            NSLog("Convert Rate Data in Memory not found or too old (\(last_update) vs \(today)), load from Defaults....")
-            return false
-        }
-        
-        NSLog("Convert Rate Data in Memory is good (\(last_update) vs \(today))")
-        return true
+        let hadRefreshError = rateDataStatusStorage.lastRefreshError != nil
+        let source = rateDataStatusStorage.source ?? .memory
+        rateDataStatusStorage = RateDataStatus(
+            source: source,
+            isStale: !LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: today) || hadRefreshError,
+            lastUpdated: lastUpdate,
+            lastRefreshError: rateDataStatusStorage.lastRefreshError
+        )
+        let isFresh = LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: today)
+        currencyRateEntityLock.unlock()
+        return isFresh && !hadRefreshError
     }
     
     func loadData(completionHandler: @escaping (Error?) -> Void = {_ in }) {
@@ -235,32 +294,98 @@ class CurrencyConverter {
     }
     
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void) {
-        loadData { (error) in
-            if error != nil {
-                completionHandler(0.0, error)
+        loadDataForUse { error in
+            guard let entity = self.currentUsableEntity() else {
+                completionHandler(0.0, error ?? RateDataError.unavailable)
                 return
             }
-
-            let rates = self.currencyRateEntity!.rates
-            let result = LegacyConversionMath.direct(
-                unit: unit,
-                fromRate: rates[from]!,
-                toRate: rates[to]!
-            )
-            completionHandler(result, nil)
+            guard let fromRate = entity.rates[from] else {
+                completionHandler(0.0, RateDataError.missingRate(from))
+                return
+            }
+            guard let toRate = entity.rates[to] else {
+                completionHandler(0.0, RateDataError.missingRate(to))
+                return
+            }
+            completionHandler(LegacyConversionMath.direct(unit: unit, fromRate: fromRate, toRate: toRate), nil)
         }
     }
     
     func getSymbols(completionHandler: @escaping ([String]?, Error?) -> Void) {
-        loadData { (error) in
-            if error != nil {
-                completionHandler(nil, error)
+        loadDataForUse { error in
+            guard let entity = self.currentUsableEntity() else {
+                completionHandler(nil, error ?? RateDataError.unavailable)
                 return
             }
-            let currencyRateEntity = self.currencyRateEntity!
-            let symbols = Array(currencyRateEntity.rates.keys)
-            completionHandler(symbols, nil)
+            completionHandler(Array(entity.rates.keys), nil)
         }
     }
-    
+
+    private func loadDataForUse(_ completionHandler: @escaping (Error?) -> Void) {
+        currencyRateEntityLock.lock()
+        let canUseLastKnownGood = currencyRateEntityStorage.map(isUsableRateEntity) == true && rateDataStatusStorage.lastRefreshError != nil
+        currencyRateEntityLock.unlock()
+        if canUseLastKnownGood {
+            completionHandler(nil)
+        } else {
+            loadData(completionHandler: completionHandler)
+        }
+    }
+
+    private func currentUsableEntity() -> CurrencyRateEntity? {
+        currencyRateEntityLock.lock()
+        defer { currencyRateEntityLock.unlock() }
+        guard let entity = currencyRateEntityStorage, isUsableRateEntity(entity) else { return nil }
+        return entity
+    }
+
+    private func isUsableRateEntity(_ entity: CurrencyRateEntity) -> Bool {
+        isValidRateEntity(entity) && entity.fetched_localtime != nil
+    }
+
+    private func isValidRateEntity(_ entity: CurrencyRateEntity) -> Bool {
+        guard !entity.base.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !entity.date.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !entity.rates.isEmpty else {
+            return false
+        }
+        return entity.rates.allSatisfy { symbol, rate in
+            !symbol.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && rate.isFinite && rate > 0
+        }
+    }
+
+    private func recordRefreshFailure(_ error: RateDataError) {
+        currencyRateEntityLock.lock()
+        let entity = currencyRateEntityStorage
+        let source = rateDataStatusStorage.source ?? (entity == nil ? nil : .memory)
+        rateDataStatusStorage = RateDataStatus(
+            source: source,
+            isStale: source != nil,
+            lastUpdated: entity?.fetched_localtime ?? rateDataStatusStorage.lastUpdated,
+            lastRefreshError: error
+        )
+        currencyRateEntityLock.unlock()
+    }
+
+    private func commitWebSnapshot(_ entity: CurrencyRateEntity, rawData: Data, fetchedAt: Date) {
+        defaultsLock.lock()
+        defaults.set(fetchedAt, forKey: "LastUpdateDate")
+        defaults.set(entity.rates, forKey: "CurrencyData")
+        defaults.set(entity.base, forKey: "CurrencyBase")
+        defaults.set(entity.timestamp, forKey: "CurrencyDataTime")
+        if let rawDataString = String(data: rawData, encoding: .utf8) {
+            defaults.set(rawDataString, forKey: "CurrencyDataRaw")
+        }
+        currencyRateEntityLock.lock()
+        currencyRateEntityStorage = entity
+        rateDataStatusStorage = RateDataStatus(
+            source: .web,
+            isStale: false,
+            lastUpdated: fetchedAt,
+            lastRefreshError: nil
+        )
+        currencyRateEntityLock.unlock()
+        defaultsLock.unlock()
+    }
+
 }

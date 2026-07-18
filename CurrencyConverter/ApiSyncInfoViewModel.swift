@@ -10,6 +10,7 @@ import Foundation
 
 class ApiSyncInfoViewModel : ObservableObject {
     @Published var data: ApiSyncInfoViewModel?
+    @Published private(set) var rateStatus = CurrencyConverter.shared.rateDataStatus
     var userDefaults: UserDefaults
     var lastUpdate: String?
     var parsedPayloadUpdate: String?
@@ -24,15 +25,22 @@ class ApiSyncInfoViewModel : ObservableObject {
         self.userDefaults = host
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd hh:mm:ss"
-        lastUpdate = formatter.string(from: host.object(forKey: "LastUpdateDate") as! Date)
+        if let date = host.object(forKey: "LastUpdateDate") as? Date {
+            lastUpdate = formatter.string(from: date)
+        } else {
+            lastUpdate = nil
+        }
         parsedPayloadUpdate = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(host.integer(forKey: "CurrencyDataTime"))))
         rawData = host.string(forKey: "CurrencyDataRaw")
+        rateStatus = CurrencyConverter.shared.rateDataStatus
         data = self
     }
     
     func sync() {
-        CurrencyConverter.shared.loadFromWeb { [self] (error) in
-            loadFromUserDefaults(sharedUserDefaults)
+        CurrencyConverter.shared.loadFromWeb { [self] _ in
+            DispatchQueue.main.async {
+                self.loadFromUserDefaults(sharedUserDefaults)
+            }
         }
     }
 }

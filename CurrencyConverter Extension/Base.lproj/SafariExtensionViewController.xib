@@ -16,6 +16,7 @@
                 <outlet property="fxRateBtn15" destination="ReV-OI-vOn" id="bTW-U9-KbT"/>
                 <outlet property="fxRateBtn2" destination="PKi-Ew-R7f" id="yJc-NF-mvb"/>
                 <outlet property="ratesText" destination="TyX-ll-gIp" id="NaC-aQ-Wbu"/>
+                <outlet property="statusText" destination="cCS10-status" id="CCS10-status-outlet"/>
                 <outlet property="view" destination="c22-O7-iKe" id="vwT-Xx-Aiz"/>
             </connections>
         </customObject>
@@ -247,6 +248,14 @@
                                 <real value="3.4028234663852886e+38"/>
                             </customSpacing>
                         </stackView>
+                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cCS10-status">
+                            <rect key="frame" x="0.0" y="-29" width="405" height="16"/>
+                            <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Exchange rates are current." id="cCS10-status-cell">
+                                <font key="font" metaFont="smallSystem"/>
+                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
                     </subviews>
                     <visibilityPriorities>
                         <integer value="1000"/>

@@ -1,5 +1,54 @@
 import Foundation
 
+enum RateDataSource: Equatable {
+    case memory
+    case defaults
+    case web
+}
+
+enum RateDataError: Error, Equatable {
+    case transport
+    case httpStatus(Int)
+    case decode
+    case invalidPayload
+    case missingRate(String)
+    case unavailable
+
+    var message: String {
+        switch self {
+        case .transport:
+            return "Could not refresh exchange rates."
+        case .httpStatus(let status):
+            return "Rate service returned an HTTP \(status / 100)xx response."
+        case .decode:
+            return "Rate service returned unreadable data."
+        case .invalidPayload:
+            return "Rate service returned invalid data."
+        case .missingRate:
+            return "Requested currency rate unavailable."
+        case .unavailable:
+            return "Exchange rates unavailable."
+        }
+    }
+}
+
+struct RateDataStatus: Equatable {
+    let source: RateDataSource?
+    let isStale: Bool
+    let lastUpdated: Date?
+    let lastRefreshError: RateDataError?
+
+    var message: String {
+        guard source != nil else {
+            return lastRefreshError?.message ?? RateDataError.unavailable.message
+        }
+        if isStale {
+            return "Using saved rates; refresh failed."
+        }
+        return lastRefreshError?.message ?? "Exchange rates are current."
+    }
+}
+
 enum LegacyConversionMath {
     static func direct(unit: Float32, fromRate: Float32, toRate: Float32) -> Float32 {
         (unit / fromRate) * toRate
