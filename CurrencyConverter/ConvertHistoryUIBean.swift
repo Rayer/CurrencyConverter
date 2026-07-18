@@ -42,7 +42,27 @@ struct ConvertHistoryUIBean : Identifiable {
     
     static func fromCoreData(c: ConvertHistory) -> ConvertHistoryUIBean{
         //due to some migration concern, entity still "fxFee" to represent "fxFeeRate"
-        return ConvertHistoryUIBean(id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "", fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount, fxFeeRate: c.fxFee, ratio: c.ratio)
+        return make(
+            id: c.id, title: c.title, url: c.url,
+            fromSymbol: c.fromSymbol, toSymbol: c.toSymbol,
+            fromAmount: c.fromAmount, fxFeeRate: c.fxFee, ratio: c.ratio
+        )
+    }
+
+    private static func make(
+        id: UUID?, title: String?, url: String?, fromSymbol: String?, toSymbol: String?,
+        fromAmount: Float, fxFeeRate: Float, ratio: Float
+    ) -> ConvertHistoryUIBean {
+        let fromSymbol = fromSymbol ?? ""
+        let toSymbol = toSymbol ?? ""
+        let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+            fromSymbol: fromSymbol, toSymbol: toSymbol, fxFeeRate: fxFeeRate, ratio: ratio
+        )
+        return ConvertHistoryUIBean(
+            id: id ?? UUID(), title: title ?? "", url: url ?? "",
+            fromSymbol: fromSymbol, toSymbol: toSymbol, fromAmount: fromAmount,
+            fxFeeRate: values.fxFeeRate, ratio: values.ratio
+        )
     }
 }
 

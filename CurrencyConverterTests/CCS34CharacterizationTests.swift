@@ -1,4 +1,5 @@
 import XCTest
+import CoreData
 @testable import CurrencyConverter
 
 final class CCS34ConversionCharacterizationTests: XCTestCase {
@@ -183,6 +184,70 @@ final class CCS34PersistenceCharacterizationTests: XCTestCase {
 }
 
 final class CCS34HistoryCharacterizationTests: XCTestCase {
+    func testSameCurrencyHistoryValuesAreNormalizedForNewWrites() {
+        let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+            fromSymbol: "USD", toSymbol: "USD", fxFeeRate: 0.02, ratio: 0.5
+        )
+
+        XCTAssertEqual(values.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(values.ratio, 1, accuracy: 0.0001)
+    }
+
+    func testLegacySameCurrencyCoreDataShapeIsNormalizedByUIBean() throws {
+        let model = try XCTUnwrap(NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]))
+        let container = NSPersistentContainer(name: "CurrencyExchangeRate", managedObjectModel: model)
+        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null"))]
+        container.persistentStoreDescriptions[0].type = NSInMemoryStoreType
+        var loadError: Error?
+        let loaded = expectation(description: "in-memory store")
+        container.loadPersistentStores { _, error in
+            loadError = error
+            loaded.fulfill()
+        }
+        wait(for: [loaded], timeout: 1)
+        XCTAssertNil(loadError)
+
+        let row = ConvertHistory(context: container.viewContext)
+        row.fromSymbol = "USD"
+        row.toSymbol = "USD"
+        row.fromAmount = 200
+        row.fxFee = 0.02
+        row.ratio = 0.5
+
+        let bean = ConvertHistoryUIBean.fromCoreData(c: row)
+
+        XCTAssertEqual(bean.fxFeeRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.ratio, 1, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmount, bean.fromAmount, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmountWithFx, bean.fromAmount, accuracy: 0.0001)
+        var profile = CashBackCreditCardProfile()
+        profile.currencySymbol = "USD"
+        profile.cashBackRateDomestic = 0.02
+        XCTAssertEqual(profile.estimatedPrice(price: bean.toAmount, sourceSymbol: bean.fromSymbol), 196, accuracy: 0.0001)
+        XCTAssertEqual(row.fxFee, 0.02, accuracy: 0.0001)
+        XCTAssertEqual(row.ratio, 0.5, accuracy: 0.0001)
+    }
+
+    func testCrossCurrencyHistoryValuesRemainUnchanged() {
+        let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+            fromSymbol: "USD", toSymbol: "TWD", fxFeeRate: 0.015, ratio: 0.5
+        )
+
+        XCTAssertEqual(values.fxFeeRate, 0.015, accuracy: 0.0001)
+        XCTAssertEqual(values.ratio, 0.5, accuracy: 0.0001)
+    }
+
+    func testSameCurrencyZeroAmountHistoryRemainsSafe() {
+        let bean = ConvertHistoryUIBean(
+            id: UUID(), title: nil, url: "", fromSymbol: "USD", toSymbol: "USD",
+            fromAmount: 0, fxFeeRate: 0, ratio: 1
+        )
+
+        XCTAssertEqual(bean.toAmount, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.fxFee, 0, accuracy: 0.0001)
+        XCTAssertEqual(bean.toAmountWithFx, 0, accuracy: 0.0001)
+    }
+
     func testConvertHistoryUIBeanCalculatesAmountAndFeeInclusively() {
         let toAmount = LegacyConvertHistoryCalculations.toAmount(fromAmount: 200, ratio: 0.25)
         XCTAssertEqual(toAmount, 50, accuracy: 0.0001)

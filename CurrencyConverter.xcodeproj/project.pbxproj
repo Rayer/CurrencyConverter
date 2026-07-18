@@ -31,6 +31,7 @@
 		6262F06925220FA90066ADFA /* SharedPersistent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6257131F23719BDB00466679 /* SharedPersistent.swift */; };
 		6262F07F252226100066ADFA /* PreviewConvertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6262F07E252226100066ADFA /* PreviewConvertHistory.swift */; };
 		6262F08525222C300066ADFA /* ConvertHistoryUIBean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6262F08425222C300066ADFA /* ConvertHistoryUIBean.swift */; };
+		63CC340A2371982E00466679 /* ConvertHistoryUIBean.swift in Tests */ = {isa = PBXBuildFile; fileRef = 6262F08425222C300066ADFA /* ConvertHistoryUIBean.swift */; };
 		6267904C253E4F700071A9A7 /* CreditCardProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6267904B253E4F700071A9A7 /* CreditCardProfile.swift */; };
 		62679051253F0D330071A9A7 /* CreditCardManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62679050253F0D330071A9A7 /* CreditCardManageView.swift */; };
 		62679056253F2F1F0071A9A7 /* CreditCardManagerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62679055253F2F1F0071A9A7 /* CreditCardManagerViewModel.swift */; };
@@ -409,6 +410,7 @@
 				625712E52371982E00466679 /* CurrencyConverterTests.swift in Sources */,
 				63CC34012371982E00466679 /* LegacyContractSeams.swift in Sources */,
 				63CC34032371982E00466679 /* CCS34CharacterizationTests.swift in Sources */,
+				63CC340A2371982E00466679 /* ConvertHistoryUIBean.swift in Tests */,
 				6257131C23719B5300466679 /* CurrencyConverter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
