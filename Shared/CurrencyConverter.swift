@@ -18,13 +18,32 @@ struct CurrencyRateEntity : Decodable {
 }
 
 class CurrencyConverter {
-    var currencyRateEntity: CurrencyRateEntity?
+    private let currencyRateEntityLock = NSLock()
+    private var currencyRateEntityStorage: CurrencyRateEntity?
+    var currencyRateEntity: CurrencyRateEntity? {
+        get {
+            currencyRateEntityLock.lock()
+            defer { currencyRateEntityLock.unlock() }
+            return currencyRateEntityStorage
+        }
+        set {
+            currencyRateEntityLock.lock()
+            currencyRateEntityStorage = newValue
+            currencyRateEntityLock.unlock()
+        }
+    }
+
     var context: NSExtensionContext?
     typealias RateTransport = (URL, @escaping (Data?, URLResponse?, Error?) -> Void) -> Void
 
     private let clock: () -> Date
     private let defaults: UserDefaults
     private let transport: RateTransport
+    private let defaultsLock = NSLock()
+    private let refreshLock = NSLock()
+    private var nextRefreshID: UInt64 = 0
+    private var activeRefreshID: UInt64?
+    private var refreshWaiters: [(Error?) -> Void] = []
     
     static let shared = CurrencyConverter()
     private init() {
@@ -46,6 +65,39 @@ class CurrencyConverter {
     }
     
     func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
+        var refreshID: UInt64?
+
+        refreshLock.lock()
+        refreshWaiters.append(completionHandler)
+        if activeRefreshID == nil {
+            nextRefreshID &+= 1
+            activeRefreshID = nextRefreshID
+            refreshID = nextRefreshID
+        }
+        refreshLock.unlock()
+
+        guard let refreshID else { return }
+
+        loadFromWebRequest { [self] error in
+            finishRefresh(refreshID, error: error)
+        }
+    }
+
+    private func finishRefresh(_ refreshID: UInt64, error: Error?) {
+        refreshLock.lock()
+        guard activeRefreshID == refreshID else {
+            refreshLock.unlock()
+            return
+        }
+        activeRefreshID = nil
+        let waiters = refreshWaiters
+        refreshWaiters.removeAll()
+        refreshLock.unlock()
+
+        waiters.forEach { $0(error) }
+    }
+
+    private func loadFromWebRequest(_ completionHandler: @escaping (Error?) -> Void) {
         let feed_url : URL?
         if let feed_url_str = Bundle.main.object(forInfoDictionaryKey: "CurrencyInfoFeed") as? String {
             feed_url = URL(string: feed_url_str)
@@ -64,15 +116,18 @@ class CurrencyConverter {
                 print("Status code: \(response.statusCode)")
                 let decoder = JSONDecoder()
                 if var currencyRateEntity = try? decoder.decode(CurrencyRateEntity.self, from: data) {
-                    self.currencyRateEntity = currencyRateEntity
-                    //Save this to UserDefaults
                     let now = self.clock()
                     currencyRateEntity.fetched_localtime = now
+                    self.currencyRateEntity = currencyRateEntity
+
+                    // Save this to UserDefaults.
+                    self.defaultsLock.lock()
                     self.defaults.set(now, forKey: "LastUpdateDate")
                     self.defaults.set(currencyRateEntity.rates, forKey: "CurrencyData")
                     self.defaults.set(currencyRateEntity.base, forKey:"CurrencyBase")
                     self.defaults.set(currencyRateEntity.timestamp, forKey: "CurrencyDataTime")
                     self.defaults.set(String(data: data, encoding: .utf8), forKey: "CurrencyDataRaw")
+                    self.defaultsLock.unlock()
                 }
             }
             completionHandler(nil)
@@ -81,27 +136,34 @@ class CurrencyConverter {
     
     func loadFromDefaults() -> Bool {
         let today = clock()
-        
-        guard let record = defaults.value(forKey: "LastUpdateDate") as! Date? else {
+
+        defaultsLock.lock()
+        let recordValue = defaults.value(forKey: "LastUpdateDate")
+        let ratesValue = defaults.value(forKey: "CurrencyData")
+        let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
+        defaultsLock.unlock()
+
+        let record = recordValue as! Date?
+        guard let record = record else {
             return false
         }
-        
+
         guard LegacyCachePolicy.isFresh(lastUpdated: record, now: today) else {
             return false
         }
-        
-        guard let rates = defaults.value(forKey: "CurrencyData") as! [String:Float32]? else {
+
+        let rates = ratesValue as! [String:Float32]?
+        guard let rates else {
             return false
         }
-        
-        let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
-        
+
         print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let todayString = formatter.string(from: today)
-        self.currencyRateEntity = CurrencyRateEntity(base: "EUR", date: todayString, rates: rates, timestamp: dataTimestamp)
-        self.currencyRateEntity?.fetched_localtime = record
+        self.currencyRateEntity = CurrencyRateEntity(
+            base: "EUR", date: todayString, rates: rates, fetched_localtime: record, timestamp: dataTimestamp
+        )
         return true
     }
     
@@ -126,7 +188,6 @@ class CurrencyConverter {
     }
     
     func loadData(completionHandler: @escaping (Error?) -> Void = {_ in }) {
-        
         if loadFromMemory() {
             completionHandler(nil)
             return
@@ -136,9 +197,41 @@ class CurrencyConverter {
             completionHandler(nil)
         } else {
             NSLog("Convert Rate Data in Defaults not found or too old, load from web....")
-            loadFromWeb(completionHandler)
+            loadFromCacheMiss(completionHandler)
         }
-        
+    }
+
+    func loadFromCacheMiss(_ completionHandler: @escaping (Error?) -> Void) {
+        var refreshID: UInt64?
+        var cacheIsFresh = false
+
+        refreshLock.lock()
+        if activeRefreshID == nil {
+            // The initial cache check happened before entering this gate. Recheck
+            // while claiming the refresh slot so a just-finished refresh is joined
+            // without starting a second transport.
+            cacheIsFresh = loadFromMemory() || loadFromDefaults()
+            if !cacheIsFresh {
+                nextRefreshID &+= 1
+                activeRefreshID = nextRefreshID
+                refreshID = nextRefreshID
+                refreshWaiters.append(completionHandler)
+            }
+        } else {
+            refreshWaiters.append(completionHandler)
+        }
+        refreshLock.unlock()
+
+        if cacheIsFresh {
+            completionHandler(nil)
+            return
+        }
+
+        guard let refreshID else { return }
+
+        loadFromWebRequest { [self] error in
+            finishRefresh(refreshID, error: error)
+        }
     }
     
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void) {
@@ -147,11 +240,12 @@ class CurrencyConverter {
                 completionHandler(0.0, error)
                 return
             }
-            
+
+            let rates = self.currencyRateEntity!.rates
             let result = LegacyConversionMath.direct(
                 unit: unit,
-                fromRate: self.currencyRateEntity!.rates[from]!,
-                toRate: self.currencyRateEntity!.rates[to]!
+                fromRate: rates[from]!,
+                toRate: rates[to]!
             )
             completionHandler(result, nil)
         }
@@ -161,8 +255,11 @@ class CurrencyConverter {
         loadData { (error) in
             if error != nil {
                 completionHandler(nil, error)
+                return
             }
-            completionHandler(Array((self.currencyRateEntity?.rates.keys)!), nil)
+            let currencyRateEntity = self.currencyRateEntity!
+            let symbols = Array(currencyRateEntity.rates.keys)
+            completionHandler(symbols, nil)
         }
     }
     
