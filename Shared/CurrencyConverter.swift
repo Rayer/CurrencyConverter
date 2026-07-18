@@ -148,10 +148,12 @@ class CurrencyConverter {
                 return
             }
             
-            switch LegacyConversionMath.direct(unit: unit, fromRate: self.currencyRateEntity?.rates[from], toRate: self.currencyRateEntity?.rates[to]) {
-            case .success(let result): completionHandler(result, nil)
-            case .failure(let error): completionHandler(0.0, error)
-            }
+            let result = LegacyConversionMath.direct(
+                unit: unit,
+                fromRate: self.currencyRateEntity!.rates[from]!,
+                toRate: self.currencyRateEntity!.rates[to]!
+            )
+            completionHandler(result, nil)
         }
     }
     

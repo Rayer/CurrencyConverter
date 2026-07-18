@@ -1,14 +1,8 @@
 import Foundation
 
-enum LegacyConversionError: Error, Equatable {
-    case missingRate(String)
-}
-
 enum LegacyConversionMath {
-    static func direct(unit: Float32, fromRate: Float32?, toRate: Float32?) -> Result<Float32, LegacyConversionError> {
-        guard let fromRate else { return .failure(.missingRate("from")) }
-        guard let toRate else { return .failure(.missingRate("to")) }
-        return .success((unit / fromRate) * toRate)
+    static func direct(unit: Float32, fromRate: Float32, toRate: Float32) -> Float32 {
+        (unit / fromRate) * toRate
     }
 }
 
