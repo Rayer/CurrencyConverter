@@ -1,0 +1,273 @@
+import XCTest
+@testable import CurrencyConverter
+
+private final class CCS17ControlledTransport {
+    typealias Completion = (Data?, URLResponse?, Error?) -> Void
+
+    private let lock = NSLock()
+    private var pendingCompletions: [Completion] = []
+    private var requestCountValue = 0
+    private let requestStarted = DispatchSemaphore(value: 0)
+
+    var requestCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return requestCountValue
+    }
+
+    func send(_ url: URL, completion: @escaping Completion) {
+        lock.lock()
+        requestCountValue += 1
+        pendingCompletions.append(completion)
+        lock.unlock()
+        requestStarted.signal()
+    }
+
+    func waitForRequest() {
+        XCTAssertEqual(requestStarted.wait(timeout: .now() + 1), .success)
+    }
+
+    func finishNext(data: Data? = nil, response: URLResponse? = nil, error: Error? = nil) {
+        lock.lock()
+        let completion = pendingCompletions.removeFirst()
+        lock.unlock()
+        completion(data, response, error)
+    }
+}
+
+private final class CCS17MemoryDefaults: UserDefaults {
+    private var storage: [String: Any] = [:]
+
+    override func object(forKey defaultName: String) -> Any? {
+        storage[defaultName]
+    }
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        storage[defaultName] = value
+    }
+
+    override func integer(forKey defaultName: String) -> Int {
+        storage[defaultName] as? Int ?? 0
+    }
+
+    override func value(forKey key: String) -> Any? {
+        object(forKey: key)
+    }
+}
+
+private final class CCS17ObservedConverter: CurrencyConverter {
+    private let refreshEntry = DispatchSemaphore(value: 0)
+
+    func waitForRefreshEntry() {
+        XCTAssertEqual(refreshEntry.wait(timeout: .now() + 1), .success)
+    }
+
+    override func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
+        super.loadFromWeb(completionHandler)
+        refreshEntry.signal()
+    }
+}
+
+final class CCS17RefreshCoalescingTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1000)
+    private let successData = Data(#"{"base":"EUR","date":"2026-07-18","rates":{"USD":1.0,"JPY":110.0},"timestamp":123}"#.utf8)
+
+    func testConcurrentStaleLoadsUseOneTransportAndFanOutSuccessOnce() {
+        let transport = CCS17ControlledTransport()
+        let converter = makeObservedStaleConverter(transport: transport)
+        let completionExpectation = expectation(description: "all callers complete")
+        completionExpectation.expectedFulfillmentCount = 16
+        completionExpectation.assertForOverFulfill = true
+        let results = LockedResults()
+
+        startConcurrentLoads(on: converter, count: 16) { error in
+            results.append(error: error, rate: converter.currencyRateEntity?.rates["USD"])
+            completionExpectation.fulfill()
+        }
+        transport.waitForRequest()
+        XCTAssertEqual(transport.requestCount, 1)
+        for _ in 0..<16 {
+            converter.waitForRefreshEntry()
+        }
+
+        transport.finishNext(
+            data: successData,
+            response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        )
+        wait(for: [completionExpectation], timeout: 1)
+
+        XCTAssertEqual(results.count, 16)
+        XCTAssertTrue(results.errors.allSatisfy { $0 == nil })
+        XCTAssertTrue(results.rates.allSatisfy { $0 == 1 })
+    }
+
+    func testConcurrentStaleLoadsFanOutTransportFailureOnceWithoutTrailingNil() {
+        let transport = CCS17ControlledTransport()
+        let converter = makeObservedStaleConverter(transport: transport)
+        let completionExpectation = expectation(description: "all callers complete")
+        completionExpectation.expectedFulfillmentCount = 16
+        completionExpectation.assertForOverFulfill = true
+        let results = LockedResults()
+        let failure = NSError(domain: "CCS17", code: 17)
+
+        startConcurrentLoads(on: converter, count: 16) { error in
+            results.append(error: error, rate: nil)
+            completionExpectation.fulfill()
+        }
+        transport.waitForRequest()
+        XCTAssertEqual(transport.requestCount, 1)
+        for _ in 0..<16 {
+            converter.waitForRefreshEntry()
+        }
+        transport.finishNext(error: failure)
+        wait(for: [completionExpectation], timeout: 1)
+
+        XCTAssertEqual(results.count, 16)
+        XCTAssertTrue(results.errors.allSatisfy { ($0 as NSError?) === failure })
+        XCTAssertEqual(results.nilErrorCount, 0)
+    }
+
+    func testFailedRefreshClearsInFlightStateForRetry() {
+        let transport = CCS17ControlledTransport()
+        let converter = makeStaleConverter(transport: transport)
+        let failureExpectation = expectation(description: "failure completion")
+        let failure = NSError(domain: "CCS17", code: 18)
+
+        converter.loadData { error in
+            XCTAssertTrue((error as NSError?) === failure)
+            failureExpectation.fulfill()
+        }
+        transport.waitForRequest()
+        XCTAssertEqual(transport.requestCount, 1)
+        transport.finishNext(error: failure)
+        wait(for: [failureExpectation], timeout: 1)
+
+        let retryExpectation = expectation(description: "retry completion")
+        converter.loadData { error in
+            XCTAssertNil(error)
+            XCTAssertEqual(converter.currencyRateEntity?.rates["USD"], 1)
+            retryExpectation.fulfill()
+        }
+        transport.waitForRequest()
+        XCTAssertEqual(transport.requestCount, 2)
+        transport.finishNext(
+            data: successData,
+            response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        )
+        wait(for: [retryExpectation], timeout: 1)
+    }
+
+    func testFreshMemoryAndDefaultsCompleteWithoutTransport() {
+        let memoryTransport = CCS17ControlledTransport()
+        let memoryConverter = makeStaleConverter(transport: memoryTransport)
+        memoryConverter.currencyRateEntity = CurrencyRateEntity(
+            base: "EUR", date: "2026-07-18", rates: ["USD": 1], fetched_localtime: now, timestamp: 123
+        )
+        let memoryExpectation = expectation(description: "fresh memory callers complete")
+        memoryExpectation.expectedFulfillmentCount = 8
+        memoryExpectation.assertForOverFulfill = true
+        startConcurrentLoads(on: memoryConverter, count: 8) { error in
+            XCTAssertNil(error)
+            memoryExpectation.fulfill()
+        }
+        wait(for: [memoryExpectation], timeout: 1)
+        XCTAssertEqual(memoryTransport.requestCount, 0)
+
+        let defaultsTransport = CCS17ControlledTransport()
+        let defaults = CCS17MemoryDefaults()
+        defaults.set(now, forKey: "LastUpdateDate")
+        defaults.set(["USD": Float32(1)], forKey: "CurrencyData")
+        defaults.set(123, forKey: "CurrencyDataTime")
+        let defaultsConverter = CurrencyConverter(clock: { self.now }, defaults: defaults, transport: defaultsTransport.send)
+        let defaultsExpectation = expectation(description: "fresh defaults callers complete")
+        defaultsExpectation.expectedFulfillmentCount = 8
+        defaultsExpectation.assertForOverFulfill = true
+        startConcurrentLoads(on: defaultsConverter, count: 8) { error in
+            XCTAssertNil(error)
+            defaultsExpectation.fulfill()
+        }
+        wait(for: [defaultsExpectation], timeout: 1)
+        XCTAssertEqual(defaultsTransport.requestCount, 0)
+    }
+
+    func testSynchronousTransportCompletionDoesNotLoseCompletionOrLeaveRefreshInFlight() {
+        let defaults = CCS17MemoryDefaults()
+        var transportCount = 0
+        let response = HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        let failure = NSError(domain: "CCS17", code: 19)
+        let converter = CurrencyConverter(clock: { self.now }, defaults: defaults) { [self] _, completion in
+            transportCount += 1
+            if transportCount == 1 {
+                completion(nil, nil, failure)
+            } else {
+                completion(successData, response, nil)
+            }
+        }
+
+        let firstExpectation = expectation(description: "synchronous failure completion")
+        converter.loadData { error in
+            XCTAssertTrue((error as NSError?) === failure)
+            firstExpectation.fulfill()
+        }
+        wait(for: [firstExpectation], timeout: 1)
+
+        XCTAssertEqual(transportCount, 1)
+        let retryExpectation = expectation(description: "synchronous retry completion")
+        converter.loadData { error in
+            XCTAssertNil(error)
+            retryExpectation.fulfill()
+        }
+        wait(for: [retryExpectation], timeout: 1)
+        XCTAssertEqual(transportCount, 2)
+    }
+
+    private func makeStaleConverter(transport: CCS17ControlledTransport) -> CurrencyConverter {
+        CurrencyConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+    }
+
+    private func makeObservedStaleConverter(transport: CCS17ControlledTransport) -> CCS17ObservedConverter {
+        CCS17ObservedConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+    }
+
+    private func startConcurrentLoads(
+        on converter: CurrencyConverter,
+        count: Int,
+        completion: @escaping (Error?) -> Void
+    ) {
+        let ready = DispatchGroup()
+        let start = DispatchSemaphore(value: 0)
+        for _ in 0..<count {
+            ready.enter()
+            DispatchQueue.global().async {
+                ready.leave()
+                start.wait()
+                converter.loadData(completionHandler: completion)
+            }
+        }
+        XCTAssertEqual(ready.wait(timeout: .now() + 1), .success)
+        for _ in 0..<count {
+            start.signal()
+        }
+    }
+}
+
+private final class LockedResults {
+    private let lock = NSLock()
+    private(set) var count = 0
+    private(set) var errors: [Error?] = []
+    private(set) var rates: [Float32?] = []
+
+    var nilErrorCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return errors.filter { $0 == nil }.count
+    }
+
+    func append(error: Error?, rate: Float32?) {
+        lock.lock()
+        count += 1
+        errors.append(error)
+        rates.append(rate)
+        lock.unlock()
+    }
+}

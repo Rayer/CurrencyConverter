@@ -25,6 +25,10 @@ class CurrencyConverter {
     private let clock: () -> Date
     private let defaults: UserDefaults
     private let transport: RateTransport
+    private let refreshLock = NSLock()
+    private var nextRefreshID: UInt64 = 0
+    private var activeRefreshID: UInt64?
+    private var refreshWaiters: [(Error?) -> Void] = []
     
     static let shared = CurrencyConverter()
     private init() {
@@ -46,6 +50,39 @@ class CurrencyConverter {
     }
     
     func loadFromWeb(_ completionHandler: @escaping (Error?) -> Void) {
+        var refreshID: UInt64?
+
+        refreshLock.lock()
+        refreshWaiters.append(completionHandler)
+        if activeRefreshID == nil {
+            nextRefreshID &+= 1
+            activeRefreshID = nextRefreshID
+            refreshID = nextRefreshID
+        }
+        refreshLock.unlock()
+
+        guard let refreshID else { return }
+
+        loadFromWebRequest { [self] error in
+            finishRefresh(refreshID, error: error)
+        }
+    }
+
+    private func finishRefresh(_ refreshID: UInt64, error: Error?) {
+        refreshLock.lock()
+        guard activeRefreshID == refreshID else {
+            refreshLock.unlock()
+            return
+        }
+        activeRefreshID = nil
+        let waiters = refreshWaiters
+        refreshWaiters.removeAll()
+        refreshLock.unlock()
+
+        waiters.forEach { $0(error) }
+    }
+
+    private func loadFromWebRequest(_ completionHandler: @escaping (Error?) -> Void) {
         let feed_url : URL?
         if let feed_url_str = Bundle.main.object(forInfoDictionaryKey: "CurrencyInfoFeed") as? String {
             feed_url = URL(string: feed_url_str)
