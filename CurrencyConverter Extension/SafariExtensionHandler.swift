@@ -44,9 +44,9 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as? String ?? "TWD"
                 let unit = Float32(truncating: selected)
                 
-                CurrencyConverter.shared.convert(from: convertFromSym, to: convertToSym, unit: unit) { (result, error) in
+                CurrencyConverter.shared.convertWithStatus(from: convertFromSym, to: convertToSym, unit: unit) { result, status, error in
                     guard error == nil else {
-                        validationHandler(true, (error as? RateDataError)?.message ?? CurrencyConverter.shared.rateDataStatus.message)
+                        validationHandler(true, (error as? RateDataError)?.message ?? status.message)
                         return
                     }
                     
@@ -64,7 +64,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
-                    validationHandler(false, LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: CurrencyConverter.shared.rateDataStatus))
+                    validationHandler(false, LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status))
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
                     sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
                     

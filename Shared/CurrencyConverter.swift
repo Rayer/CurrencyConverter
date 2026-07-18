@@ -62,6 +62,8 @@ class CurrencyConverter {
     private let clock: () -> Date
     private let defaults: UserDefaults
     private let transport: RateTransport
+    // When both are needed, defaultsLock is acquired before currencyRateEntityLock;
+    // injected defaults callbacks never run while the entity lock is held.
     private let defaultsLock = NSLock()
     private let refreshLock = NSLock()
     private var nextRefreshID: UInt64 = 0
@@ -190,22 +192,22 @@ class CurrencyConverter {
     }
     
     func loadFromDefaults() -> Bool {
+        let now = clock()
+        let formatter = providerDateFormatter()
+
         defaultsLock.lock()
+        defer { defaultsLock.unlock() }
         let recordValue = defaults.value(forKey: "LastUpdateDate")
         let ratesValue = defaults.value(forKey: "CurrencyData")
         let baseValue = defaults.value(forKey: "CurrencyBase")
         let rawDataValue = defaults.value(forKey: "CurrencyDataRaw")
         let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
-        defaultsLock.unlock()
 
         guard let record = recordValue as? Date,
               let rates = ratesValue as? [String: Float32] else {
             return false
         }
 
-        let now = clock()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
         let rawEntity: CurrencyRateEntity? = {
             guard let rawDataString = rawDataValue as? String,
                   let rawData = rawDataString.data(using: .utf8),
@@ -217,7 +219,8 @@ class CurrencyConverter {
         }()
         let persistedBase = (baseValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         let base = persistedBase.flatMap { $0.isEmpty ? nil : $0 } ?? rawEntity?.base ?? "EUR"
-        let date = rawEntity?.date ?? formatter.string(from: record)
+        let date = rawEntity.map { isValidProviderDate($0.date) ? $0.date : formatter.string(from: record) }
+            ?? formatter.string(from: record)
         let entity = CurrencyRateEntity(
             base: base, date: date, rates: rates,
             fetched_localtime: record, timestamp: dataTimestamp
@@ -228,6 +231,7 @@ class CurrencyConverter {
 
         let defaultsIsFresh = LegacyCachePolicy.isFresh(lastUpdated: record, now: now)
         currencyRateEntityLock.lock()
+        defer { currencyRateEntityLock.unlock() }
         let currentStatus = rateDataStatusStorage
         if defaultsIsFresh {
             currencyRateEntityStorage = entity
@@ -237,7 +241,6 @@ class CurrencyConverter {
                 lastUpdated: record,
                 lastRefreshError: nil
             )
-            currencyRateEntityLock.unlock()
             return true
         }
 
@@ -260,7 +263,6 @@ class CurrencyConverter {
                 lastRefreshError: currentStatus.lastRefreshError
             )
         }
-        currencyRateEntityLock.unlock()
         return false
     }
     
@@ -334,20 +336,36 @@ class CurrencyConverter {
     }
     
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void) {
+        convertWithStatus(from: from, to: to, unit: unit) { result, _, error in
+            completionHandler(result, error)
+        }
+    }
+
+    func convertWithStatus(
+        from: String,
+        to: String,
+        unit: Float32,
+        completionHandler: @escaping (Float32, RateDataStatus, Error?) -> Void
+    ) {
         loadDataForUse { error in
-            guard let entity = self.currentUsableEntity() else {
-                completionHandler(0.0, error ?? RateDataError.unavailable)
+            let snapshot = self.currentUsableSnapshot()
+            guard let entity = snapshot.entity else {
+                completionHandler(0.0, snapshot.status, error ?? RateDataError.unavailable)
                 return
             }
             guard let fromRate = entity.rates[from] else {
-                completionHandler(0.0, RateDataError.missingRate(from))
+                completionHandler(0.0, snapshot.status, RateDataError.missingRate(from))
                 return
             }
             guard let toRate = entity.rates[to] else {
-                completionHandler(0.0, RateDataError.missingRate(to))
+                completionHandler(0.0, snapshot.status, RateDataError.missingRate(to))
                 return
             }
-            completionHandler(LegacyConversionMath.direct(unit: unit, fromRate: fromRate, toRate: toRate), nil)
+            completionHandler(
+                LegacyConversionMath.direct(unit: unit, fromRate: fromRate, toRate: toRate),
+                snapshot.status,
+                nil
+            )
         }
     }
     
@@ -373,10 +391,14 @@ class CurrencyConverter {
     }
 
     private func currentUsableEntity() -> CurrencyRateEntity? {
+        currentUsableSnapshot().entity
+    }
+
+    private func currentUsableSnapshot() -> (entity: CurrencyRateEntity?, status: RateDataStatus) {
         currencyRateEntityLock.lock()
         defer { currencyRateEntityLock.unlock() }
-        guard let entity = currencyRateEntityStorage, isUsableRateEntity(entity) else { return nil }
-        return entity
+        let entity = currencyRateEntityStorage.flatMap { isUsableRateEntity($0) ? $0 : nil }
+        return (entity, rateDataStatusStorage)
     }
 
     private func isUsableRateEntity(_ entity: CurrencyRateEntity) -> Bool {
@@ -385,7 +407,7 @@ class CurrencyConverter {
 
     private func isValidRateEntity(_ entity: CurrencyRateEntity) -> Bool {
         guard !entity.base.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !entity.date.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              isValidProviderDate(entity.date),
               !entity.rates.isEmpty else {
             return false
         }
@@ -396,12 +418,21 @@ class CurrencyConverter {
 
     private func recordRefreshFailure(_ error: RateDataError) {
         currencyRateEntityLock.lock()
-        let entity = currencyRateEntityStorage
-        let source = rateDataStatusStorage.source ?? (entity == nil ? nil : .memory)
+        guard let entity = currencyRateEntityStorage, isUsableRateEntity(entity) else {
+            rateDataStatusStorage = RateDataStatus(
+                source: nil,
+                isStale: false,
+                lastUpdated: nil,
+                lastRefreshError: error
+            )
+            currencyRateEntityLock.unlock()
+            return
+        }
+        let source = rateDataStatusStorage.source ?? .memory
         rateDataStatusStorage = RateDataStatus(
             source: source,
-            isStale: source != nil,
-            lastUpdated: entity?.fetched_localtime ?? rateDataStatusStorage.lastUpdated,
+            isStale: true,
+            lastUpdated: entity.fetched_localtime,
             lastRefreshError: error
         )
         currencyRateEntityLock.unlock()
@@ -409,14 +440,7 @@ class CurrencyConverter {
 
     private func commitWebSnapshot(_ entity: CurrencyRateEntity, rawData: Data, fetchedAt: Date) {
         defaultsLock.lock()
-        currencyRateEntityLock.lock()
-        currencyRateEntityStorage = entity
-        rateDataStatusStorage = RateDataStatus(
-            source: .web,
-            isStale: false,
-            lastUpdated: fetchedAt,
-            lastRefreshError: nil
-        )
+        defer { defaultsLock.unlock() }
         defaults.set(fetchedAt, forKey: "LastUpdateDate")
         defaults.set(entity.rates, forKey: "CurrencyData")
         defaults.set(entity.base, forKey: "CurrencyBase")
@@ -424,8 +448,31 @@ class CurrencyConverter {
         if let rawDataString = String(data: rawData, encoding: .utf8) {
             defaults.set(rawDataString, forKey: "CurrencyDataRaw")
         }
-        currencyRateEntityLock.unlock()
-        defaultsLock.unlock()
+        currencyRateEntityLock.lock()
+        defer { currencyRateEntityLock.unlock() }
+        currencyRateEntityStorage = entity
+        rateDataStatusStorage = RateDataStatus(
+            source: .web,
+            isStale: false,
+            lastUpdated: fetchedAt,
+            lastRefreshError: nil
+        )
+    }
+
+    private func providerDateFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter
+    }
+
+    private func isValidProviderDate(_ value: String) -> Bool {
+        let formatter = providerDateFormatter()
+        guard let date = formatter.date(from: value) else { return false }
+        return formatter.string(from: date) == value
     }
 
 }

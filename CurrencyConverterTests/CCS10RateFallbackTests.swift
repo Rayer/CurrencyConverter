@@ -46,7 +46,7 @@ private final class CCS10Transport {
     }
 }
 
-private final class CCS10Defaults: UserDefaults {
+private class CCS10Defaults: UserDefaults {
     private let lock = NSLock()
     private var storage: [String: Any] = [:]
 
@@ -66,6 +66,24 @@ private final class CCS10Defaults: UserDefaults {
         lock.lock()
         defer { lock.unlock() }
         storage[defaultName] = value
+    }
+}
+
+private final class CCS10SnapshotBarrierDefaults: CCS10Defaults {
+    let snapshotCaptured = DispatchSemaphore(value: 0)
+    let releaseSnapshot = DispatchSemaphore(value: 0)
+    var onSet: (() -> Void)?
+
+    override func integer(forKey defaultName: String) -> Int {
+        let value = super.integer(forKey: defaultName)
+        snapshotCaptured.signal()
+        _ = releaseSnapshot.wait(timeout: .now() + 2)
+        return value
+    }
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        onSet?()
+        super.set(value, forKey: defaultName)
     }
 }
 
@@ -164,6 +182,23 @@ final class CCS10RateFallbackTests: XCTestCase {
         guard transport.waitForRequest() else { return }
         guard transport.finish(
             data: Data(#"{"base":"EUR","date":"2026-07-18","rates":{},"timestamp":123}"#.utf8),
+            response: response
+        ) else { return }
+        wait(for: [completion], timeout: 1)
+    }
+
+    func testMalformedProviderDateIsInvalidPayload() {
+        let transport = CCS10Transport()
+        let converter = makeConverter(transport: transport)
+        let completion = expectation(description: "malformed provider date")
+
+        converter.loadData { error in
+            XCTAssertEqual(error as? RateDataError, .invalidPayload)
+            completion.fulfill()
+        }
+        guard transport.waitForRequest() else { return }
+        guard transport.finish(
+            data: Data(#"{"base":"EUR","date":"2026-02-30","rates":{"USD":1.2},"timestamp":456}"#.utf8),
             response: response
         ) else { return }
         wait(for: [completion], timeout: 1)
@@ -288,6 +323,21 @@ final class CCS10RateFallbackTests: XCTestCase {
         XCTAssertEqual(converter.currencyRateEntity?.timestamp, 456)
     }
 
+    func testMalformedRawDateFallsBackToLastUpdateDateWithPersistedBasePrecedence() {
+        let defaults = CCS10Defaults()
+        let fetchedAt = now.addingTimeInterval(-60)
+        defaults.set(fetchedAt, forKey: "LastUpdateDate")
+        defaults.set(["USD": Float32(2)], forKey: "CurrencyData")
+        defaults.set("GBP", forKey: "CurrencyBase")
+        defaults.set(456, forKey: "CurrencyDataTime")
+        defaults.set(#"{"base":"JPY","date":"2026-02-30","rates":{"USD":999},"timestamp":999}"#, forKey: "CurrencyDataRaw")
+        let converter = makeConverter(defaults: defaults, transport: CCS10Transport())
+
+        XCTAssertTrue(converter.loadFromDefaults())
+        XCTAssertEqual(converter.currencyRateEntity?.base, "GBP")
+        XCTAssertEqual(converter.currencyRateEntity?.date, "1970-01-01")
+    }
+
     func testLegacyDefaultsUseFetchDateAndEURWhenRawDateAndBaseAreMissing() {
         let defaults = CCS10Defaults()
         let fetchedAt = now.addingTimeInterval(-60)
@@ -374,6 +424,27 @@ final class CCS10RateFallbackTests: XCTestCase {
         XCTAssertEqual(transport.requestCount, 1)
     }
 
+    func testInvalidStoredEntityDoesNotClassifyRefreshFailureAsMemory() {
+        let transport = CCS10Transport()
+        let converter = makeConverter(transport: transport)
+        converter.currencyRateEntity = CurrencyRateEntity(
+            base: "EUR", date: "2026-02-30", rates: ["USD": 1],
+            fetched_localtime: now, timestamp: 123
+        )
+        let completion = expectation(description: "invalid stored entity failure")
+
+        converter.loadData { error in
+            XCTAssertEqual(error as? RateDataError, .transport)
+            XCTAssertNil(converter.rateDataStatus.source)
+            XCTAssertFalse(converter.rateDataStatus.isStale)
+            XCTAssertNil(converter.rateDataStatus.lastUpdated)
+            completion.fulfill()
+        }
+        guard transport.waitForRequest() else { return }
+        guard transport.finish(error: URLError(.notConnectedToInternet)) else { return }
+        wait(for: [completion], timeout: 1)
+    }
+
     func testSynchronousSuccessfulTransportCompletesTypedLoad() {
         let converter = CurrencyConverter(
             clock: { self.now },
@@ -396,6 +467,46 @@ final class CCS10RateFallbackTests: XCTestCase {
         wait(for: [loaded], timeout: 1)
     }
 
+    func testDefaultsSnapshotCannotPublishOverCompetingWebCommit() {
+        let defaults = CCS10SnapshotBarrierDefaults()
+        defaults.set(now, forKey: "LastUpdateDate")
+        defaults.set(["USD": Float32(2)], forKey: "CurrencyData")
+        defaults.set(123, forKey: "CurrencyDataTime")
+        let transportStarted = DispatchSemaphore(value: 0)
+        let webPayload = Data(#"{"base":"EUR","date":"2026-07-18","rates":{"USD":3.0},"timestamp":999}"#.utf8)
+        let converter = CurrencyConverter(
+            clock: { self.now },
+            defaults: defaults,
+            transport: { _, completion in
+                transportStarted.signal()
+                completion(webPayload, self.response, nil)
+            }
+        )
+        defaults.onSet = { _ = converter.rateDataStatus }
+        let loadFinished = DispatchSemaphore(value: 0)
+        let webFinished = DispatchSemaphore(value: 0)
+
+        DispatchQueue.global().async {
+            XCTAssertTrue(converter.loadFromDefaults())
+            loadFinished.signal()
+        }
+        XCTAssertEqual(defaults.snapshotCaptured.wait(timeout: .now() + 1), .success)
+
+        DispatchQueue.global().async {
+            converter.loadFromWeb { error in
+                XCTAssertNil(error)
+                webFinished.signal()
+            }
+        }
+        XCTAssertEqual(transportStarted.wait(timeout: .now() + 1), .success)
+        defaults.releaseSnapshot.signal()
+
+        XCTAssertEqual(loadFinished.wait(timeout: .now() + 1), .success)
+        XCTAssertEqual(webFinished.wait(timeout: .now() + 1), .success)
+        XCTAssertEqual(converter.currencyRateEntity?.rates["USD"], 3)
+        XCTAssertEqual(converter.rateDataStatus.source, .web)
+    }
+
     func testPresentationInputDistinguishesStaleAndUnavailable() {
         XCTAssertEqual(
             RateDataStatus(source: .defaults, isStale: true, lastUpdated: nil, lastRefreshError: .decode).message,
@@ -411,6 +522,38 @@ final class CCS10RateFallbackTests: XCTestCase {
         )
         XCTAssertEqual(title.count, 120)
         XCTAssertTrue(title.hasSuffix("saved rates; refresh failed"))
+    }
+
+    func testConversionPresentationUsesCapturedStaleStatusAfterConverterMutation() {
+        let transport = CCS10Transport()
+        let converter = makeConverter(transport: transport)
+        converter.currencyRateEntity = CurrencyRateEntity(
+            base: "EUR", date: "2026-07-16", rates: ["USD": 1, "JPY": 110],
+            fetched_localtime: now.addingTimeInterval(-2 * LegacyCachePolicy.lifetime), timestamp: 123
+        )
+        let failed = expectation(description: "refresh failure")
+        converter.loadData { error in
+            XCTAssertEqual(error as? RateDataError, .transport)
+            failed.fulfill()
+        }
+        guard transport.waitForRequest() else { return }
+        guard transport.finish(error: URLError(.notConnectedToInternet)) else { return }
+        wait(for: [failed], timeout: 1)
+
+        let converted = expectation(description: "conversion status snapshot")
+        converter.convertWithStatus(from: "JPY", to: "USD", unit: 110) { result, status, error in
+            XCTAssertNil(error)
+            XCTAssertEqual(result, 1, accuracy: 0.0001)
+            XCTAssertTrue(status.isStale)
+            converter.currencyRateEntity = CurrencyRateEntity(
+                base: "EUR", date: "2026-07-18", rates: ["USD": 2, "JPY": 110],
+                fetched_localtime: self.now, timestamp: 456
+            )
+            let title = LegacyContextMenuPresentation.menuTitle(resultString: "1 USD", status: status)
+            XCTAssertTrue(title.hasSuffix("saved rates; refresh failed"))
+            converted.fulfill()
+        }
+        wait(for: [converted], timeout: 1)
     }
 
     private func makeConverter(defaults: CCS10Defaults = CCS10Defaults(), transport: CCS10Transport) -> CurrencyConverter {

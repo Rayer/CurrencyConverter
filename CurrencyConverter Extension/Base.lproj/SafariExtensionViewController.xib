@@ -30,7 +30,7 @@
                     <rect key="frame" x="10" y="15" width="310" height="120"/>
                     <subviews>
                         <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="10" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kRc-jp-qL9">
-                            <rect key="frame" x="0.0" y="91" width="405" height="21"/>
+                            <rect key="frame" x="0.0" y="91" width="310" height="21"/>
                             <subviews>
                                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Eb-xW-tdx">
                                     <rect key="frame" x="-2" y="3" width="53" height="16"/>
@@ -136,10 +136,10 @@
                             </customSpacing>
                         </stackView>
                         <stackView distribution="fill" orientation="vertical" alignment="centerX" spacing="10" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gaL-NW-C6N">
-                            <rect key="frame" x="0.0" y="39" width="347" height="42"/>
+                            <rect key="frame" x="0.0" y="39" width="310" height="42"/>
                             <subviews>
                                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gvL-DV-pOX">
-                                    <rect key="frame" x="-2" y="26" width="351" height="16"/>
+                                    <rect key="frame" x="-2" y="26" width="310" height="16"/>
                                     <textFieldCell key="cell" lineBreakMode="clipping" title="Credit Card Foreigen Transaction Fee" id="xM6-Ua-JWT">
                                         <font key="font" metaFont="system"/>
                                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -147,7 +147,7 @@
                                     </textFieldCell>
                                 </textField>
                                 <stackView distribution="fill" orientation="horizontal" alignment="top" spacing="15" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uZA-NJ-7VH">
-                                    <rect key="frame" x="0.0" y="0.0" width="347" height="16"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="310" height="16"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hWV-e4-dzb">
                                             <rect key="frame" x="-1" y="-1" width="41" height="18"/>
@@ -205,7 +205,7 @@
                             </customSpacing>
                         </stackView>
                         <stackView distribution="fill" orientation="horizontal" alignment="firstBaseline" spacing="10" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Uuk-Yp-v7x">
-                            <rect key="frame" x="0.0" y="0.0" width="211" height="29"/>
+                            <rect key="frame" x="0.0" y="0.0" width="310" height="29"/>
                             <subviews>
                                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZQ6-Cb-hfO">
                                     <rect key="frame" x="-2" y="13" width="85" height="16"/>
