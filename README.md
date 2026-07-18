@@ -43,18 +43,24 @@ The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
 
 ```sh
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+
+XCODE_VERSION="$(${DEVELOPER_DIR}/usr/bin/xcodebuild -version)"
+printf '%s\n' "${XCODE_VERSION}"
+test "${XCODE_VERSION}" = $'Xcode 26.6\nBuild version 17F113'
 ```
 
-The `CurrencyConverterTests` scheme reports the live macOS destination as `platform=macOS,arch=arm64` (the machine-specific destination is named `My Mac`). Build the app with:
+Derive the destination architecture from the live host (verified here as `arm64`; the same command also works on Intel):
 
 ```sh
-xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -destination 'platform=macOS,arch=arm64' build
+DESTINATION_ARCH="$(uname -m)"
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -destination "platform=macOS,arch=${DESTINATION_ARCH}" build
 ```
 
 Run the complete test target with:
 
 ```sh
-xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverterTests -destination 'platform=macOS,arch=arm64' test
+DESTINATION_ARCH="$(uname -m)"
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverterTests -destination "platform=macOS,arch=${DESTINATION_ARCH}" test
 ```
 
-Observed baseline: the test command passes and executes 5 tests (including two performance tests), with 0 failures.
+Observed baseline on arm64: the test command passes and executes 5 tests (including two performance tests), with 0 failures.
