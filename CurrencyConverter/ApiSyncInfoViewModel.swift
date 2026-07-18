@@ -38,8 +38,8 @@ class ApiSyncInfoViewModel : ObservableObject {
     
     func sync() {
         CurrencyConverter.shared.loadFromWeb { [self] _ in
+            let refreshedStatus = CurrencyConverter.shared.rateDataStatus
             DispatchQueue.main.async {
-                let refreshedStatus = CurrencyConverter.shared.rateDataStatus
                 self.loadFromUserDefaults(sharedUserDefaults, rateStatus: refreshedStatus)
             }
         }

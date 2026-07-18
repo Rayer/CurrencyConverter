@@ -409,15 +409,6 @@ class CurrencyConverter {
 
     private func commitWebSnapshot(_ entity: CurrencyRateEntity, rawData: Data, fetchedAt: Date) {
         defaultsLock.lock()
-        defaults.set(fetchedAt, forKey: "LastUpdateDate")
-        defaults.set(entity.rates, forKey: "CurrencyData")
-        defaults.set(entity.base, forKey: "CurrencyBase")
-        defaults.set(entity.timestamp, forKey: "CurrencyDataTime")
-        if let rawDataString = String(data: rawData, encoding: .utf8) {
-            defaults.set(rawDataString, forKey: "CurrencyDataRaw")
-        }
-        defaultsLock.unlock()
-
         currencyRateEntityLock.lock()
         currencyRateEntityStorage = entity
         rateDataStatusStorage = RateDataStatus(
@@ -426,7 +417,15 @@ class CurrencyConverter {
             lastUpdated: fetchedAt,
             lastRefreshError: nil
         )
+        defaults.set(fetchedAt, forKey: "LastUpdateDate")
+        defaults.set(entity.rates, forKey: "CurrencyData")
+        defaults.set(entity.base, forKey: "CurrencyBase")
+        defaults.set(entity.timestamp, forKey: "CurrencyDataTime")
+        if let rawDataString = String(data: rawData, encoding: .utf8) {
+            defaults.set(rawDataString, forKey: "CurrencyDataRaw")
+        }
         currencyRateEntityLock.unlock()
+        defaultsLock.unlock()
     }
 
 }

@@ -377,10 +377,10 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         completion: @escaping (Error?) -> Void
     ) -> Bool {
         let ready = DispatchGroup()
-        let start = CCS17StartGate()
+        let start = DispatchSemaphore(value: 0)
         for _ in 0..<count {
             ready.enter()
-            DispatchQueue.global(qos: .userInitiated).async {
+            DispatchQueue.global().async {
                 ready.leave()
                 start.wait()
                 converter.loadData(completionHandler: completion)
@@ -391,7 +391,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             return false
         }
         for _ in 0..<count {
-            start.open()
+            start.signal()
         }
         return true
     }
@@ -443,26 +443,6 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         XCTAssertEqual(results.count, 2)
         XCTAssertTrue(results.errors.allSatisfy { $0 == nil })
         XCTAssertTrue(results.rates.allSatisfy { $0 == Float32(1) })
-    }
-}
-
-private final class CCS17StartGate {
-    private let condition = NSCondition()
-    private var isOpen = false
-
-    func wait() {
-        condition.lock()
-        while !isOpen {
-            condition.wait()
-        }
-        condition.unlock()
-    }
-
-    func open() {
-        condition.lock()
-        isOpen = true
-        condition.broadcast()
-        condition.unlock()
     }
 }
 
