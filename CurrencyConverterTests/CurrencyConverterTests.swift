@@ -56,7 +56,12 @@ class CurrencyConverterTests: XCTestCase {
         container.persistentStoreDescriptions = [description]
 
         var loadError: Error?
-        container.loadPersistentStores { _, error in loadError = error }
+        let loadExpectation = expectation(description: "Persistent stores load")
+        container.loadPersistentStores { _, error in
+            loadError = error
+            loadExpectation.fulfill()
+        }
+        wait(for: [loadExpectation], timeout: 1.0)
         XCTAssertNil(loadError)
 
         let seed = FormatString(context: container.viewContext)

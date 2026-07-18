@@ -42,13 +42,13 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
 
 ```sh
-: "${DEVELOPER_DIR?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
+: "${DEVELOPER_DIR:?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
 export DEVELOPER_DIR
 # Use your own Xcode 26.6 install path, e.g.:
 # /path/to/Xcode-26.6.app/Contents/Developer
 # (do not assume a universal path below)
 
-XCODE_VERSION="$(${DEVELOPER_DIR}/usr/bin/xcodebuild -version)"
+XCODE_VERSION="$("${DEVELOPER_DIR}"/usr/bin/xcodebuild -version)"
 printf '%s\n' "${XCODE_VERSION}"
 test "${XCODE_VERSION}" = $'Xcode 26.6\nBuild version 17F113'
 ```
@@ -58,10 +58,10 @@ Host-specific evidence for this run:
 ```sh
 DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
 
-: "${DEVELOPER_DIR?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
+: "${DEVELOPER_DIR:?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
 export DEVELOPER_DIR
 
-XCODE_VERSION="$(${DEVELOPER_DIR}/usr/bin/xcodebuild -version)"
+XCODE_VERSION="$("${DEVELOPER_DIR}"/usr/bin/xcodebuild -version)"
 printf '%s\n' "${XCODE_VERSION}"
 test "${XCODE_VERSION}" = $'Xcode 26.6\nBuild version 17F113'
 echo "exit=$?"
