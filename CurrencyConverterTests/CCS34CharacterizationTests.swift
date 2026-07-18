@@ -77,6 +77,58 @@ final class CCS34PersistenceCharacterizationTests: XCTestCase {
         XCTAssertEqual(LegacyContextMenuFXFeePolicy.rate(for: 99), 0)
     }
 
+    func testSameCurrencyContextMenuIgnoresSelectedFXFee() {
+        for index in [0, 1, 2] {
+            let calculation = LegacyContextMenuCalculation.calculate(
+                rawResult: 100,
+                unit: 100,
+                sourceCurrency: "USD",
+                targetCurrency: "USD",
+                feeIndex: index
+            )
+
+            XCTAssertEqual(calculation.finalAmount, 100, accuracy: 0.0001)
+            XCTAssertEqual(calculation.appliedFXFee, 0, accuracy: 0.0001)
+            XCTAssertEqual(calculation.ratio, 1, accuracy: 0.0001)
+        }
+    }
+
+    func testCrossCurrencyContextMenuPreservesSelectedFXFee() {
+        let calculation = LegacyContextMenuCalculation.calculate(
+            rawResult: 50,
+            unit: 100,
+            sourceCurrency: "USD",
+            targetCurrency: "TWD",
+            feeIndex: 1
+        )
+
+        XCTAssertEqual(calculation.finalAmount, 50.75, accuracy: 0.0001)
+        XCTAssertEqual(calculation.appliedFXFee, 0.015, accuracy: 0.0001)
+        XCTAssertEqual(calculation.ratio, 0.5, accuracy: 0.0001)
+    }
+
+    func testSameCurrencyLastResultRoundTripsCalculationValues() throws {
+        let calculation = LegacyContextMenuCalculation.calculate(
+            rawResult: 100,
+            unit: 100,
+            sourceCurrency: "USD",
+            targetCurrency: "USD",
+            feeIndex: 2
+        )
+        let result = LastResult(
+            resultString: "100.00 USD",
+            convertFrom: "USD",
+            convertTo: "USD",
+            units: 100,
+            fxRate: calculation.appliedFXFee,
+            ratio: calculation.ratio
+        )
+
+        XCTAssertEqual(try LastResultPersistence.decode(LastResultPersistence.encode(result)), result)
+        XCTAssertEqual(result.fxRate, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.ratio, 1, accuracy: 0.0001)
+    }
+
     func testLastResultRoundTripsThroughIsolatedDefaultsData() throws {
         let result = LastResult(resultString: "2.03 USD", convertFrom: "TWD", convertTo: "USD", units: 8, fxRate: 0.015, ratio: 0.25)
         let suiteName = "CCS34-last-result-\(UUID().uuidString)"

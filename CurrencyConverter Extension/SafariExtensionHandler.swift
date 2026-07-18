@@ -49,15 +49,20 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     
                     //Add credit card FX rate
                     let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as! Int? ?? 1
-                    let fxRate = LegacyContextMenuFXFeePolicy.rate(for: fxIndex)
-                    
-                    let price = result * (1 + fxRate)
+                    let calculation = LegacyContextMenuCalculation.calculate(
+                        rawResult: result,
+                        unit: unit,
+                        sourceCurrency: convertFromSym,
+                        targetCurrency: convertToSym,
+                        feeIndex: fxIndex
+                    )
+                    let price = calculation.finalAmount
                     
                     let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
-                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: result / unit)
+                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
                     sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
                     
                 }
