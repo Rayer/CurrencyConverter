@@ -9,7 +9,7 @@ final class CCS34ConversionCharacterizationTests: XCTestCase {
 
     func testConverterConvertsWithValidRatesWithoutNetwork() {
         let now = Date(timeIntervalSince1970: 1000)
-        let exchange = ["USD": 1, "JPY": 110]
+        let exchange: [String: Float32] = ["USD": 1, "JPY": 110]
         let suiteName = "CCS34-conversion-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
