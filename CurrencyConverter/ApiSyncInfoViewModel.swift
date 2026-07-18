@@ -21,7 +21,7 @@ class ApiSyncInfoViewModel : ObservableObject {
         loadFromUserDefaults(host)
     }
     
-    func loadFromUserDefaults(_ host : UserDefaults) {
+    func loadFromUserDefaults(_ host : UserDefaults, rateStatus: RateDataStatus? = nil) {
         self.userDefaults = host
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd hh:mm:ss"
@@ -32,14 +32,15 @@ class ApiSyncInfoViewModel : ObservableObject {
         }
         parsedPayloadUpdate = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(host.integer(forKey: "CurrencyDataTime"))))
         rawData = host.string(forKey: "CurrencyDataRaw")
-        rateStatus = CurrencyConverter.shared.rateDataStatus
+        self.rateStatus = rateStatus ?? CurrencyConverter.shared.rateDataStatus
         data = self
     }
     
     func sync() {
         CurrencyConverter.shared.loadFromWeb { [self] _ in
             DispatchQueue.main.async {
-                self.loadFromUserDefaults(sharedUserDefaults)
+                let refreshedStatus = CurrencyConverter.shared.rateDataStatus
+                self.loadFromUserDefaults(sharedUserDefaults, rateStatus: refreshedStatus)
             }
         }
     }

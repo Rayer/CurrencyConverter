@@ -132,6 +132,17 @@ struct LastResult: Codable, Equatable {
     var ratio: Float
 }
 
+enum LegacyContextMenuPresentation {
+    private static let titleLimit = 120
+    private static let staleWarning = " — saved rates; refresh failed"
+
+    static func menuTitle(resultString: String, status: RateDataStatus) -> String {
+        let warning = status.isStale ? staleWarning : ""
+        let resultLimit = max(0, titleLimit - warning.count)
+        return String(resultString.prefix(resultLimit)) + warning
+    }
+}
+
 enum LastResultPersistence {
     static func encode(_ value: LastResult) throws -> Data {
         try JSONEncoder().encode(value)

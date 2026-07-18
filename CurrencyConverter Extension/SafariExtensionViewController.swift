@@ -45,7 +45,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
         fxRateBtnList = [fxRateBtn0, fxRateBtn15, fxRateBtn2]
         let fxRateIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as? Int ?? 1
         fxRateBtnList.forEach { $0.state = .off }
-        fxRateBtnList[min(max(fxRateIndex, 0), fxRateBtnList.count - 1)].state = .on
+        fxRateBtnList[fxRateIndex].state = .on
         
         let cc = CurrencyConverter.shared
         cc.getSymbols { (symbols, error) in

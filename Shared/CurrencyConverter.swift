@@ -33,11 +33,16 @@ class CurrencyConverter {
             return currencyRateEntityStorage
         }
         set {
+            let now = newValue?.fetched_localtime == nil ? nil : clock()
+            let isStale = newValue?.fetched_localtime.map { fetchedAt in
+                guard let now else { return false }
+                return !LegacyCachePolicy.isFresh(lastUpdated: fetchedAt, now: now)
+            } ?? false
             currencyRateEntityLock.lock()
             currencyRateEntityStorage = newValue
             rateDataStatusStorage = RateDataStatus(
                 source: newValue == nil ? nil : .memory,
-                isStale: newValue?.fetched_localtime.map { !LegacyCachePolicy.isFresh(lastUpdated: $0, now: clock()) } ?? false,
+                isStale: isStale,
                 lastUpdated: newValue?.fetched_localtime,
                 lastRefreshError: nil
             )
@@ -188,6 +193,8 @@ class CurrencyConverter {
         defaultsLock.lock()
         let recordValue = defaults.value(forKey: "LastUpdateDate")
         let ratesValue = defaults.value(forKey: "CurrencyData")
+        let baseValue = defaults.value(forKey: "CurrencyBase")
+        let rawDataValue = defaults.value(forKey: "CurrencyDataRaw")
         let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
         defaultsLock.unlock()
 
@@ -196,35 +203,69 @@ class CurrencyConverter {
             return false
         }
 
-        let today = clock()
+        let now = clock()
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+        let rawEntity: CurrencyRateEntity? = {
+            guard let rawDataString = rawDataValue as? String,
+                  let rawData = rawDataString.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(CurrencyRateEntity.self, from: rawData),
+                  isValidRateEntity(decoded) else {
+                return nil
+            }
+            return decoded
+        }()
+        let persistedBase = (baseValue as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = persistedBase.flatMap { $0.isEmpty ? nil : $0 } ?? rawEntity?.base ?? "EUR"
+        let date = rawEntity?.date ?? formatter.string(from: record)
         let entity = CurrencyRateEntity(
-            base: "EUR", date: formatter.string(from: today), rates: rates,
+            base: base, date: date, rates: rates,
             fetched_localtime: record, timestamp: dataTimestamp
         )
         guard isValidRateEntity(entity) else {
             return false
         }
 
+        let defaultsIsFresh = LegacyCachePolicy.isFresh(lastUpdated: record, now: now)
         currencyRateEntityLock.lock()
-        let hasValidMemory = currencyRateEntityStorage.map(isUsableRateEntity) ?? false
-        let hadRefreshError = rateDataStatusStorage.lastRefreshError != nil
-        if !hasValidMemory {
+        let currentStatus = rateDataStatusStorage
+        if defaultsIsFresh {
             currencyRateEntityStorage = entity
             rateDataStatusStorage = RateDataStatus(
                 source: .defaults,
-                isStale: !LegacyCachePolicy.isFresh(lastUpdated: record, now: today),
+                isStale: false,
                 lastUpdated: record,
-                lastRefreshError: rateDataStatusStorage.lastRefreshError
+                lastRefreshError: nil
+            )
+            currencyRateEntityLock.unlock()
+            return true
+        }
+
+        let memoryCandidate: (CurrencyRateEntity, RateDataSource)? = {
+            guard let memory = currencyRateEntityStorage,
+                  isUsableRateEntity(memory),
+                  memory.fetched_localtime != nil else {
+                return nil
+            }
+            let source = currentStatus.source ?? .memory
+            return (memory, source)
+        }()
+        let candidates: [(CurrencyRateEntity, RateDataSource)] = [memoryCandidate, (entity, .defaults)].compactMap { $0 }
+        if let selected = candidates.max(by: { ($0.0.fetched_localtime ?? .distantPast) < ($1.0.fetched_localtime ?? .distantPast) }) {
+            currencyRateEntityStorage = selected.0
+            rateDataStatusStorage = RateDataStatus(
+                source: selected.1,
+                isStale: true,
+                lastUpdated: selected.0.fetched_localtime,
+                lastRefreshError: currentStatus.lastRefreshError
             )
         }
-        let currentSource = rateDataStatusStorage.source
         currencyRateEntityLock.unlock()
-        return currentSource == .defaults && LegacyCachePolicy.isFresh(lastUpdated: record, now: today) && !hadRefreshError
+        return false
     }
     
     func loadFromMemory() -> Bool {
+        let now = clock()
         currencyRateEntityLock.lock()
         guard let c = currencyRateEntityStorage,
               isUsableRateEntity(c),
@@ -232,16 +273,15 @@ class CurrencyConverter {
             currencyRateEntityLock.unlock()
             return false
         }
-        let today = clock()
         let hadRefreshError = rateDataStatusStorage.lastRefreshError != nil
         let source = rateDataStatusStorage.source ?? .memory
         rateDataStatusStorage = RateDataStatus(
             source: source,
-            isStale: !LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: today) || hadRefreshError,
+            isStale: !LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: now) || hadRefreshError,
             lastUpdated: lastUpdate,
             lastRefreshError: rateDataStatusStorage.lastRefreshError
         )
-        let isFresh = LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: today)
+        let isFresh = LegacyCachePolicy.isFresh(lastUpdated: lastUpdate, now: now)
         currencyRateEntityLock.unlock()
         return isFresh && !hadRefreshError
     }
@@ -376,6 +416,8 @@ class CurrencyConverter {
         if let rawDataString = String(data: rawData, encoding: .utf8) {
             defaults.set(rawDataString, forKey: "CurrencyDataRaw")
         }
+        defaultsLock.unlock()
+
         currencyRateEntityLock.lock()
         currencyRateEntityStorage = entity
         rateDataStatusStorage = RateDataStatus(
@@ -385,7 +427,6 @@ class CurrencyConverter {
             lastRefreshError: nil
         )
         currencyRateEntityLock.unlock()
-        defaultsLock.unlock()
     }
 
 }
