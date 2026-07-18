@@ -36,3 +36,65 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 
 1. ~~首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。~~ 現在我架設自己的server來解決這問題，希望他不要被打爆（不可能吧！？）
 2. 沒有i18n....說真的也不太需要吧
+
+## Xcode 26.6 build and test baseline
+
+The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
+
+```sh
+: "${DEVELOPER_DIR:?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
+export DEVELOPER_DIR
+# Use your own Xcode 26.6 install path, e.g.:
+# /path/to/Xcode-26.6.app/Contents/Developer
+# (do not assume a universal path below)
+
+XCODE_VERSION="$("${DEVELOPER_DIR}"/usr/bin/xcodebuild -version)"
+printf '%s\n' "${XCODE_VERSION}"
+test "${XCODE_VERSION}" = $'Xcode 26.6\nBuild version 17F113'
+```
+
+Host-specific evidence for this run:
+
+```sh
+DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+
+: "${DEVELOPER_DIR:?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
+export DEVELOPER_DIR
+
+XCODE_VERSION="$("${DEVELOPER_DIR}"/usr/bin/xcodebuild -version)"
+printf '%s\n' "${XCODE_VERSION}"
+test "${XCODE_VERSION}" = $'Xcode 26.6\nBuild version 17F113'
+echo "exit=$?"
+```
+
+Expected output (must exit `0`):
+
+```text
+Xcode 26.6
+Build version 17F113
+exit=0
+```
+
+Derive the destination architecture from the live host (verified here as `arm64`; the same command also works on Intel):
+
+```sh
+DESTINATION_ARCH="$(uname -m)"
+printf 'Detected architecture: %s\n' "${DESTINATION_ARCH}"
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -destination "platform=macOS,arch=${DESTINATION_ARCH}" build
+```
+
+Run the complete test target with:
+
+```sh
+DESTINATION_ARCH="$(uname -m)"
+printf 'Detected architecture: %s\n' "${DESTINATION_ARCH}"
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverterTests -destination "platform=macOS,arch=${DESTINATION_ARCH}" test
+```
+
+Host-specific destination evidence:
+
+```text
+uname -m output: arm64
+```
+
+Observed baseline on arm64: the test command passes and executes 5 tests (including two performance tests), with 0 failures.

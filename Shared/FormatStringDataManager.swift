@@ -11,7 +11,7 @@ import CoreData
 
 class FormatStringDataManager {
     static let shared = FormatStringDataManager()
-    private let view = sharedPersistentContainer.viewContext
+    private let view: NSManagedObjectContext
     let ToAmountPH = "${to_amount}"
     let FromAmountPH = "${from_amount}"
     let ToSymbolPH = "${to_symbol}"
@@ -24,7 +24,8 @@ class FormatStringDataManager {
         "(${from_symbol}) ${from_amount} => (${to_symbol}) ${to_amount}"
     ]
     
-    init() {
+    init(context: NSManagedObjectContext = sharedPersistentContainer.viewContext) {
+        view = context
         let count = try! view.count(for: NSFetchRequest<NSFetchRequestResult>(entityName: "FormatString"))
         if count < 1 {
             ResetDefault()
