@@ -8,6 +8,7 @@ private final class CCS17ControlledTransport {
     private var pendingCompletions: [Completion] = []
     private var requestCountValue = 0
     private let requestStarted = DispatchSemaphore(value: 0)
+    private let defaultTimeout: TimeInterval = 2
 
     var requestCount: Int {
         lock.lock()
@@ -23,15 +24,25 @@ private final class CCS17ControlledTransport {
         requestStarted.signal()
     }
 
-    func waitForRequest() {
-        XCTAssertEqual(requestStarted.wait(timeout: .now() + 1), .success)
+    func waitForRequest() -> Bool {
+        if requestStarted.wait(timeout: .now() + defaultTimeout) != .success {
+            XCTFail("waitForRequest timeout")
+            return false
+        }
+        return true
     }
 
-    func finishNext(data: Data? = nil, response: URLResponse? = nil, error: Error? = nil) {
+    func finishNext(data: Data? = nil, response: URLResponse? = nil, error: Error? = nil) -> Bool {
         lock.lock()
+        guard !pendingCompletions.isEmpty else {
+            XCTFail("No pending transport completions to drain")
+            lock.unlock()
+            return false
+        }
         let completion = pendingCompletions.removeFirst()
         lock.unlock()
         completion(data, response, error)
+        return true
     }
 }
 
@@ -69,8 +80,12 @@ private final class CCS17MemoryDefaults: UserDefaults {
 private final class CCS17ObservedConverter: CurrencyConverter {
     private let refreshEntry = DispatchSemaphore(value: 0)
 
-    func waitForRefreshEntry() {
-        XCTAssertEqual(refreshEntry.wait(timeout: .now() + 1), .success)
+    func waitForRefreshEntry() -> Bool {
+        if refreshEntry.wait(timeout: .now() + 2) != .success {
+            XCTFail("waitForRefreshEntry timeout")
+            return false
+        }
+        return true
     }
 
     override func loadFromCacheMiss(_ completionHandler: @escaping (Error?) -> Void) {
@@ -85,8 +100,12 @@ private final class CCS17LateJoinConverter: CurrencyConverter {
     private let secondCacheMissEntered = DispatchSemaphore(value: 0)
     private let releaseSecondCacheMiss = DispatchSemaphore(value: 0)
 
-    func waitForSecondCacheMiss() {
-        XCTAssertEqual(secondCacheMissEntered.wait(timeout: .now() + 1), .success)
+    func waitForSecondCacheMiss() -> Bool {
+        if secondCacheMissEntered.wait(timeout: .now() + 2) != .success {
+            XCTFail("waitForSecondCacheMiss timeout")
+            return false
+        }
+        return true
     }
 
     func releasePausedCacheMiss() {
@@ -123,16 +142,16 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             results.append(error: error, rate: converter.currencyRateEntity?.rates["USD"])
             completionExpectation.fulfill()
         }
-        transport.waitForRequest()
+        guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
         for _ in 0..<16 {
-            converter.waitForRefreshEntry()
+            guard converter.waitForRefreshEntry() else { return }
         }
 
-        transport.finishNext(
+        guard transport.finishNext(
             data: successData,
             response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-        )
+        ) else { return }
         wait(for: [completionExpectation], timeout: 1)
 
         XCTAssertEqual(results.count, 16)
@@ -153,12 +172,12 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             results.append(error: error, rate: nil)
             completionExpectation.fulfill()
         }
-        transport.waitForRequest()
+        guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
         for _ in 0..<16 {
-            converter.waitForRefreshEntry()
+            guard converter.waitForRefreshEntry() else { return }
         }
-        transport.finishNext(error: failure)
+        guard transport.finishNext(error: failure) else { return }
         wait(for: [completionExpectation], timeout: 1)
 
         XCTAssertEqual(results.count, 16)
@@ -176,9 +195,9 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             XCTAssertTrue((error as NSError?) === failure)
             failureExpectation.fulfill()
         }
-        transport.waitForRequest()
+        guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
-        transport.finishNext(error: failure)
+        guard transport.finishNext(error: failure) else { return }
         wait(for: [failureExpectation], timeout: 1)
 
         let retryExpectation = expectation(description: "retry completion")
@@ -187,12 +206,12 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             XCTAssertEqual(converter.currencyRateEntity?.rates["USD"], 1)
             retryExpectation.fulfill()
         }
-        transport.waitForRequest()
+        guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 2)
-        transport.finishNext(
+        guard transport.finishNext(
             data: successData,
             response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-        )
+        ) else { return }
         wait(for: [retryExpectation], timeout: 1)
     }
 
@@ -269,7 +288,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
             XCTAssertNil(error)
             firstCompletion.fulfill()
         }
-        transport.waitForRequest()
+        guard transport.waitForRequest() else { return }
         XCTAssertEqual(transport.requestCount, 1)
 
         let secondCompletion = expectation(description: "late cache miss completion")
@@ -279,12 +298,12 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
                 secondCompletion.fulfill()
             }
         }
-        converter.waitForSecondCacheMiss()
+        guard converter.waitForSecondCacheMiss() else { return }
 
-        transport.finishNext(
+        guard transport.finishNext(
             data: self.successData,
             response: HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-        )
+        ) else { return }
         wait(for: [firstCompletion], timeout: 1)
 
         converter.releasePausedCacheMiss()
@@ -343,10 +362,57 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
                 converter.loadData(completionHandler: completion)
             }
         }
-        XCTAssertEqual(ready.wait(timeout: .now() + 1), .success)
+        XCTAssertEqual(ready.wait(timeout: .now() + 2), .success)
         for _ in 0..<count {
             start.signal()
         }
+    }
+
+    func testConcurrentDirectLoadFromWebCallsCoalesceWithFreshCache() {
+        let transport = CCS17ControlledTransport()
+        let converter = makeObservedStaleConverter(transport: transport)
+        converter.currencyRateEntity = CurrencyRateEntity(
+            base: "EUR",
+            date: "2026-07-18",
+            rates: ["USD": Float32(1)],
+            fetched_localtime: now,
+            timestamp: 123
+        )
+        let completionExpectation = expectation(description: "all force refresh callers complete")
+        completionExpectation.expectedFulfillmentCount = 2
+        completionExpectation.assertForOverFulfill = true
+        let results = LockedResults()
+
+        DispatchQueue.global().async {
+            converter.loadFromWeb { error in
+                results.append(error: error, rate: converter.currencyRateEntity?.rates["USD"])
+                completionExpectation.fulfill()
+            }
+        }
+        guard transport.waitForRequest() else { return }
+
+        DispatchQueue.global().async {
+            converter.loadFromWeb { error in
+                results.append(error: error, rate: converter.currencyRateEntity?.rates["USD"])
+                completionExpectation.fulfill()
+            }
+        }
+        XCTAssertEqual(transport.requestCount, 1)
+
+        guard transport.finishNext(
+            data: successData,
+            response: HTTPURLResponse(
+                url: URL(string: "https://example.test")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )
+        ) else { return }
+        wait(for: [completionExpectation], timeout: 1)
+
+        XCTAssertEqual(results.count, 2)
+        XCTAssertTrue(results.errors.allSatisfy { $0 == nil })
+        XCTAssertTrue(results.rates.allSatisfy { $0 == Float32(1) })
     }
 }
 

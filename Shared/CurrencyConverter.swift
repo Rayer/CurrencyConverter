@@ -138,24 +138,25 @@ class CurrencyConverter {
         let today = clock()
 
         defaultsLock.lock()
-        guard let record = defaults.value(forKey: "LastUpdateDate") as? Date else {
-            defaultsLock.unlock()
+        let recordValue = defaults.value(forKey: "LastUpdateDate")
+        let ratesValue = defaults.value(forKey: "CurrencyData")
+        let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
+        defaultsLock.unlock()
+
+        let record = recordValue as! Date?
+        guard let record = record else {
             return false
         }
 
         guard LegacyCachePolicy.isFresh(lastUpdated: record, now: today) else {
-            defaultsLock.unlock()
             return false
         }
 
-        guard let rates = defaults.value(forKey: "CurrencyData") as? [String:Float32] else {
-            defaultsLock.unlock()
+        let rates = ratesValue as! [String:Float32]?
+        guard let rates else {
             return false
         }
 
-        let dataTimestamp = defaults.integer(forKey: "CurrencyDataTime")
-        defaultsLock.unlock()
-        
         print("Convert Rate Data is good from \(record) and now is \(today), load from defaults.")
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -256,7 +257,8 @@ class CurrencyConverter {
                 completionHandler(nil, error)
                 return
             }
-            let symbols = self.currencyRateEntity.map { Array($0.rates.keys) } ?? []
+            let currencyRateEntity = self.currencyRateEntity!
+            let symbols = Array(currencyRateEntity.rates.keys)
             completionHandler(symbols, nil)
         }
     }
