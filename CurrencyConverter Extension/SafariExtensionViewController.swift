@@ -109,7 +109,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
         guard let convertFromSym, let convertToSym else { return }
         cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: baseRateValueField.floatValue) { result, status, error in
             DispatchQueue.main.async {
-                self.statusText.stringValue = status.message
+                self.statusText.stringValue = (error as? RateDataError)?.message ?? status.message
                 guard error == nil else {
                     return
                 }
@@ -126,7 +126,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
         self.formatterListBtn.removeAllItems()
         cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: 1) { result, status, error in
             DispatchQueue.main.async {
-                self.statusText.stringValue = status.message
+                self.statusText.stringValue = (error as? RateDataError)?.message ?? status.message
                 guard error == nil else {
                     return
                 }

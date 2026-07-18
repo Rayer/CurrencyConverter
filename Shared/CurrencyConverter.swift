@@ -193,12 +193,12 @@ class CurrencyConverter {
     }
     
     func loadFromDefaults() -> Bool {
+        let now = clock()
+        let formatter = providerDateFormatter()
+
         defaultsLock.lock()
         defer { defaultsLock.unlock() }
         guard !isPersistingWebSnapshot else { return false }
-
-        let now = clock()
-        let formatter = providerDateFormatter()
 
         let recordValue = defaults.value(forKey: "LastUpdateDate")
         let ratesValue = defaults.value(forKey: "CurrencyData")
