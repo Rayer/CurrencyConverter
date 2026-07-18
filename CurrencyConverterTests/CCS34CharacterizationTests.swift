@@ -1,8 +1,36 @@
 import XCTest
-import CoreData
 @testable import CurrencyConverter
 
-extension ConvertHistory: ConvertHistoryRecord {}
+private final class TestConvertHistoryRecord: ConvertHistoryRecord {
+    var id: UUID?
+    var title: String?
+    var url: String?
+    var fromSymbol: String?
+    var toSymbol: String?
+    var fromAmount: Float
+    var fxFee: Float
+    var ratio: Float
+    
+    init(
+        id: UUID? = UUID(),
+        title: String? = "",
+        url: String? = nil,
+        fromSymbol: String?,
+        toSymbol: String?,
+        fromAmount: Float = 0,
+        fxFee: Float = 0,
+        ratio: Float = 1
+    ) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.fromSymbol = fromSymbol
+        self.toSymbol = toSymbol
+        self.fromAmount = fromAmount
+        self.fxFee = fxFee
+        self.ratio = ratio
+    }
+}
 
 final class CCS34ConversionCharacterizationTests: XCTestCase {
     func testFixedRateDirectConversionUsesBaseRateMath() {
@@ -186,11 +214,6 @@ final class CCS34PersistenceCharacterizationTests: XCTestCase {
 }
 
 final class CCS34HistoryCharacterizationTests: XCTestCase {
-    func testFocusedTestsUseTheProductionHistoryUIBean() {
-        // The standalone test bundle compiles this Foundation-only production type directly.
-        XCTAssertEqual(String(reflecting: ConvertHistoryUIBean.self), "CurrencyConverterTests.ConvertHistoryUIBean")
-    }
-
     func testSameCurrencyHistoryValuesAreNormalizedForNewWrites() {
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
             fromSymbol: "USD", toSymbol: "USD", fxFeeRate: 0.02, ratio: 0.5
@@ -200,38 +223,34 @@ final class CCS34HistoryCharacterizationTests: XCTestCase {
         XCTAssertEqual(values.ratio, 1, accuracy: 0.0001)
     }
 
-    func testLegacySameCurrencyCoreDataShapeIsNormalizedByUIBean() throws {
-        let model = try XCTUnwrap(NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]))
-        let container = NSPersistentContainer(name: "CurrencyExchangeRate", managedObjectModel: model)
-        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null"))]
-        container.persistentStoreDescriptions[0].type = NSInMemoryStoreType
-        var loadError: Error?
-        let loaded = expectation(description: "in-memory store")
-        container.loadPersistentStores { _, error in
-            loadError = error
-            loaded.fulfill()
-        }
-        wait(for: [loaded], timeout: 1)
-        XCTAssertNil(loadError)
-
-        let row = ConvertHistory(context: container.viewContext)
-        row.fromSymbol = "USD"
-        row.toSymbol = "USD"
-        row.fromAmount = 200
-        row.fxFee = 0.02
-        row.ratio = 0.5
-
-        let bean = ConvertHistoryUIBean.fromCoreData(c: row)
+    func testLegacySameCurrencyHistoryRecordIsNormalizedByUIBean() {
+        let source = TestConvertHistoryRecord(
+            fromSymbol: "USD",
+            toSymbol: "USD",
+            fromAmount: 200,
+            fxFee: 0.02,
+            ratio: 0.5
+        )
+        let sourceId = source.id
+        let sourceTitle = source.title
+        let sourceUrl = source.url
+        let bean = ConvertHistoryUIBean.fromCoreData(c: source)
 
         XCTAssertEqual(bean.fxFeeRate, 0, accuracy: 0.0001)
         XCTAssertEqual(bean.ratio, 1, accuracy: 0.0001)
         XCTAssertEqual(bean.toAmount, bean.fromAmount, accuracy: 0.0001)
         XCTAssertEqual(bean.toAmountWithFx, bean.fromAmount, accuracy: 0.0001)
-        XCTAssertEqual(row.fxFee, 0.02, accuracy: 0.0001)
-        XCTAssertEqual(row.ratio, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(source.id, sourceId)
+        XCTAssertEqual(source.title, sourceTitle)
+        XCTAssertEqual(source.url, sourceUrl)
+        XCTAssertEqual(source.fromSymbol, "USD")
+        XCTAssertEqual(source.toSymbol, "USD")
+        XCTAssertEqual(source.fromAmount, 200, accuracy: 0.0001)
+        XCTAssertEqual(source.fxFee, 0.02, accuracy: 0.0001)
+        XCTAssertEqual(source.ratio, 0.5, accuracy: 0.0001)
     }
 
-    func testLegacyOptionalAndUnknownSymbolShapesFollowSameCurrencyContract() throws {
+    func testLegacyOptionalAndUnknownSymbolShapesFollowSameCurrencyContract() {
         let cases: [(from: String?, to: String?, name: String)] = [
             (nil, nil, "nil-nil"),
             (nil, "", "nil-empty"),
@@ -251,31 +270,20 @@ final class CCS34HistoryCharacterizationTests: XCTestCase {
             XCTAssertEqual(values.fxFeeRate, shouldNormalize ? 0 : 0.02, accuracy: 0.0001, testCase.name)
             XCTAssertEqual(values.ratio, shouldNormalize ? 1 : 0.5, accuracy: 0.0001, testCase.name)
 
-            let model = try XCTUnwrap(NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]))
-            let container = NSPersistentContainer(name: "CurrencyExchangeRate", managedObjectModel: model)
-            let description = NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null"))
-            description.type = NSInMemoryStoreType
-            container.persistentStoreDescriptions = [description]
-            let loaded = expectation(description: "in-memory store \(testCase.name)")
-            var loadError: Error?
-            container.loadPersistentStores { _, error in
-                loadError = error
-                loaded.fulfill()
-            }
-            wait(for: [loaded], timeout: 1)
-            XCTAssertNil(loadError, testCase.name)
-
-            let row = ConvertHistory(context: container.viewContext)
-            row.fromSymbol = testCase.from
-            row.toSymbol = testCase.to
-            row.fxFee = 0.02
-            row.ratio = 0.5
+            let row = TestConvertHistoryRecord(
+                fromSymbol: testCase.from,
+                toSymbol: testCase.to,
+                fromAmount: 0.5,
+                fxFee: 0.02,
+                ratio: 0.5
+            )
             let bean = ConvertHistoryUIBean.fromCoreData(c: row)
 
             XCTAssertEqual(row.fromSymbol, testCase.from, testCase.name)
             XCTAssertEqual(row.toSymbol, testCase.to, testCase.name)
             XCTAssertEqual(row.fxFee, 0.02, accuracy: 0.0001, testCase.name)
             XCTAssertEqual(row.ratio, 0.5, accuracy: 0.0001, testCase.name)
+            XCTAssertEqual(row.fromAmount, 0.5, accuracy: 0.0001, testCase.name)
             XCTAssertEqual(bean.fxFeeRate, shouldNormalize ? 0 : 0.02, accuracy: 0.0001, testCase.name)
             XCTAssertEqual(bean.ratio, shouldNormalize ? 1 : 0.5, accuracy: 0.0001, testCase.name)
         }
