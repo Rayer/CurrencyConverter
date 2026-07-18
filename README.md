@@ -42,7 +42,9 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
 
 ```sh
-export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+: "${DEVELOPER_DIR?Please set DEVELOPER_DIR to your chosen Xcode 26.6 Contents/Developer path}"
+export DEVELOPER_DIR
+# Example (this host only): /Library/Developer/CommandLineTools/Contents/Developer
 
 XCODE_VERSION="$(${DEVELOPER_DIR}/usr/bin/xcodebuild -version)"
 printf '%s\n' "${XCODE_VERSION}"
