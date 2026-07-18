@@ -43,7 +43,9 @@ struct RateDataStatus: Equatable {
             return lastRefreshError?.message ?? RateDataError.unavailable.message
         }
         if isStale {
-            return "Using saved rates; refresh failed."
+            return lastRefreshError == nil
+                ? "Using saved rates; refresh pending."
+                : "Using saved rates; refresh failed."
         }
         return lastRefreshError?.message ?? "Exchange rates are current."
     }
@@ -137,7 +139,7 @@ enum LegacyContextMenuPresentation {
     private static let staleWarning = " — saved rates; refresh failed"
 
     static func menuTitle(resultString: String, status: RateDataStatus) -> String {
-        let warning = status.isStale ? staleWarning : ""
+        let warning = status.isStale && status.lastRefreshError != nil ? staleWarning : ""
         let resultLimit = max(0, titleLimit - warning.count)
         return String(resultString.prefix(resultLimit)) + warning
     }

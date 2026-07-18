@@ -64,9 +64,10 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
-                    validationHandler(false, LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status))
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
                     sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
+                    let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
+                    validationHandler(false, title)
                     
                 }
             } else {

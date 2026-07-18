@@ -507,7 +507,65 @@ final class CCS10RateFallbackTests: XCTestCase {
         XCTAssertEqual(converter.rateDataStatus.source, .web)
     }
 
+    func testSynchronousWebCommitRejectsReentrantDefaultsLoadBeforePublishingWebSnapshot() {
+        let defaults = CCS10SnapshotBarrierDefaults()
+        let webPayload = Data(#"{"base":"EUR","date":"2026-07-18","rates":{"USD":3.0},"timestamp":999}"#.utf8)
+        let stateLock = NSLock()
+        var setCount = 0
+        var reentrantLoadResult: Bool?
+        var completionError: Error?
+        var converter: CurrencyConverter!
+        converter = CurrencyConverter(
+            clock: { self.now },
+            defaults: defaults,
+            transport: { _, completion in
+                completion(webPayload, self.response, nil)
+            }
+        )
+        defaults.onSet = {
+            stateLock.lock()
+            setCount += 1
+            let isFirstSet = setCount == 1
+            stateLock.unlock()
+
+            guard isFirstSet else { return }
+            let result = converter.loadFromDefaults()
+            stateLock.lock()
+            reentrantLoadResult = result
+            stateLock.unlock()
+        }
+        let commitFinished = expectation(description: "synchronous web commit")
+
+        DispatchQueue.global().async {
+            converter.loadFromWeb { error in
+                stateLock.lock()
+                completionError = error
+                stateLock.unlock()
+                commitFinished.fulfill()
+            }
+        }
+
+        wait(for: [commitFinished], timeout: 1)
+
+        stateLock.lock()
+        let observedSetCount = setCount
+        let observedReentrantLoadResult = reentrantLoadResult
+        let observedCompletionError = completionError
+        stateLock.unlock()
+        XCTAssertEqual(observedSetCount, 5)
+        XCTAssertEqual(observedReentrantLoadResult, false)
+        XCTAssertNil(observedCompletionError)
+        XCTAssertEqual(converter.currencyRateEntity?.rates["USD"], 3)
+        XCTAssertEqual(converter.rateDataStatus.source, .web)
+        XCTAssertFalse(converter.rateDataStatus.isStale)
+        XCTAssertNil(converter.rateDataStatus.lastRefreshError)
+    }
+
     func testPresentationInputDistinguishesStaleAndUnavailable() {
+        XCTAssertEqual(
+            RateDataStatus(source: .defaults, isStale: true, lastUpdated: nil, lastRefreshError: nil).message,
+            "Using saved rates; refresh pending."
+        )
         XCTAssertEqual(
             RateDataStatus(source: .defaults, isStale: true, lastUpdated: nil, lastRefreshError: .decode).message,
             "Using saved rates; refresh failed."
@@ -522,6 +580,13 @@ final class CCS10RateFallbackTests: XCTestCase {
         )
         XCTAssertEqual(title.count, 120)
         XCTAssertTrue(title.hasSuffix("saved rates; refresh failed"))
+        XCTAssertEqual(
+            LegacyContextMenuPresentation.menuTitle(
+                resultString: "1 USD",
+                status: RateDataStatus(source: .defaults, isStale: true, lastUpdated: nil, lastRefreshError: nil)
+            ),
+            "1 USD"
+        )
     }
 
     func testConversionPresentationUsesCapturedStaleStatusAfterConverterMutation() {

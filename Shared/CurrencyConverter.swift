@@ -64,7 +64,8 @@ class CurrencyConverter {
     private let transport: RateTransport
     // When both are needed, defaultsLock is acquired before currencyRateEntityLock;
     // injected defaults callbacks never run while the entity lock is held.
-    private let defaultsLock = NSLock()
+    private let defaultsLock = NSRecursiveLock()
+    private var isPersistingWebSnapshot = false
     private let refreshLock = NSLock()
     private var nextRefreshID: UInt64 = 0
     private var activeRefreshID: UInt64?
@@ -192,11 +193,13 @@ class CurrencyConverter {
     }
     
     func loadFromDefaults() -> Bool {
+        defaultsLock.lock()
+        defer { defaultsLock.unlock() }
+        guard !isPersistingWebSnapshot else { return false }
+
         let now = clock()
         let formatter = providerDateFormatter()
 
-        defaultsLock.lock()
-        defer { defaultsLock.unlock() }
         let recordValue = defaults.value(forKey: "LastUpdateDate")
         let ratesValue = defaults.value(forKey: "CurrencyData")
         let baseValue = defaults.value(forKey: "CurrencyBase")
@@ -440,7 +443,11 @@ class CurrencyConverter {
 
     private func commitWebSnapshot(_ entity: CurrencyRateEntity, rawData: Data, fetchedAt: Date) {
         defaultsLock.lock()
-        defer { defaultsLock.unlock() }
+        isPersistingWebSnapshot = true
+        defer {
+            isPersistingWebSnapshot = false
+            defaultsLock.unlock()
+        }
         defaults.set(fetchedAt, forKey: "LastUpdateDate")
         defaults.set(entity.rates, forKey: "CurrencyData")
         defaults.set(entity.base, forKey: "CurrencyBase")

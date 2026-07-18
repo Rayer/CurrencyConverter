@@ -107,10 +107,10 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     func UpdateRates() {
         let cc = CurrencyConverter.shared
         guard let convertFromSym, let convertToSym else { return }
-        cc.convert(from: convertFromSym, to: convertToSym, unit: baseRateValueField.floatValue) { result, error in
+        cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: baseRateValueField.floatValue) { result, status, error in
             DispatchQueue.main.async {
+                self.statusText.stringValue = status.message
                 guard error == nil else {
-                    self.statusText.stringValue = (error as? RateDataError)?.message ?? self.cc.rateDataStatus.message
                     return
                 }
                 let formatter = NumberFormatter()
@@ -124,10 +124,10 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     func UpdateFormatters() {
         guard let convertFromSym, let convertToSym else { return }
         self.formatterListBtn.removeAllItems()
-        cc.convert(from: convertFromSym, to: convertToSym, unit: 1) { result, error in
+        cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: 1) { result, status, error in
             DispatchQueue.main.async {
+                self.statusText.stringValue = status.message
                 guard error == nil else {
-                    self.statusText.stringValue = (error as? RateDataError)?.message ?? self.cc.rateDataStatus.message
                     return
                 }
                 let cpf = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: 1, toSymbol: convertToSym, toAmount: result)
