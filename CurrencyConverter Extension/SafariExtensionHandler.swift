@@ -8,15 +8,6 @@
 
 import SafariServices
 
-struct LastResult : Codable {
-    var resultString: String
-    var convertFrom: String
-    var convertTo: String
-    var units: Float
-    var fxRate: Float
-    var ratio: Float
-}
-
 class SafariExtensionHandler: SFSafariExtensionHandler {
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
@@ -58,12 +49,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     
                     //Add credit card FX rate
                     let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as! Int? ?? 1
-                    var fxRate : Float32 = 0.0
-                    if fxIndex == 1 {
-                        fxRate = 0.015
-                    } else if fxIndex == 2 {
-                        fxRate = 0.02
-                    }
+                    let fxRate = LegacyContextMenuFXFeePolicy.rate(for: fxIndex)
                     
                     let price = result * (1 + fxRate)
                     
@@ -72,7 +58,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
                     validationHandler(false, lastCurrencyExchangeStr)
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: fxRate, ratio: result / unit)
-                    sharedUserDefaults.set(try? JSONEncoder().encode(lastResult), forKey: "lastResult")
+                    sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
                     
                 }
             } else {
@@ -86,7 +72,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         if command == "CurrencyExchange" {
             NSLog("Executing Currency Exchange")
             if let lastResultData = sharedUserDefaults.value(forKey: "lastResult") as? Data {
-                let lastResult = try! JSONDecoder().decode(LastResult.self, from: lastResultData)
+                let lastResult = try! LastResultPersistence.decode(lastResultData)
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()
                 pasteBoard.setString(lastResult.resultString, forType: .string)
