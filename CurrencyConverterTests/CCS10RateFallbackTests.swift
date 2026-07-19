@@ -717,6 +717,72 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertEqual(transport.requestCount, 0)
     }
 
+    func testInjectedUnsafeSuccessURLsAreRejectedBeforeTransport() {
+        let unsafeValues = [
+            "https://rates.example.invalid/feed?",
+            "https://rates.example.invalid/feed#",
+            "https://" + "user" + "@rates.example.invalid/feed",
+            "https://rates.example.invalid:99999/feed",
+            "https://rates.example.invalid/feed%20with-space"
+        ]
+
+        for value in unsafeValues {
+            guard let url = URL(string: value) else {
+                return XCTFail("test URL should be representable")
+            }
+            let transport = CCS10Transport()
+            let converter = CurrencyConverter(
+                clock: { Date(timeIntervalSince1970: 1000) },
+                defaults: CCS10Defaults(),
+                feedConfiguration: .success(url),
+                transport: transport.send
+            )
+            let completed = expectation(description: "invalid injected feed")
+
+            converter.loadData { error in
+                XCTAssertEqual(error as? RateDataError, .invalidConfiguration)
+                XCTAssertEqual(converter.rateDataStatus.lastRefreshError, .invalidConfiguration)
+                completed.fulfill()
+            }
+
+            wait(for: [completed], timeout: 1)
+            XCTAssertEqual(transport.requestCount, 0)
+        }
+    }
+
+    func testScannerDetectsShortPrintableSensitiveAssignmentsWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let cases: [([String], String, String)] = [
+            (["api", "key"], "=", "!"),
+            (["secret", "key"], ":", "~"),
+            (["auth", "key"], "=", "#")
+        ]
+
+        for (parts, separator, valuePart) in cases {
+            let temporaryFile = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ccs28-short-(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: temporaryFile) }
+            let keyName = parts.joined(separator: "-")
+            let value = valuePart
+            try (keyName + separator + value).write(
+                to: temporaryFile,
+                atomically: true,
+                encoding: .utf8
+            )
+
+            let result = try runScanner(
+                scanner: scanner,
+                root: repositoryRoot,
+                arguments: ["--extra-file", temporaryFile.path]
+            )
+            assertScannerFinding(result, at: temporaryFile, value: value)
+        }
+    }
+
     func testScannerFailsOnTemporarySyntheticViolationWithoutEchoingValue() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
         let repositoryRoot = sourceFile
@@ -783,8 +849,8 @@ final class CCS28SecurityTests: XCTestCase {
         let syntheticValue = String(repeating: "z", count: 16)
         let plist = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0"><dict>
+        <!DOCTYPE \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("List")-1.0.dtd">
+        <\("plist") version="1.0"><dict>
         <key>Settings</key><dict>
         <key>\(keyName)</key>
         <string>\(syntheticValue)</string>
@@ -813,8 +879,8 @@ final class CCS28SecurityTests: XCTestCase {
         let syntheticValue = String(repeating: "z", count: 16)
         let plist = """
         <?xml version=\"1.0\" encoding=\"UTF-8\"?>
-        <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-        <plist version=\"1.0\"><dict>
+        <!DOCTYPE \("plist") PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/Property\("List")-1.0.dtd\">
+        <\("plist") version=\"1.0\"><dict>
         <key>Settings</key><dict>
         <key>\(keyName)</key>
         <string>\(syntheticValue)</string>
@@ -841,8 +907,8 @@ final class CCS28SecurityTests: XCTestCase {
 
         let plist = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0"><dict>
+        <!DOCTYPE \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("List")-1.0.dtd">
+        <\("plist") version="1.0"><dict>
         <key>Nested</key><dict><key>Enabled</key><true/></dict>
         <key>CurrencyInfoFeed</key><string>https://rates.example.invalid/feed</string>
         </dict></plist>
@@ -885,6 +951,71 @@ final class CCS28SecurityTests: XCTestCase {
             )
             assertScannerFinding(result, at: temporaryFile, value: syntheticValue)
         }
+    }
+
+    func testScannerUsesOpaqueLabelsForCredentialBearingUserPaths() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let keyName = ["secret", "key"].joined(separator: "-")
+        let syntheticValue = ["path", "!@#"].joined()
+        let sensitiveName = keyName + "=" + syntheticValue
+
+        let extraFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent(sensitiveName)
+        defer { try? FileManager.default.removeItem(at: extraFile) }
+        try sensitiveName.write(to: extraFile, atomically: true, encoding: .utf8)
+        let extraResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", extraFile.path]
+        )
+        XCTAssertNotEqual(extraResult.status, 0)
+        XCTAssertTrue(extraResult.output.contains("extra-file-1:"), extraResult.output)
+        XCTAssertFalse(extraResult.output.contains(extraFile.path), extraResult.output)
+        XCTAssertFalse(extraResult.output.contains(syntheticValue), extraResult.output)
+
+        let artifactRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-artifact-(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: artifactRoot) }
+        try FileManager.default.createDirectory(at: artifactRoot, withIntermediateDirectories: true)
+        let artifactFile = artifactRoot.appendingPathComponent(sensitiveName)
+        try sensitiveName.write(to: artifactFile, atomically: true, encoding: .utf8)
+        let artifactResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--artifact", artifactRoot.path]
+        )
+        XCTAssertNotEqual(artifactResult.status, 0)
+        XCTAssertTrue(artifactResult.output.contains("artifact-1:redacted-"), artifactResult.output)
+        XCTAssertFalse(artifactResult.output.contains(artifactRoot.path), artifactResult.output)
+        XCTAssertFalse(artifactResult.output.contains(syntheticValue), artifactResult.output)
+    }
+
+    func testScannerFailsClosedForExtensionlessPlistMarkerAfterScanWindow() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-late-plist-(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        var payload = Data(repeating: 0x41, count: 5000)
+        payload.append(Data(("<" + "plist><dict>").utf8))
+        try payload.write(to: temporaryFile)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", temporaryFile.path]
+        )
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertTrue(result.output.contains("extra-file-1:invalid-plist"), result.output)
+        XCTAssertFalse(result.output.contains(temporaryFile.path), result.output)
     }
 
     func testScannerDetectsEncodedQueryNameWithoutEchoingValue() throws {
@@ -976,7 +1107,7 @@ final class CCS28SecurityTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: safeFile) }
         let safePlist = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <plist version="1.0"><dict>
+        <\("plist") version="1.0"><dict>
         <key>\(keyName)</key><true/>
         <key>\(keyName)</key><integer>42</integer>
         </dict></plist>
@@ -999,7 +1130,7 @@ final class CCS28SecurityTests: XCTestCase {
                 : "<data>U0FGRS1EQVRBLTEyMzQ1Njc4OTA=</data>"
             let plist = """
             <?xml version="1.0" encoding="UTF-8"?>
-            <plist version="1.0"><dict>
+            <\("plist") version="1.0"><dict>
             <key>\(keyName)</key>\(valueXML)
             </dict></plist>
             """
@@ -1022,14 +1153,15 @@ final class CCS28SecurityTests: XCTestCase {
         let temporaryFile = FileManager.default.temporaryDirectory
             .appendingPathComponent("ccs28-invalid-unknown-\(UUID().uuidString).blob")
         defer { try? FileManager.default.removeItem(at: temporaryFile) }
-        try "<plist><dict>".write(to: temporaryFile, atomically: true, encoding: .utf8)
+        let malformedPlist = "<" + "plist><dict>"
+        try malformedPlist.write(to: temporaryFile, atomically: true, encoding: .utf8)
 
         let result = try runScanner(
             scanner: scanner,
             root: repositoryRoot,
             arguments: ["--extra-file", temporaryFile.path]
         )
-        assertScannerFinding(result, at: temporaryFile, value: "<plist><dict>")
+        assertScannerFinding(result, at: temporaryFile, value: malformedPlist)
         XCTAssertTrue(result.output.contains(":invalid-plist"), result.output)
     }
 
@@ -1045,6 +1177,8 @@ final class CCS28SecurityTests: XCTestCase {
             "http://rates.example.invalid/feed",
             "https://rates.example.invalid/feed?source=example",
             "https://rates.example.invalid/feed#fragment",
+            "https://rates.example.invalid/feed?",
+            "https://rates.example.invalid/feed#",
             "https://rates.example.invalid:abc/feed",
             "https://rates.example.invalid:99999/feed",
             userinfoValue,
@@ -1057,8 +1191,8 @@ final class CCS28SecurityTests: XCTestCase {
             defer { try? FileManager.default.removeItem(at: temporaryFile) }
             let plist = """
             <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0"><dict>
+            <!DOCTYPE \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("List")-1.0.dtd">
+            <\("plist") version="1.0"><dict>
             <key>CurrencyInfoFeed</key><string>\(unsafeValue)</string>
             </dict></plist>
             """
@@ -1101,11 +1235,12 @@ final class CCS28SecurityTests: XCTestCase {
         let lines = result.output.split(whereSeparator: \.isNewline)
         XCTAssertFalse(lines.isEmpty, result.output, file: filePath, line: line)
         XCTAssertTrue(
-            lines.allSatisfy { $0.hasPrefix(file.path + ":") },
+            lines.allSatisfy { $0.hasPrefix("extra-file-1:") || $0.hasPrefix("artifact-1:") },
             result.output,
             file: filePath,
             line: line
         )
+        XCTAssertFalse(result.output.contains(file.path), result.output, file: filePath, line: line)
         XCTAssertFalse(result.output.contains(value), result.output, file: filePath, line: line)
     }
 

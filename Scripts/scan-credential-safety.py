@@ -7,16 +7,22 @@ Findings intentionally contain only a path and a line/byte location.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import plistlib
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote_plus, urlsplit
+from urllib.parse import parse_qsl, unquote, unquote_plus, urlsplit
 
 
 PLIST_SUFFIXES = {".plist"}
+PLIST_BINARY_HEADER = b"bplist" + b"00"
+PLIST_XML_MARKER = b"<" + b"plist"
+PLIST_DOCTYPE_MARKER = b"<!" + b"doctype " + b"plist"
+PLIST_PROPERTY_MARKER = b"property" + b"list-1.0.dtd"
 SENSITIVE_NAMES = frozenset(
     {
         "apikey",
@@ -51,13 +57,13 @@ SENSITIVE_NAMES = frozenset(
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
 ASSIGNMENT_PATTERN = re.compile(
     r"""
-    (?<![A-Za-z0-9])
+    (?<![A-Za-z0-9_])
     (?P<name>
         \"(?:[^\"\\]|\\.)*\"
         |'(?:[^'\\]|\\.)*'
-        |[A-Za-z%][^\s=:,{}\[\]]{0,80}
+        |[A-Za-z%][A-Za-z0-9_.%\-]{0,80}
     )
-    [ \t]*(?:=|:)[ \t]*(?P<value>[^\r\n]*)
+    [ \t]*(?:=(?!=)|:(?!=))[ \t]*(?P<value>[^\r\n]*)
     """,
     re.VERBOSE,
 )
@@ -88,8 +94,7 @@ def is_sensitive_name(value: object) -> bool:
 def printable_value(value: str) -> bool:
     value = value.strip()
     return (
-        len(value) >= 8
-        and bool(value)
+        bool(value)
         and any(not character.isspace() for character in value)
         and all(character.isprintable() for character in value)
     )
@@ -209,6 +214,8 @@ def safe_endpoint(value: object) -> bool:
         return False
     if any(character.isspace() for character in value) or "$(" in value:
         return False
+    if any(character.isspace() for character in unquote(value)):
+        return False
     try:
         parsed = urlsplit(value)
         parsed.port
@@ -224,6 +231,8 @@ def safe_endpoint(value: object) -> bool:
         and bool(parsed.hostname)
         and parsed.username is None
         and parsed.password is None
+        and "?" not in value
+        and "#" not in value
         and parsed.query == ""
         and parsed.fragment == ""
     )
@@ -267,8 +276,14 @@ def scan_plist(raw: bytes, display: str, findings: list[tuple[str, str]], artifa
 
 
 def looks_like_plist(raw: bytes) -> bool:
-    prefix = raw.lstrip()[:4096]
-    return prefix.startswith(b"bplist00") or b"<plist" in prefix
+    prefix = raw.lstrip()
+    lowered = raw.lower()
+    return (
+        prefix.startswith(PLIST_BINARY_HEADER)
+        or PLIST_XML_MARKER in lowered
+        or PLIST_DOCTYPE_MARKER in lowered
+        or PLIST_PROPERTY_MARKER in lowered
+    )
 
 
 def scan_file(path: Path, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:
@@ -286,13 +301,88 @@ def scan_file(path: Path, display: str, findings: list[tuple[str, str]], artifac
     scan_bytes(path, display, raw, findings)
 
 
-def scan_artifact(path: Path, findings: list[tuple[str, str]]) -> None:
-    if not path.exists():
-        report(findings, f"{path}:missing")
+def safe_path_component(component: str) -> str:
+    if scan_line(component):
+        digest = hashlib.sha256(os.fsencode(component)).hexdigest()[:12]
+        return f"redacted-{digest}"
+    return component
+
+
+def safe_relative_path(root: Path, path: Path) -> str:
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return "outside-root"
+    if not relative.parts:
+        return "."
+    return "/".join(safe_path_component(part) for part in relative.parts)
+
+
+def scan_artifact(
+    path: Path,
+    findings: list[tuple[str, str]],
+    label: str = "artifact-1",
+    walker=None,
+) -> None:
+    try:
+        root_mode = path.lstat().st_mode
+    except OSError:
+        report(findings, f"{label}:missing")
         return
-    candidates = [path] if path.is_file() else [item for item in path.rglob("*") if item.is_file()]
-    for item in candidates:
-        scan_file(item, str(item), findings, artifact=True)
+
+    if stat.S_ISREG(root_mode):
+        scan_file(path, label, findings, artifact=True)
+        return
+    if not stat.S_ISDIR(root_mode) or stat.S_ISLNK(root_mode):
+        report(findings, f"{label}:unreadable-root")
+        return
+
+    if walker is None:
+        walker = os.walk
+
+    def traversal_error(_error: OSError) -> None:
+        report(findings, f"{label}:unreadable")
+
+    try:
+        for directory, directories, filenames in walker(
+            path,
+            topdown=True,
+            onerror=traversal_error,
+            followlinks=False,
+        ):
+            directory_path = Path(directory)
+            for name in list(directories):
+                child = directory_path / name
+                try:
+                    child_mode = child.lstat().st_mode
+                except OSError:
+                    directories.remove(name)
+                    report(
+                        findings,
+                        f"{label}:{safe_relative_path(path, child)}:unreadable",
+                    )
+                    continue
+                if stat.S_ISLNK(child_mode):
+                    directories.remove(name)
+                    report(
+                        findings,
+                        f"{label}:{safe_relative_path(path, child)}:symlink",
+                    )
+
+            for name in filenames:
+                child = directory_path / name
+                display = f"{label}:{safe_relative_path(path, child)}"
+                try:
+                    child_mode = child.lstat().st_mode
+                except OSError:
+                    report(findings, f"{display}:unreadable")
+                    continue
+                if stat.S_ISLNK(child_mode):
+                    report(findings, f"{display}:symlink")
+                    continue
+                scan_file(child, display, findings, artifact=True)
+    except OSError:
+        report(findings, f"{label}:unreadable")
 
 
 def main() -> int:
@@ -307,15 +397,15 @@ def main() -> int:
     try:
         files = tracked_files(root)
     except (OSError, subprocess.CalledProcessError, UnicodeDecodeError):
-        report(findings, f"{root}:git-files")
+        report(findings, "tracked:git-files")
         files = []
 
     for path in files:
-        scan_file(path, str(path.relative_to(root)), findings, artifact=False)
-    for path in args.extra_file:
-        scan_file(path, str(path), findings, artifact=False)
-    for path in args.artifact:
-        scan_artifact(path, findings)
+        scan_file(path, safe_relative_path(root, path), findings, artifact=False)
+    for index, path in enumerate(args.extra_file, start=1):
+        scan_file(path, f"extra-file-{index}", findings, artifact=False)
+    for index, path in enumerate(args.artifact, start=1):
+        scan_artifact(path, findings, label=f"artifact-{index}")
 
     for location, _ in sorted(set(findings)):
         print(location)

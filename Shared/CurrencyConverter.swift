@@ -129,6 +129,12 @@ class CurrencyConverter {
         let feedURL: URL
         switch feedConfiguration {
         case .success(let url):
+            guard CurrencyInfoFeedConfiguration.validate(url: url) == nil else {
+                let refreshError = RateDataError.invalidConfiguration
+                self.recordRefreshFailure(refreshError)
+                completionHandler(refreshError)
+                return
+            }
             feedURL = url
         case .failure(let configurationError):
             let refreshError: RateDataError = configurationError == .missing
