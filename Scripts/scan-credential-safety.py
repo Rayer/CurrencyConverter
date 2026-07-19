@@ -34,6 +34,7 @@ TEXT_SUFFIXES = {
     ".yaml",
     ".yml",
 }
+PLIST_SUFFIXES = {".entitlements", ".plist"}
 
 REUSABLE_SECRET = re.compile(
     r"""(?ix)
@@ -48,6 +49,9 @@ REUSABLE_SECRET = re.compile(
 URL = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
 CREDENTIAL_QUERY = re.compile(
     r"(?i)(?:^|[?&#])(?:api[_-]?(?:key|secret)|access[_-]?token|client[_-]?secret|credential|password|token|secret)="
+)
+SUSPICIOUS_PLIST_KEY = re.compile(
+    r"^(?:apikey|apisecret|accesstoken|authorization|bearer|clientsecret|credentials?|passwords?|privatekey|tokens?|secrets?)$"
 )
 
 
@@ -98,13 +102,13 @@ def tracked_files(root: Path) -> list[Path]:
         stderr=subprocess.DEVNULL,
     )
     paths = [Path(item) for item in result.stdout.decode("utf-8").split("\x00") if item]
-    # Test fixtures intentionally exercise rejected URL shapes; production/config/build
-    # scanning remains strict, while the synthetic-file test covers scanner failure.
-    return [root / item for item in paths if not any(part.endswith("Tests") for part in item.parts)]
+    return [root / item for item in paths]
 
 
 def safe_endpoint(value: object) -> bool:
     if not isinstance(value, str) or not value or value != value.strip():
+        return False
+    if any(character.isspace() for character in value) or "$(" in value:
         return False
     try:
         parsed = urlsplit(value)
@@ -120,6 +124,45 @@ def safe_endpoint(value: object) -> bool:
     )
 
 
+def is_nonempty_scalar(value: object) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (bytes, bytearray)):
+        return bool(value)
+    return not isinstance(value, (dict, list, tuple)) and value is not None
+
+
+def plist_key_name(key: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(key).lower())
+
+
+def scan_plist(path: Path, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:
+    try:
+        with path.open("rb") as handle:
+            plist = plistlib.load(handle)
+    except (OSError, plistlib.InvalidFileException, ValueError, TypeError):
+        report(findings, f"{display}:invalid-plist")
+        return
+
+    def visit(value: object, key_path: str) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                child_path = f"{key_path}.{key}" if key_path else str(key)
+                normalized_key = plist_key_name(key)
+                if SUSPICIOUS_PLIST_KEY.fullmatch(normalized_key) and is_nonempty_scalar(child):
+                    report(findings, f"{display}:{child_path}")
+                if str(key) == "CurrencyInfoFeed" and child not in (None, ""):
+                    source_placeholder = not artifact and child == "$(CURRENCY_INFO_FEED)"
+                    if not source_placeholder and not safe_endpoint(child):
+                        report(findings, f"{display}:{child_path}")
+                visit(child, child_path)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, f"{key_path}[{index}]")
+
+    visit(plist, "")
+
+
 def scan_artifact(path: Path, findings: list[tuple[str, str]], excluded: set[Path]) -> None:
     if not path.exists():
         report(findings, f"{path}:missing")
@@ -127,16 +170,8 @@ def scan_artifact(path: Path, findings: list[tuple[str, str]], excluded: set[Pat
     candidates = [path] if path.is_file() else [item for item in path.rglob("*") if item.is_file()]
     for item in candidates:
         display = str(item)
-        if item.name == "Info.plist":
-            try:
-                with item.open("rb") as handle:
-                    plist = plistlib.load(handle)
-            except (OSError, plistlib.InvalidFileException, ValueError, TypeError):
-                report(findings, f"{display}:invalid-plist")
-                continue
-            value = plist.get("CurrencyInfoFeed") if isinstance(plist, dict) else None
-            if value not in (None, "") and not safe_endpoint(value):
-                report(findings, f"{display}:CurrencyInfoFeed")
+        if item.suffix.lower() in PLIST_SUFFIXES:
+            scan_plist(item, display, findings, artifact=True)
         scan_text(item, display, findings, excluded)
 
 
@@ -157,9 +192,15 @@ def main() -> int:
         files = []
 
     for path in files:
-        scan_text(path, str(path.relative_to(root)), findings, excluded)
+        display = str(path.relative_to(root))
+        if path.suffix.lower() in PLIST_SUFFIXES:
+            scan_plist(path, display, findings, artifact=False)
+        scan_text(path, display, findings, excluded)
     for path in args.extra_file:
-        scan_text(path, str(path), findings, excluded)
+        display = str(path)
+        if path.suffix.lower() in PLIST_SUFFIXES:
+            scan_plist(path, display, findings, artifact=False)
+        scan_text(path, display, findings, excluded)
     for path in args.artifact:
         scan_artifact(path, findings, excluded)
 

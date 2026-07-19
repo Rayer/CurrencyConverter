@@ -39,7 +39,18 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 
 ## Rate-feed configuration
 
-The repository and its default app/extension builds contain no configured rate feed. The app and Safari extension may receive a local or release-injected `CurrencyInfoFeed` value through an untracked `Configuration/RateFeed.xcconfig`, copied from `Configuration/RateFeed.xcconfig.example`. The value must be a credential-free HTTPS endpoint with no userinfo, query, or fragment. Never put provider credentials in source, plist files, build settings, tests, logs, or release artifacts.
+The repository and its default app/extension builds contain no configured rate feed. `Configuration/Base.xcconfig` is the tracked base configuration for the app and Safari extension Debug/Release targets. It sets `CURRENCY_INFO_FEED` empty, then Xcode automatically loads the optional, ignored `Configuration/RateFeed.xcconfig` when that file exists.
+
+For a local or release-injected build, copy the safe example and build both targets:
+
+```sh
+cp Configuration/RateFeed.xcconfig.example Configuration/RateFeed.xcconfig
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -configuration Release -destination "platform=macOS,arch=$(uname -m)" build
+xcodebuild -project CurrencyConverter.xcodeproj -scheme "CurrencyConverter Extension" -configuration Release -destination "platform=macOS,arch=$(uname -m)" build
+rm Configuration/RateFeed.xcconfig
+```
+
+The example uses xcconfig-safe escaped slashes (`https:/$()/rates.example.invalid/feed`); after Xcode expands the variable, the processed plist contains the normal credential-free HTTPS URL `https://rates.example.invalid/feed`. Without the copied file, the processed `CurrencyInfoFeed` value is empty. The value must never contain credentials, userinfo, a query, or a fragment. Never put provider credentials in source, plist files, build settings, tests, logs, or release artifacts.
 
 ## CCS-28 owner-only incident runbook (2026-07-19)
 

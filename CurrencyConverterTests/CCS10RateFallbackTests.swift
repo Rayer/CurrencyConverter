@@ -658,7 +658,8 @@ final class CCS28SecurityTests: XCTestCase {
     }
 
     func testUserinfoBearingFeedIsRejected() {
-        assertConfigurationFailure("https://user@rates.example.invalid/feed", equals: .userinfo)
+        let userinfoFeed = "https://" + "user" + "@rates.example.invalid/feed"
+        assertConfigurationFailure(userinfoFeed, equals: .userinfo)
     }
 
     func testMalformedFeedIsRejected() {
@@ -721,18 +722,124 @@ final class CCS28SecurityTests: XCTestCase {
         let syntheticViolation = keyName + "=" + String(repeating: "x", count: 16)
         try syntheticViolation.write(to: temporaryFile, atomically: true, encoding: .utf8)
 
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", temporaryFile.path]
+        )
+        XCTAssertNotEqual(result.status, 0)
+        let outputText = result.output
+        XCTAssertFalse(outputText.contains(String(repeating: "x", count: 16)))
+    }
+
+    func testScannerFailsOnTemporarySyntheticPlistViolationWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-synthetic-violation-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let keyName = ["api", "key"].joined()
+        let syntheticValue = String(repeating: "z", count: 16)
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0"><dict>
+        <key>Settings</key><dict>
+        <key>\(keyName)</key>
+        <string>\(syntheticValue)</string>
+        </dict>
+        </dict></plist>
+        """
+        try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(scanner: scanner, root: repositoryRoot, arguments: ["--artifact", temporaryFile.path])
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertTrue(result.output.contains(":Settings.\(keyName)"))
+        XCTAssertFalse(result.output.contains(syntheticValue))
+    }
+
+    func testScannerAcceptsTemporarySafePlist() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-safe-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0"><dict>
+        <key>Nested</key><dict><key>Enabled</key><true/></dict>
+        <key>CurrencyInfoFeed</key><string>https://rates.example.invalid/feed</string>
+        </dict></plist>
+        """
+        try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(scanner: scanner, root: repositoryRoot, arguments: ["--artifact", temporaryFile.path])
+        XCTAssertEqual(result.status, 0, result.output)
+        XCTAssertTrue(result.output.isEmpty, result.output)
+    }
+
+    func testScannerRejectsUnsafeArtifactFeedValues() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let userinfoValue = "https://" + "user" + "@rates.example.invalid/feed"
+        let unsafeValues = [
+            "$(CURRENCY_INFO_FEED)",
+            "http://rates.example.invalid/feed",
+            "https://rates.example.invalid/feed?source=example",
+            "https://rates.example.invalid/feed#fragment",
+            userinfoValue,
+            "not a URL"
+        ]
+
+        for unsafeValue in unsafeValues {
+            let temporaryFile = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ccs28-unsafe-\(UUID().uuidString).plist")
+            defer { try? FileManager.default.removeItem(at: temporaryFile) }
+            let plist = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0"><dict>
+            <key>CurrencyInfoFeed</key><string>\(unsafeValue)</string>
+            </dict></plist>
+            """
+            try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+            let result = try runScanner(scanner: scanner, root: repositoryRoot, arguments: ["--artifact", temporaryFile.path])
+            XCTAssertNotEqual(result.status, 0, unsafeValue)
+            XCTAssertTrue(result.output.contains(":CurrencyInfoFeed"), result.output)
+            XCTAssertFalse(result.output.contains(unsafeValue), result.output)
+        }
+    }
+
+    private func runScanner(
+        scanner: URL,
+        root: URL,
+        arguments: [String]
+    ) throws -> (status: Int32, output: String) {
         let process = Process()
         let output = Pipe()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["python3", scanner.path, "--root", repositoryRoot.path, "--extra-file", temporaryFile.path]
+        process.arguments = ["python3", scanner.path, "--root", root.path] + arguments
         process.standardOutput = output
         process.standardError = output
         try process.run()
         process.waitUntilExit()
-
-        let outputText = String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        XCTAssertNotEqual(process.terminationStatus, 0)
-        XCTAssertFalse(outputText.contains(String(repeating: "x", count: 16)))
+        return (
+            process.terminationStatus,
+            String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        )
     }
 
     private func assertConfigurationFailure(
