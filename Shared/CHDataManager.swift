@@ -46,7 +46,6 @@ class CHDataManager {
                 try ensurePermanentIDs(for: objects)
                 guard let match = objects.first(where: { object in
                     RenewPresentationIdentity.id(
-                        businessID: object.id,
                         objectIDURI: object.objectID.uriRepresentation().absoluteString
                     ) == at
                 }) else {

@@ -307,6 +307,36 @@ final class CCS21AtomicRenewTests: XCTestCase {
         XCTAssertEqual(store.reloadCount, 1)
     }
 
+    func testWorkflowRemainsInFlightUntilCompletionCallbackReturns() {
+        let row = RenewRowSnapshot(
+            objectID: "row", businessID: UUID(),
+            fromSymbol: "USD", toSymbol: "USD", fromAmount: 2, ratio: 4
+        )
+        let store = CCS21StoreFixture(rows: [row])
+        let workflow = AtomicRenewWorkflow(store: store, converter: CCS21ConverterFixture())
+        let firstFinished = expectation(description: "first completion")
+        let overlapRejected = expectation(description: "completion-time overlap rejected")
+        var overlapWasAccepted = true
+
+        XCTAssertTrue(workflow.renew { _, _ in
+            overlapWasAccepted = workflow.renew { result, values in
+                XCTAssertFalse(result.accepted)
+                XCTAssertNil(values)
+                overlapRejected.fulfill()
+            }
+            firstFinished.fulfill()
+        })
+        wait(for: [firstFinished, overlapRejected], timeout: 1)
+        XCTAssertFalse(overlapWasAccepted)
+
+        let nextFinished = expectation(description: "next run after callback")
+        XCTAssertTrue(workflow.renew { result, _ in
+            XCTAssertTrue(result.accepted)
+            nextFinished.fulfill()
+        })
+        wait(for: [nextFinished], timeout: 1)
+    }
+
     func testMissingSnapshotConverterAndApplyCallbacksTimeoutAndIgnoreLateCallbacks() {
         let row = RenewRowSnapshot(objectID: "row", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 4)
         let scheduler = CCS21ManualRenewScheduler()
@@ -860,18 +890,13 @@ final class CCS21AtomicRenewTests: XCTestCase {
         }
     }
 
-    func testPresentationIdentityIsStableForNilBusinessIDAndPreservesBusinessID() {
-        let businessID = UUID()
+    func testPresentationIdentityIsStableAndIndependentOfBusinessID() {
         let objectID = "x-coredata://store/ConvertHistory/p1"
-        let fallbackID = RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID)
-        XCTAssertEqual(fallbackID, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
+        let fallbackID = RenewPresentationIdentity.id(objectIDURI: objectID)
+        XCTAssertEqual(fallbackID, RenewPresentationIdentity.id(objectIDURI: objectID))
         XCTAssertNotEqual(
             fallbackID,
-            RenewPresentationIdentity.id(businessID: nil, objectIDURI: "x-coredata://store/ConvertHistory/p2")
-        )
-        XCTAssertEqual(
-            RenewPresentationIdentity.id(businessID: businessID, objectIDURI: objectID),
-            fallbackID
+            RenewPresentationIdentity.id(objectIDURI: "x-coredata://store/ConvertHistory/p2")
         )
         XCTAssertEqual(fallbackID.uuid.6 & 0xF0, 0x80)
         XCTAssertEqual(fallbackID.uuid.8 & 0xC0, 0x80)
@@ -903,7 +928,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
 
         XCTAssertEqual(store.reloadCount, 2)
         XCTAssertEqual(secondBeans.first?.id, firstID)
-        XCTAssertEqual(secondBeans.first?.id, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
+        XCTAssertEqual(secondBeans.first?.id, RenewPresentationIdentity.id(objectIDURI: objectID))
     }
 
     func testPresentationIDDeletesExactRowEvenWhenBusinessIDsAreNil() {
@@ -934,7 +959,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let nilValues = values.filter { $0.id == nil }
         XCTAssertEqual(nilValues.count, 2)
         let deletedValue = try! XCTUnwrap(nilValues.first)
-        let deletedFallbackID = try! XCTUnwrap(beans.first { $0.id == RenewPresentationIdentity.id(businessID: nil, objectIDURI: deletedValue.objectID) }?.id)
+        let deletedFallbackID = try! XCTUnwrap(beans.first { $0.id == RenewPresentationIdentity.id(objectIDURI: deletedValue.objectID) }?.id)
         manager.wipeById(deletedFallbackID)
 
         let afterFallbackDelete = expectation(description: "fallback row deleted")
@@ -949,9 +974,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
         XCTAssertEqual(remainingAfterFallback.filter { $0.id == nil }.count, 1)
 
         let businessValue = try! XCTUnwrap(values.first { $0.id == businessID })
-        let businessPresentationID = RenewPresentationIdentity.id(
-            businessID: businessValue.id, objectIDURI: businessValue.objectID
-        )
+        let businessPresentationID = RenewPresentationIdentity.id(objectIDURI: businessValue.objectID)
         manager.wipeById(businessPresentationID)
         let afterBusinessDelete = expectation(description: "business row deleted")
         var remainingAfterBusinessDelete: [RenewHistoryValue] = []
@@ -986,7 +1009,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
         XCTAssertEqual(Set(beans.map(\.id)).count, 2)
         let deletedObjectID = values[0].objectID
         let deletedPresentationID = try! XCTUnwrap(
-            beans.first { $0.id == RenewPresentationIdentity.id(businessID: businessID, objectIDURI: deletedObjectID) }?.id
+            beans.first { $0.id == RenewPresentationIdentity.id(objectIDURI: deletedObjectID) }?.id
         )
         manager.wipeById(deletedPresentationID)
 

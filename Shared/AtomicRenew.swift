@@ -2,8 +2,7 @@ import Foundation
 import CryptoKit
 
 enum RenewPresentationIdentity {
-    static func id(businessID: UUID?, objectIDURI: String) -> UUID {
-        _ = businessID
+    static func id(objectIDURI: String) -> UUID {
         var bytes = Array(SHA256.hash(data: Data(objectIDURI.utf8)))
         // This is a deterministic SHA-256 construction, not RFC 4122 UUIDv5.
         bytes[6] = (bytes[6] & 0x0F) | 0x80
@@ -486,12 +485,12 @@ private final class AtomicRenewOperation {
         stateLock.unlock()
         task?.cancel()
 
-        let owner = owner
-        owner?.operationDidFinish(self)
-        self.owner = nil
-        DispatchQueue.main.async { [completion] in
+        DispatchQueue.main.async { [self] in
             completion(result, history)
+            let currentOwner = owner
+            currentOwner?.operationDidFinish(self)
+            owner = nil
+            keepAlive = nil
         }
-        keepAlive = nil
     }
 }

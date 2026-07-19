@@ -33,7 +33,7 @@ enum RenewPresentationOrchestration {
                 fxFeeRate: value.fxFee, ratio: value.ratio
             )
             return ConvertHistoryUIBean(
-                id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
+                id: RenewPresentationIdentity.id(objectIDURI: value.objectID),
                 title: value.title ?? "", url: value.url ?? "",
                 fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
                 fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
@@ -63,7 +63,7 @@ extension ConvertHistoryUIBean {
             fromSymbol: c.fromSymbol, toSymbol: c.toSymbol, fxFeeRate: c.fxFee, ratio: c.ratio
         )
         let presentationID = c.objectIDURI.map {
-            RenewPresentationIdentity.id(businessID: c.id, objectIDURI: $0)
+            RenewPresentationIdentity.id(objectIDURI: $0)
         } ?? c.id ?? UUID()
         return ConvertHistoryUIBean(
             id: presentationID, title: c.title ?? "", url: c.url ?? "",

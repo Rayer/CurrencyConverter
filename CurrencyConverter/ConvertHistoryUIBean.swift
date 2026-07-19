@@ -75,11 +75,11 @@ class ConvertHistoryDMCollection : ObservableObject {
                 return
             }
             let beans = RenewPresentationOrchestration.beans(from: values)
-            DispatchQueue.main.async {
-                self?.lastHistoryError = nil
-                self?.data = beans
-                completion?(result)
-            }
+            // AtomicRenewWorkflow completes on main and remains in-flight until this
+            // callback returns, so publish synchronously before the overlap gate opens.
+            self?.lastHistoryError = nil
+            self?.data = beans
+            completion?(result)
         }
     }
 
