@@ -32,6 +32,9 @@ enum CurrencyInfoFeedConfiguration {
             }
             return .failure(.malformed)
         }
+        if let port = components.port, !(1...65535).contains(port) {
+            return .failure(.malformed)
+        }
 
         if components.user != nil || components.password != nil || authority(in: value).contains("@") {
             return .failure(.userinfo)

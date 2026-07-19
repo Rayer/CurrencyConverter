@@ -39,7 +39,7 @@ PLIST_SUFFIXES = {".entitlements", ".plist"}
 REUSABLE_SECRET = re.compile(
     r"""(?ix)
     (?<![a-z0-9_])
-    (?:api[_-]?(?:key|secret)|access[_-]?token|authorization|bearer|
+    (?:api[_-]?(?:key|secret)|access(?:[_-]?(?:token|key|secret))|authorization|bearer|
        client[_-]?secret|credential|password|private[_-]?key|token)
     \s*(?:=|:)\s*
     (?:["']\s*)?
@@ -47,11 +47,15 @@ REUSABLE_SECRET = re.compile(
     """
 )
 URL = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
-CREDENTIAL_QUERY = re.compile(
-    r"(?i)(?:^|[?&#])(?:api[_-]?(?:key|secret)|access[_-]?token|client[_-]?secret|credential|password|token|secret)="
+SENSITIVE_CREDENTIAL_KEY = re.compile(
+    r"""(?ix)
+    ^(?:api[_-]?(?:key|secret)
+      |access(?:[_-]?(?:token|key|secret))
+      |authorization|bearer|client[_-]?secret|credential|password|private[_-]?key|token|secret)$
+    """
 )
 SUSPICIOUS_PLIST_KEY = re.compile(
-    r"^(?:apikey|apisecret|accesstoken|authorization|bearer|clientsecret|credentials?|passwords?|privatekey|tokens?|secrets?)$"
+    r"^(?:accesskey|accesssecret|accesstoken|apikey|apisecret|authorization|bearer|clientsecret|credentials?|passwords?|privatekey|tokens?|secrets?)$"
 )
 
 
@@ -89,7 +93,7 @@ def scan_text(path: Path, display: str, findings: list[tuple[str, str]], exclude
             if parsed.username is not None or parsed.password is not None:
                 report(findings, f"{display}:{line_number}")
                 break
-            if CREDENTIAL_QUERY.search(parsed.query) or CREDENTIAL_QUERY.search(parsed.fragment):
+            if _has_credential_param(parsed.query) or _has_credential_param(parsed.fragment):
                 report(findings, f"{display}:{line_number}")
                 break
 
@@ -112,6 +116,12 @@ def safe_endpoint(value: object) -> bool:
         return False
     try:
         parsed = urlsplit(value)
+        parsed.port
+    except ValueError:
+        return False
+    try:
+        if parsed.port is not None and not (0 < parsed.port <= 65535):
+            return False
     except ValueError:
         return False
     return (
@@ -122,6 +132,13 @@ def safe_endpoint(value: object) -> bool:
         and parsed.query == ""
         and parsed.fragment == ""
     )
+
+
+def _has_credential_param(raw: str) -> bool:
+    for name, value in re.findall(r"([^&#=]+)=([^&#]*)", raw):
+        if SENSITIVE_CREDENTIAL_KEY.fullmatch(name) and value.strip():
+            return True
+    return False
 
 
 def is_nonempty_scalar(value: object) -> bool:

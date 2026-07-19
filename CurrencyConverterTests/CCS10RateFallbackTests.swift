@@ -633,12 +633,23 @@ final class CCS10RateFallbackTests: XCTestCase {
 
 final class CCS28SecurityTests: XCTestCase {
     func testSafeHTTPSFeedIsAccepted() {
-        let result = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
+        let implicitPortResult = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
 
-        guard case .success(let url) = result else {
+        guard case .success(let url) = implicitPortResult else {
             return XCTFail("safe HTTPS feed should be accepted")
         }
         XCTAssertEqual(url.absoluteString, "https://rates.example.invalid/feed")
+
+        let explicitPortResult = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid:443/feed")
+        guard case .success(let explicitPortURL) = explicitPortResult else {
+            return XCTFail("safe HTTPS feed with explicit numeric port should be accepted")
+        }
+        XCTAssertEqual(explicitPortURL.absoluteString, "https://rates.example.invalid:443/feed")
+    }
+
+    func testMalformedPortFeedIsRejected() {
+        assertConfigurationFailure("https://rates.example.invalid:abc/feed", equals: .malformed)
+        assertConfigurationFailure("https://rates.example.invalid:99999/feed", equals: .malformed)
     }
 
     func testMissingFeedIsTypedAsMissing() {
@@ -732,6 +743,32 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertFalse(outputText.contains(String(repeating: "x", count: 16)))
     }
 
+    func testScannerFailsOnTemporarySyntheticAccessKeyQueryViolationWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: scanner.path))
+
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-synthetic-access-key-violation-\(UUID().uuidString).swift")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let syntheticValue = String(repeating: "x", count: 16)
+        let syntheticKeyName = ["access", "key"].joined(separator: "-")
+        let syntheticViolation = "https://rates.example.invalid/feed?\(syntheticKeyName)=" + syntheticValue
+        try syntheticViolation.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", temporaryFile.path]
+        )
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertFalse(result.output.contains(syntheticValue), result.output)
+    }
+
     func testScannerFailsOnTemporarySyntheticPlistViolationWithoutEchoingValue() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
         let repositoryRoot = sourceFile
@@ -760,6 +797,36 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertNotEqual(result.status, 0)
         XCTAssertTrue(result.output.contains(":Settings.\(keyName)"))
         XCTAssertFalse(result.output.contains(syntheticValue))
+    }
+
+    func testScannerFailsOnTemporarySyntheticAccessKeyPlistViolationWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-synthetic-access-key-plist-violation-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let keyName = "accessKey"
+        let syntheticValue = String(repeating: "z", count: 16)
+        let plist = """
+        <?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+        <plist version=\"1.0\"><dict>
+        <key>Settings</key><dict>
+        <key>\(keyName)</key>
+        <string>\(syntheticValue)</string>
+        </dict>
+        </dict></plist>
+        """
+        try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(scanner: scanner, root: repositoryRoot, arguments: ["--artifact", temporaryFile.path])
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertTrue(result.output.contains(":Settings.\(keyName)"), result.output)
+        XCTAssertFalse(result.output.contains(syntheticValue), result.output)
     }
 
     func testScannerAcceptsTemporarySafePlist() throws {
@@ -799,6 +866,8 @@ final class CCS28SecurityTests: XCTestCase {
             "http://rates.example.invalid/feed",
             "https://rates.example.invalid/feed?source=example",
             "https://rates.example.invalid/feed#fragment",
+            "https://rates.example.invalid:abc/feed",
+            "https://rates.example.invalid:99999/feed",
             userinfoValue,
             "not a URL"
         ]
