@@ -12,15 +12,38 @@ extension ConvertHistory: ConvertHistoryRecord {}
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
-    let dataManager = CHDataManager.shared
+    let dataManager: AtomicRenewStore
+    let converter: RenewConverter
+    private let renewCoordinator: AtomicRenewCoordinator
+
+    init(dataManager: AtomicRenewStore = CHDataManager.shared, converter: RenewConverter = CurrencyConverter.shared) {
+        self.dataManager = dataManager
+        self.converter = converter
+        self.renewCoordinator = AtomicRenewCoordinator(store: dataManager, converter: converter)
+    }
     
     @objc func reload() {
-        self.data = []
-        guard let cdList = dataManager.readFromCore() else {
-            return
-        }
-        for entry in cdList {
-            self.data.append(ConvertHistoryUIBean.fromCoreData(c: entry))
+        publishReload()
+    }
+
+    private func publishReload(completion: (() -> Void)? = nil) {
+        dataManager.readHistory { [weak self] values in
+            let beans = values.map { value in
+                let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                    fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
+                    fxFeeRate: value.fxFee, ratio: value.ratio
+                )
+                return ConvertHistoryUIBean(
+                    id: value.id ?? UUID(), title: value.title ?? "", url: value.url ?? "",
+                    fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
+                    fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
+                    ratio: normalized.ratio
+                )
+            }
+            DispatchQueue.main.async {
+                self?.data = beans
+                completion?()
+            }
         }
     }
     func wipe() {
@@ -40,14 +63,21 @@ class ConvertHistoryDMCollection : ObservableObject {
         
     }
     
-    func renewFx() {
-        dataManager.readFromCore()?.forEach({ (entity) in
-            CurrencyConverter.shared.convert(from: entity.fromSymbol!, to: entity.toSymbol!, unit: entity.fromAmount) { (result, error) in
-                entity.ratio = result / entity.fromAmount
+    @discardableResult
+    func renewFx(completion: ((RenewRunResult) -> Void)? = nil) -> Bool {
+        renewCoordinator.renew { [weak self] result in
+            guard result.accepted else {
+                completion?(result)
+                return
             }
-        })
-        try! sharedPersistentContainer.viewContext.save()
-        self.reload()
+            guard let self else {
+                completion?(result)
+                return
+            }
+            self.publishReload {
+                completion?(result)
+            }
+        }
     }
 
 }

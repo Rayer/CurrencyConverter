@@ -11,45 +11,149 @@ import CoreData
 
 class CHDataManager {
     static let shared = CHDataManager()
+
+    private let context: NSManagedObjectContext
+    private let saveOperation: (() throws -> Void)?
+
+    init(context: NSManagedObjectContext = sharedPersistentContainer.viewContext, saveOperation: (() throws -> Void)? = nil) {
+        self.context = context
+        self.saveOperation = saveOperation
+    }
     
     func readFromCore() -> [ConvertHistory]? {
-        let vc = sharedPersistentContainer.viewContext
+        let vc = context
         let fetchRequst = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
         let sort = NSSortDescriptor(keyPath: \ConvertHistory.date, ascending: false)
         fetchRequst.sortDescriptors = [sort]
-        let objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
-        
-        if let objects = objects {
-            for i in objects.indices {
-                if objects[i].id == nil {
-                    objects[i].id = UUID()
-                }
-            }
-            return objects
+        var objects: [ConvertHistory]?
+        vc.performAndWait {
+            objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
         }
-        
-        return nil
+        return objects
     }
     
     func wipeAll() {
-        let vc = sharedPersistentContainer.viewContext
+        let vc = context
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        try! vc.execute(deleteRequest)
+        vc.performAndWait {
+            try! vc.execute(deleteRequest)
+        }
     }
     
     func wipeById(_ at: UUID) {
-        let vc = sharedPersistentContainer.viewContext
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-        let predicate = NSPredicate(format: "id = '\(at)'")
-        fetchRequest.predicate = predicate
-        if let result = try? vc.fetch(fetchRequest) {
-            for object in result {
-                vc.delete(object as! NSManagedObject)
+        let vc = context
+        vc.performAndWait {
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
+            let predicate = NSPredicate(format: "id = '\(at)'")
+            fetchRequest.predicate = predicate
+            if let result = try? vc.fetch(fetchRequest) {
+                for object in result {
+                    vc.delete(object as! NSManagedObject)
+                }
             }
+            try! vc.save()
         }
-        try! vc.save()
     }
 
     
+}
+
+extension CHDataManager: AtomicRenewStore {
+    func snapshotForRenew(completion: @escaping (Result<[RenewRowSnapshot], Error>) -> Void) {
+        context.perform {
+            do {
+                let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+                let objects = try self.context.fetch(request)
+                completion(.success(objects.map { object in
+                    RenewRowSnapshot(
+                        objectID: object.objectID.uriRepresentation().absoluteString,
+                        businessID: object.id,
+                        fromSymbol: object.fromSymbol,
+                        toSymbol: object.toSymbol,
+                        fromAmount: object.fromAmount,
+                        ratio: object.ratio
+                    )
+                }))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
+
+    func applyRenew(updates: [RenewUpdate], completion: @escaping (RenewApplyOutcome) -> Void) {
+        context.perform {
+            do {
+                let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                let objects = try self.context.fetch(request)
+                var byObjectID: [String: ConvertHistory] = [:]
+                for object in objects {
+                    byObjectID[object.objectID.uriRepresentation().absoluteString] = object
+                }
+
+                var changedObjects: [(ConvertHistory, Float32)] = []
+                var matchedObjectIDs = Set<String>()
+                for update in updates {
+                    guard matchedObjectIDs.insert(update.objectID).inserted,
+                          let object = byObjectID[update.objectID],
+                          object.objectID.uriRepresentation().absoluteString == update.objectID,
+                          object.id == update.businessID,
+                          !object.isDeleted else {
+                        continue
+                    }
+                    if object.ratio != update.ratio {
+                        changedObjects.append((object, object.ratio))
+                        object.ratio = update.ratio
+                    }
+                }
+
+                guard !changedObjects.isEmpty else {
+                    completion(RenewApplyOutcome(appliedCount: 0, changedCount: 0, saveError: nil))
+                    return
+                }
+
+                do {
+                    if let saveOperation = self.saveOperation {
+                        try saveOperation()
+                    } else {
+                        try self.context.save()
+                    }
+                    completion(RenewApplyOutcome(
+                        appliedCount: changedObjects.count,
+                        changedCount: changedObjects.count,
+                        saveError: nil
+                    ))
+                } catch {
+                    for (object, oldRatio) in changedObjects {
+                        object.ratio = oldRatio
+                    }
+                    self.context.rollback()
+                    completion(RenewApplyOutcome(appliedCount: 0, changedCount: 0, saveError: error))
+                }
+            } catch {
+                completion(RenewApplyOutcome(appliedCount: 0, changedCount: 0, saveError: error))
+            }
+        }
+    }
+
+    func readHistory(completion: @escaping ([RenewHistoryValue]) -> Void) {
+        context.perform {
+            let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+            request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            let values = (try? self.context.fetch(request))?.map { object in
+                RenewHistoryValue(
+                    id: object.id,
+                    title: object.title,
+                    url: object.url,
+                    fromSymbol: object.fromSymbol,
+                    toSymbol: object.toSymbol,
+                    fromAmount: object.fromAmount,
+                    fxFee: object.fxFee,
+                    ratio: object.ratio
+                )
+            } ?? []
+            completion(values)
+        }
+    }
 }
