@@ -854,6 +854,185 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertTrue(result.output.isEmpty, result.output)
     }
 
+    func testScannerDetectsDataDrivenSensitiveAssignmentsAcrossFileNames() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let syntheticValue = ["value", "!@#$%^&*()"].joined(separator: "-")
+        let cases: [([String], String, String)] = [
+            (["api", "token"], "_", "api-token.log"),
+            (["secret", "key"], "_", "secret-key-extensionless"),
+            (["auth", "token"], "-", "auth-token.unknown")
+        ]
+
+        for (parts, separator, fileName) in cases {
+            let temporaryFile = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ccs28-\(fileName)-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: temporaryFile) }
+            let keyName = parts.joined(separator: separator)
+            try (keyName + " = \"" + syntheticValue + "\"").write(
+                to: temporaryFile,
+                atomically: true,
+                encoding: .utf8
+            )
+
+            let result = try runScanner(
+                scanner: scanner,
+                root: repositoryRoot,
+                arguments: ["--extra-file", temporaryFile.path]
+            )
+            assertScannerFinding(result, at: temporaryFile, value: syntheticValue)
+        }
+    }
+
+    func testScannerDetectsEncodedQueryNameWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-encoded-query-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let keyName = ["api", "token"].joined(separator: "_")
+        let encodedName = keyName.replacingOccurrences(of: "_", with: "%5F")
+        let syntheticValue = ["query", "!@#$%^&*()"].joined(separator: "-")
+        let violation = "https://rates.example.invalid/feed?\(encodedName)=\(syntheticValue)"
+        try violation.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", temporaryFile.path]
+        )
+        assertScannerFinding(result, at: temporaryFile, value: syntheticValue)
+    }
+
+    func testScannerScansBinaryAndInvalidUTF8ContentButAcceptsSafeBinary() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let keyName = ["auth", "token"].joined(separator: "_")
+        let syntheticValue = ["binary", "!@#$%^&*()"].joined(separator: "-")
+        let assignment = Data((keyName + "=" + syntheticValue).utf8)
+
+        let binaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-binary-\(UUID().uuidString).bin")
+        defer { try? FileManager.default.removeItem(at: binaryFile) }
+        var binaryPayload = Data([0, 0x7f])
+        binaryPayload.append(assignment)
+        binaryPayload.append(Data([0, 0xfe]))
+        try binaryPayload.write(to: binaryFile)
+        let binaryResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", binaryFile.path]
+        )
+        assertScannerFinding(binaryResult, at: binaryFile, value: syntheticValue)
+
+        let invalidUTF8File = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-invalid-utf8-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: invalidUTF8File) }
+        var invalidUTF8Payload = Data([0xff])
+        invalidUTF8Payload.append(assignment)
+        invalidUTF8Payload.append(Data([0xfe]))
+        try invalidUTF8Payload.write(to: invalidUTF8File)
+        let invalidResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", invalidUTF8File.path]
+        )
+        assertScannerFinding(invalidResult, at: invalidUTF8File, value: syntheticValue)
+
+        let safeBinaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-safe-binary-\(UUID().uuidString).asset")
+        defer { try? FileManager.default.removeItem(at: safeBinaryFile) }
+        try Data([0, 0x53, 0x41, 0x46, 0x45, 0, 0xff, 0x01])
+            .write(to: safeBinaryFile)
+        let safeResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", safeBinaryFile.path]
+        )
+        XCTAssertEqual(safeResult.status, 0, safeResult.output)
+        XCTAssertTrue(safeResult.output.isEmpty, safeResult.output)
+    }
+
+    func testScannerOnlyFlagsStringAndDataForSensitivePlistKeys() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let keyName = ["private", "key"].joined(separator: "_")
+
+        let safeFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-safe-plist-types-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: safeFile) }
+        let safePlist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <plist version="1.0"><dict>
+        <key>\(keyName)</key><true/>
+        <key>\(keyName)</key><integer>42</integer>
+        </dict></plist>
+        """
+        try safePlist.write(to: safeFile, atomically: true, encoding: .utf8)
+        let safeResult = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", safeFile.path]
+        )
+        XCTAssertEqual(safeResult.status, 0, safeResult.output)
+
+        for material in ["string", "data"] {
+            let temporaryFile = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ccs28-plist-\(material)-\(UUID().uuidString).plist")
+            defer { try? FileManager.default.removeItem(at: temporaryFile) }
+            let syntheticValue = [material, "!@#$%^*()-"].joined(separator: "-")
+            let valueXML = material == "string"
+                ? "<string>\(syntheticValue)</string>"
+                : "<data>U0FGRS1EQVRBLTEyMzQ1Njc4OTA=</data>"
+            let plist = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <plist version="1.0"><dict>
+            <key>\(keyName)</key>\(valueXML)
+            </dict></plist>
+            """
+            try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+            let result = try runScanner(
+                scanner: scanner,
+                root: repositoryRoot,
+                arguments: ["--extra-file", temporaryFile.path]
+            )
+            assertScannerFinding(result, at: temporaryFile, value: material == "string" ? syntheticValue : valueXML)
+        }
+    }
+
+    func testScannerFailsClosedForUnknownInvalidPlist() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-invalid-unknown-\(UUID().uuidString).blob")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+        try "<plist><dict>".write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--extra-file", temporaryFile.path]
+        )
+        assertScannerFinding(result, at: temporaryFile, value: "<plist><dict>")
+        XCTAssertTrue(result.output.contains(":invalid-plist"), result.output)
+    }
+
     func testScannerRejectsUnsafeArtifactFeedValues() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
         let repositoryRoot = sourceFile
@@ -909,6 +1088,25 @@ final class CCS28SecurityTests: XCTestCase {
             process.terminationStatus,
             String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         )
+    }
+
+    private func assertScannerFinding(
+        _ result: (status: Int32, output: String),
+        at file: URL,
+        value: String,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertNotEqual(result.status, 0, result.output, file: filePath, line: line)
+        let lines = result.output.split(whereSeparator: \.isNewline)
+        XCTAssertFalse(lines.isEmpty, result.output, file: filePath, line: line)
+        XCTAssertTrue(
+            lines.allSatisfy { $0.hasPrefix(file.path + ":") },
+            result.output,
+            file: filePath,
+            line: line
+        )
+        XCTAssertFalse(result.output.contains(value), result.output, file: filePath, line: line)
     }
 
     private func assertConfigurationFailure(

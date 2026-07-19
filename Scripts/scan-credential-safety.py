@@ -1,101 +1,196 @@
 #!/usr/bin/env python3
 """Credential-safe scanner for tracked sources and built app artifacts.
 
-Findings intentionally contain only a path and line/key location.
+Findings intentionally contain only a path and a line/byte location.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import plistlib
 import re
 import subprocess
 import sys
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, unquote_plus, urlsplit
 
 
-TEXT_SUFFIXES = {
-    ".entitlements",
-    ".js",
-    ".json",
-    ".md",
-    ".pbxproj",
-    ".plist",
-    ".scpt",
-    ".sh",
-    ".storyboard",
-    ".strings",
-    ".swift",
-    ".tsv",
-    ".xcconfig",
-    ".xib",
-    ".xml",
-    ".yaml",
-    ".yml",
-}
-PLIST_SUFFIXES = {".entitlements", ".plist"}
-
-REUSABLE_SECRET = re.compile(
-    r"""(?ix)
-    (?<![a-z0-9_])
-    (?:api[_-]?(?:key|secret)|access(?:[_-]?(?:token|key|secret))|authorization|bearer|
-       client[_-]?secret|credential|password|private[_-]?key|token)
-    \s*(?:=|:)\s*
-    (?:["']\s*)?
-    [a-z0-9_./+=:-]{8,}
-    """
+PLIST_SUFFIXES = {".plist"}
+SENSITIVE_NAMES = frozenset(
+    {
+        "apikey",
+        "apisecret",
+        "apitoken",
+        "accesskey",
+        "accesssecret",
+        "accesstoken",
+        "authkey",
+        "authsecret",
+        "authtoken",
+        "authorization",
+        "bearer",
+        "clientkey",
+        "clientsecret",
+        "clienttoken",
+        "clientcredential",
+        "clientcredentials",
+        "credential",
+        "credentials",
+        "password",
+        "passwords",
+        "privatekey",
+        "secretkey",
+        "token",
+        "tokens",
+        "secret",
+        "secrets",
+    }
 )
-URL = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
-SENSITIVE_CREDENTIAL_KEY = re.compile(
-    r"""(?ix)
-    ^(?:api[_-]?(?:key|secret)
-      |access(?:[_-]?(?:token|key|secret))
-      |authorization|bearer|client[_-]?secret|credential|password|private[_-]?key|token|secret)$
-    """
-)
-SUSPICIOUS_PLIST_KEY = re.compile(
-    r"^(?:accesskey|accesssecret|accesstoken|apikey|apisecret|authorization|bearer|clientsecret|credentials?|passwords?|privatekey|tokens?|secrets?)$"
+
+URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+ASSIGNMENT_PATTERN = re.compile(
+    r"""
+    (?<![A-Za-z0-9])
+    (?P<name>
+        \"(?:[^\"\\]|\\.)*\"
+        |'(?:[^'\\]|\\.)*'
+        |[A-Za-z%][^\s=:,{}\[\]]{0,80}
+    )
+    [ \t]*(?:=|:)[ \t]*(?P<value>[^\r\n]*)
+    """,
+    re.VERBOSE,
 )
 
 
 def report(findings: list[tuple[str, str]], location: str) -> None:
-    findings.append((location, ""))
+    findings.append((location, "credential-like material"))
 
 
-def scan_text(path: Path, display: str, findings: list[tuple[str, str]], excluded: set[Path]) -> None:
-    resolved = path.resolve()
-    if resolved in excluded or not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
-        return
+def decode_name(value: object) -> str:
+    decoded = str(value)
+    for _ in range(3):
+        next_value = unquote_plus(decoded)
+        if next_value == decoded:
+            break
+        decoded = next_value
+    return decoded
+
+
+def normalized_name(value: object) -> str:
+    return re.sub(r"[^a-z0-9]", "", decode_name(value).lower())
+
+
+def is_sensitive_name(value: object) -> bool:
+    return normalized_name(value) in SENSITIVE_NAMES
+
+
+def printable_value(value: str) -> bool:
+    value = value.strip()
+    return (
+        len(value) >= 8
+        and bool(value)
+        and any(not character.isspace() for character in value)
+        and all(character.isprintable() for character in value)
+    )
+
+
+def assignment_value(raw: str) -> str:
+    candidate = raw.strip().rstrip(",;")
+    if len(candidate) >= 2 and candidate[0] in {"\"", "'"}:
+        quote = candidate[0]
+        escaped = False
+        for index in range(1, len(candidate)):
+            character = candidate[index]
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                return candidate[1:index]
+    return candidate
+
+
+def has_sensitive_assignment(line: str) -> bool:
+    for match in ASSIGNMENT_PATTERN.finditer(line):
+        if is_sensitive_name(match.group("name")) and printable_value(
+            assignment_value(match.group("value"))
+        ):
+            return True
+    return False
+
+
+def has_credential_param(raw: str) -> bool:
     try:
-        raw = path.read_bytes()
-    except OSError:
-        report(findings, f"{display}:unreadable")
-        return
-    if b"\x00" in raw:
-        return
+        pairs = parse_qsl(raw, keep_blank_values=True, strict_parsing=False)
+    except ValueError:
+        return False
+    return any(is_sensitive_name(name) and bool(value.strip()) for name, value in pairs)
+
+
+def scan_line(line: str) -> bool:
+    if has_sensitive_assignment(line):
+        return True
+    for match in URL_PATTERN.finditer(line):
+        candidate = match.group(0).rstrip(".,;!?)]}")
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            return True
+        if (
+            parsed.username is not None
+            or parsed.password is not None
+            or has_credential_param(parsed.query)
+            or has_credential_param(parsed.fragment)
+        ):
+            return True
+    return False
+
+
+def scan_content(content: str) -> bool:
+    return any(scan_line(line) for line in content.splitlines())
+
+
+def printable_segments(raw: bytes) -> list[tuple[int, str]]:
+    segments: list[tuple[int, str]] = []
+    start: int | None = None
+    buffer: list[str] = []
+
+    def finish() -> None:
+        nonlocal start, buffer
+        if start is not None and buffer:
+            segments.append((start, "".join(buffer)))
+        start = None
+        buffer = []
+
+    for offset, byte in enumerate(raw):
+        character = chr(byte)
+        is_printable = byte in {9, 10, 13} or character.isprintable()
+        if is_printable:
+            if start is None:
+                start = offset
+            buffer.append(character)
+        else:
+            finish()
+    finish()
+    return segments
+
+
+def scan_bytes(path: Path, display: str, raw: bytes, findings: list[tuple[str, str]]) -> None:
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
+        text = None
+
+    if text is not None and b"\x00" not in raw:
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if scan_line(line):
+                report(findings, f"{display}:{line_number}")
         return
 
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        if REUSABLE_SECRET.search(line):
-            report(findings, f"{display}:{line_number}")
-            continue
-        for match in URL.finditer(line):
-            candidate = match.group(0).rstrip(".,;)]}")
-            try:
-                parsed = urlsplit(candidate)
-            except ValueError:
-                report(findings, f"{display}:{line_number}")
-                break
-            if parsed.username is not None or parsed.password is not None:
-                report(findings, f"{display}:{line_number}")
-                break
-            if _has_credential_param(parsed.query) or _has_credential_param(parsed.fragment):
-                report(findings, f"{display}:{line_number}")
-                break
+    for offset, segment in printable_segments(raw):
+        if scan_content(segment):
+            report(findings, f"{display}:byte-{offset}")
 
 
 def tracked_files(root: Path) -> list[Path]:
@@ -105,7 +200,7 @@ def tracked_files(root: Path) -> list[Path]:
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     )
-    paths = [Path(item) for item in result.stdout.decode("utf-8").split("\x00") if item]
+    paths = [Path(os.fsdecode(item)) for item in result.stdout.split(b"\0") if item]
     return [root / item for item in paths]
 
 
@@ -134,30 +229,22 @@ def safe_endpoint(value: object) -> bool:
     )
 
 
-def _has_credential_param(raw: str) -> bool:
-    for name, value in re.findall(r"([^&#=]+)=([^&#]*)", raw):
-        if SENSITIVE_CREDENTIAL_KEY.fullmatch(name) and value.strip():
-            return True
-    return False
-
-
-def is_nonempty_scalar(value: object) -> bool:
+def is_credential_material(value: object) -> bool:
     if isinstance(value, str):
         return bool(value.strip())
     if isinstance(value, (bytes, bytearray)):
         return bool(value)
-    return not isinstance(value, (dict, list, tuple)) and value is not None
+    return False
 
 
 def plist_key_name(key: object) -> str:
-    return re.sub(r"[^a-z0-9]", "", str(key).lower())
+    return normalized_name(key)
 
 
-def scan_plist(path: Path, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:
+def scan_plist(raw: bytes, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:
     try:
-        with path.open("rb") as handle:
-            plist = plistlib.load(handle)
-    except (OSError, plistlib.InvalidFileException, ValueError, TypeError):
+        plist = plistlib.loads(raw)
+    except Exception:
         report(findings, f"{display}:invalid-plist")
         return
 
@@ -165,8 +252,7 @@ def scan_plist(path: Path, display: str, findings: list[tuple[str, str]], artifa
         if isinstance(value, dict):
             for key, child in value.items():
                 child_path = f"{key_path}.{key}" if key_path else str(key)
-                normalized_key = plist_key_name(key)
-                if SUSPICIOUS_PLIST_KEY.fullmatch(normalized_key) and is_nonempty_scalar(child):
+                if is_sensitive_name(key) and is_credential_material(child):
                     report(findings, f"{display}:{child_path}")
                 if str(key) == "CurrencyInfoFeed" and child not in (None, ""):
                     source_placeholder = not artifact and child == "$(CURRENCY_INFO_FEED)"
@@ -180,28 +266,44 @@ def scan_plist(path: Path, display: str, findings: list[tuple[str, str]], artifa
     visit(plist, "")
 
 
-def scan_artifact(path: Path, findings: list[tuple[str, str]], excluded: set[Path]) -> None:
+def looks_like_plist(raw: bytes) -> bool:
+    prefix = raw.lstrip()[:4096]
+    return prefix.startswith(b"bplist00") or b"<plist" in prefix
+
+
+def scan_file(path: Path, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:
+    if not path.is_file():
+        report(findings, f"{display}:unreadable")
+        return
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        report(findings, f"{display}:unreadable")
+        return
+
+    if path.suffix.lower() in PLIST_SUFFIXES or looks_like_plist(raw):
+        scan_plist(raw, display, findings, artifact=artifact)
+    scan_bytes(path, display, raw, findings)
+
+
+def scan_artifact(path: Path, findings: list[tuple[str, str]]) -> None:
     if not path.exists():
         report(findings, f"{path}:missing")
         return
     candidates = [path] if path.is_file() else [item for item in path.rglob("*") if item.is_file()]
     for item in candidates:
-        display = str(item)
-        if item.suffix.lower() in PLIST_SUFFIXES:
-            scan_plist(item, display, findings, artifact=True)
-        scan_text(item, display, findings, excluded)
+        scan_file(item, str(item), findings, artifact=True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--root", type=Path, required=True)
-    parser.add_argument("--artifact", action="append", default=[], type=Path)
     parser.add_argument("--extra-file", action="append", default=[], type=Path)
+    parser.add_argument("--artifact", action="append", default=[], type=Path)
     args = parser.parse_args()
 
     root = args.root.resolve()
     findings: list[tuple[str, str]] = []
-    excluded = {Path(__file__).resolve()}
     try:
         files = tracked_files(root)
     except (OSError, subprocess.CalledProcessError, UnicodeDecodeError):
@@ -209,17 +311,11 @@ def main() -> int:
         files = []
 
     for path in files:
-        display = str(path.relative_to(root))
-        if path.suffix.lower() in PLIST_SUFFIXES:
-            scan_plist(path, display, findings, artifact=False)
-        scan_text(path, display, findings, excluded)
+        scan_file(path, str(path.relative_to(root)), findings, artifact=False)
     for path in args.extra_file:
-        display = str(path)
-        if path.suffix.lower() in PLIST_SUFFIXES:
-            scan_plist(path, display, findings, artifact=False)
-        scan_text(path, display, findings, excluded)
+        scan_file(path, str(path), findings, artifact=False)
     for path in args.artifact:
-        scan_artifact(path, findings, excluded)
+        scan_artifact(path, findings)
 
     for location, _ in sorted(set(findings)):
         print(location)
