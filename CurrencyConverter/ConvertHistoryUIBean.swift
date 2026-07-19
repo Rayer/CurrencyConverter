@@ -9,18 +9,42 @@
 import Foundation
 
 extension ConvertHistory: ConvertHistoryRecord {}
+extension ConvertHistory {
+    var objectIDURI: String? {
+        objectID.uriRepresentation().absoluteString
+    }
+}
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
-    let dataManager = CHDataManager.shared
+    @Published private(set) var lastHistoryError: RenewHistoryError?
+    let dataManager: AtomicRenewStore
+    let converter: RenewConverter
+    private let renewWorkflow: AtomicRenewWorkflow
+
+    init(dataManager: AtomicRenewStore = CHDataManager.shared, converter: RenewConverter = CurrencyConverter.shared) {
+        self.dataManager = dataManager
+        self.converter = converter
+        self.renewWorkflow = AtomicRenewWorkflow(store: dataManager, converter: converter)
+    }
     
     @objc func reload() {
-        self.data = []
-        guard let cdList = dataManager.readFromCore() else {
-            return
-        }
-        for entry in cdList {
-            self.data.append(ConvertHistoryUIBean.fromCoreData(c: entry))
+        publishReload()
+    }
+
+    private func publishReload(completion: (() -> Void)? = nil) {
+        RenewPresentationOrchestration.reload(from: dataManager) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                switch result {
+                case .success(let beans):
+                    self.lastHistoryError = nil
+                    self.data = beans
+                case .failure(let error):
+                    self.lastHistoryError = .failed(error)
+                }
+                completion?()
+            }
         }
     }
     func wipe() {
@@ -40,14 +64,23 @@ class ConvertHistoryDMCollection : ObservableObject {
         
     }
     
-    func renewFx() {
-        dataManager.readFromCore()?.forEach({ (entity) in
-            CurrencyConverter.shared.convert(from: entity.fromSymbol!, to: entity.toSymbol!, unit: entity.fromAmount) { (result, error) in
-                entity.ratio = result / entity.fromAmount
+    @discardableResult
+    func renewFx(completion: ((RenewRunResult) -> Void)? = nil) -> Bool {
+        renewWorkflow.renew { [weak self] result, values in
+            guard result.accepted, let values else {
+                if let historyError = result.historyError {
+                    self?.lastHistoryError = historyError
+                }
+                completion?(result)
+                return
             }
-        })
-        try! sharedPersistentContainer.viewContext.save()
-        self.reload()
+            let beans = RenewPresentationOrchestration.beans(from: values)
+            // AtomicRenewWorkflow completes on main and remains in-flight until this
+            // callback returns, so publish synchronously before the overlap gate opens.
+            self?.lastHistoryError = nil
+            self?.data = beans
+            completion?(result)
+        }
     }
 
 }

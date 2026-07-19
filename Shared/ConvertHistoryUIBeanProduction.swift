@@ -23,13 +23,50 @@ struct ConvertHistoryUIBean: Identifiable {
     var fxFeeRate: Float
     var ratio: Float
     var isChecked = false
+}
 
+enum RenewPresentationOrchestration {
+    static func beans(from values: [RenewHistoryValue]) -> [ConvertHistoryUIBean] {
+        values.map { value in
+            let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
+                fxFeeRate: value.fxFee, ratio: value.ratio
+            )
+            return ConvertHistoryUIBean(
+                id: RenewPresentationIdentity.id(objectIDURI: value.objectID),
+                title: value.title ?? "", url: value.url ?? "",
+                fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
+                fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
+                ratio: normalized.ratio
+            )
+        }
+    }
+
+    static func reload(
+        from store: AtomicRenewStore,
+        completion: @escaping (Result<[ConvertHistoryUIBean], Error>) -> Void
+    ) {
+        store.readHistory { values in
+            switch values {
+            case .success(let values):
+                completion(.success(beans(from: values)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+}
+
+extension ConvertHistoryUIBean {
     static func fromCoreData(c: ConvertHistoryRecord) -> ConvertHistoryUIBean {
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
             fromSymbol: c.fromSymbol, toSymbol: c.toSymbol, fxFeeRate: c.fxFee, ratio: c.ratio
         )
+        let presentationID = c.objectIDURI.map {
+            RenewPresentationIdentity.id(objectIDURI: $0)
+        } ?? c.id ?? UUID()
         return ConvertHistoryUIBean(
-            id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "",
+            id: presentationID, title: c.title ?? "", url: c.url ?? "",
             fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount,
             fxFeeRate: values.fxFeeRate, ratio: values.ratio
         )
@@ -45,4 +82,9 @@ protocol ConvertHistoryRecord {
     var fromAmount: Float { get }
     var fxFee: Float { get }
     var ratio: Float { get }
+    var objectIDURI: String? { get }
+}
+
+extension ConvertHistoryRecord {
+    var objectIDURI: String? { nil }
 }
