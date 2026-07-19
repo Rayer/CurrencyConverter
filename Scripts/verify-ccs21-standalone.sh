@@ -40,7 +40,22 @@ if grep -Fq 'ConvertHistoryDMCollection' "$tests_file"; then
     echo "CCS21 tests must not reference the SwiftUI app collection" >&2
     exit 1
 fi
-grep -Fq 'RenewPresentationOrchestration.reload' "$tests_file"
+grep -Fq 'AtomicRenewWorkflow' "$tests_file"
+grep -Fq 'AtomicRenewWorkflow' "$root_dir/CurrencyConverter/ConvertHistoryUIBean.swift"
+if grep -Fq 'ConvertHistoryUIBean' "$root_dir/Shared/AtomicRenew.swift"; then
+    echo "AtomicRenew.swift must not depend on UI beans" >&2
+    exit 1
+fi
+if grep -Fq 'AtomicRenewCoordinator' "$tests_file"; then
+    echo "CCS21 tests must instantiate AtomicRenewWorkflow, not its coordinator" >&2
+    exit 1
+fi
+if grep -Fq 'renewAndReload' "$tests_file"; then
+    echo "CCS21 tests must not shadow the production renew workflow" >&2
+    exit 1
+fi
+grep -Fq 'RenewPresentationOrchestration.beans(from:' "$tests_file"
+grep -Fq 'RenewPresentationOrchestration.beans(from:' "$root_dir/CurrencyConverter/ConvertHistoryUIBean.swift"
 grep -Fq 'RenewPresentationOrchestration.reload' "$root_dir/CurrencyConverter/ConvertHistoryUIBean.swift"
 
 echo "CCS21 standalone architecture checks passed"

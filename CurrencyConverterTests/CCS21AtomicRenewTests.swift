@@ -169,23 +169,6 @@ final class CCS21AtomicRenewTests: XCTestCase {
         makeContainer().viewContext
     }
 
-    @discardableResult
-    private func renewAndReload(
-        coordinator: AtomicRenewCoordinator,
-        store: AtomicRenewStore,
-        completion: @escaping (RenewRunResult, [ConvertHistoryUIBean]) -> Void
-    ) -> Bool {
-        coordinator.renew { result in
-            guard result.accepted else {
-                completion(result, [])
-                return
-            }
-            RenewPresentationOrchestration.reload(from: store) { beans in
-                completion(result, beans)
-            }
-        }
-    }
-
     private func seedHistory(
         in context: NSManagedObjectContext,
         id: UUID?,
@@ -210,12 +193,12 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row-1", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 3)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
 
         let finished = expectation(description: "renew finished")
         let requestReady = expectation(description: "conversion requested")
         converter.onRequest = { requestReady.fulfill() }
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
         XCTAssertEqual(store.events, [.snapshot])
         wait(for: [requestReady], timeout: 1)
         XCTAssertEqual(converter.requestCount, 1)
@@ -232,7 +215,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let second = RenewRowSnapshot(objectID: "row-2", businessID: UUID(), fromSymbol: "JPY", toSymbol: "USD", fromAmount: 100, ratio: 4)
         let store = CCS21StoreFixture(rows: [first, second])
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
 
         let finished = expectation(description: "renew finished")
         let requestsReady = expectation(description: "conversions requested")
@@ -249,7 +232,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
             requestsReadyLock.unlock()
             requestsReady.fulfill()
         }
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
         XCTAssertEqual(store.events, [.snapshot])
         wait(for: [requestsReady], timeout: 1)
         converter.finish(from: "JPY", to: "USD", amount: 1)
@@ -271,14 +254,14 @@ final class CCS21AtomicRenewTests: XCTestCase {
         ]
         let store = CCS21StoreFixture(rows: rows)
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
         let first = expectation(description: "first renew")
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in first.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in first.fulfill() })
         wait(for: [first], timeout: 1)
         let firstIDs = store.lastUpdates.map(\.objectID)
 
         let second = expectation(description: "second renew")
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in second.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in second.fulfill() })
         wait(for: [second], timeout: 1)
 
         XCTAssertEqual(store.rows.count, rows.count)
@@ -299,11 +282,11 @@ final class CCS21AtomicRenewTests: XCTestCase {
         ]
         let store = CCS21StoreFixture(rows: rows)
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
         let finished = expectation(description: "renew finished")
         let requestReady = expectation(description: "failed conversion requested")
         converter.onRequest = { requestReady.fulfill() }
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
         wait(for: [requestReady], timeout: 1)
         converter.finish(0, amount: .nan, error: CCS21TestError.conversion)
         converter.finish(0, amount: 10)
@@ -315,13 +298,67 @@ final class CCS21AtomicRenewTests: XCTestCase {
         XCTAssertEqual(converter.requestCount, 1)
     }
 
+    func testZeroConvertedAmountLeavesRowUnchanged() {
+        let row = RenewRowSnapshot(objectID: "zero-result", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 9)
+        let store = CCS21StoreFixture(rows: [row])
+        let converter = CCS21ConverterFixture()
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
+        let requestReady = expectation(description: "conversion requested")
+        let finished = expectation(description: "renew finished")
+        converter.onRequest = { requestReady.fulfill() }
+
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
+        wait(for: [requestReady], timeout: 1)
+        converter.finish(0, amount: 0)
+        wait(for: [finished], timeout: 1)
+
+        XCTAssertTrue(store.lastUpdates.isEmpty)
+        XCTAssertEqual(store.rows, [row])
+    }
+
+    func testSignInconsistentConvertedAmountLeavesRowUnchanged() {
+        let row = RenewRowSnapshot(objectID: "sign-inconsistent", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: -2, ratio: 9)
+        let store = CCS21StoreFixture(rows: [row])
+        let converter = CCS21ConverterFixture()
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
+        let requestReady = expectation(description: "conversion requested")
+        let finished = expectation(description: "renew finished")
+        converter.onRequest = { requestReady.fulfill() }
+
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
+        wait(for: [requestReady], timeout: 1)
+        converter.finish(0, amount: 10)
+        wait(for: [finished], timeout: 1)
+
+        XCTAssertTrue(store.lastUpdates.isEmpty)
+        XCTAssertEqual(store.rows, [row])
+    }
+
+    func testNegativeSourceAndNegativeConvertedAmountProducesPositiveRatio() {
+        let row = RenewRowSnapshot(objectID: "negative-ratio", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: -2, ratio: 9)
+        let store = CCS21StoreFixture(rows: [row])
+        let converter = CCS21ConverterFixture()
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
+        let requestReady = expectation(description: "conversion requested")
+        let finished = expectation(description: "renew finished")
+        converter.onRequest = { requestReady.fulfill() }
+
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
+        wait(for: [requestReady], timeout: 1)
+        converter.finish(0, amount: -10)
+        wait(for: [finished], timeout: 1)
+
+        XCTAssertEqual(store.lastUpdates.count, 1)
+        XCTAssertEqual(store.lastUpdates[0].ratio, 5, accuracy: 0.0001)
+    }
+
     func testSameCurrencyDoesNotCallConverterAndCallbackIsConsumedOnce() {
         let row = RenewRowSnapshot(objectID: "same", businessID: UUID(), fromSymbol: "USD", toSymbol: "USD", fromAmount: 20, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
         let finished = expectation(description: "renew finished")
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in finished.fulfill() })
         wait(for: [finished], timeout: 1)
 
         XCTAssertEqual(converter.requestCount, 0)
@@ -333,10 +370,10 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row", businessID: UUID(), fromSymbol: "USD", toSymbol: "USD", fromAmount: 2, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         store.applyOutcomes = [RenewApplyOutcome(appliedCount: 0, changedCount: 0, saveError: CCS21TestError.save)]
-        let coordinator = AtomicRenewCoordinator(store: store, converter: CCS21ConverterFixture())
+        let workflow = AtomicRenewWorkflow(store: store, converter: CCS21ConverterFixture())
         let finished = expectation(description: "renew finished")
         var result: RenewRunResult?
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { renewResult, _ in
+        XCTAssertTrue(workflow.renew { renewResult, _ in
             result = renewResult
             finished.fulfill()
         })
@@ -353,16 +390,16 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+        let workflow = AtomicRenewWorkflow(store: store, converter: converter)
         let requestReady = expectation(description: "conversion requested")
         converter.onRequest = { requestReady.fulfill() }
         let first = expectation(description: "first renew")
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in first.fulfill() })
+        XCTAssertTrue(workflow.renew { _, _ in first.fulfill() })
         wait(for: [requestReady], timeout: 1)
 
         let overlap = expectation(description: "overlap rejected")
         var overlapResult: RenewRunResult?
-        XCTAssertFalse(renewAndReload(coordinator: coordinator, store: store) { rejectedResult, _ in
+        XCTAssertFalse(workflow.renew { rejectedResult, _ in
             overlapResult = rejectedResult
             overlap.fulfill()
         })
@@ -701,14 +738,14 @@ final class CCS21AtomicRenewTests: XCTestCase {
             saveLock.unlock()
             try context.save()
         })
-        let coordinator = AtomicRenewCoordinator(store: manager, converter: CCS21ConverterFixture())
+        let workflow = AtomicRenewWorkflow(store: manager, converter: CCS21ConverterFixture())
 
         let firstRenew = expectation(description: "first renew")
         var firstResult: RenewRunResult?
         var firstBeans: [ConvertHistoryUIBean] = []
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: manager) {
-            firstResult = $0
-            firstBeans = $1
+        XCTAssertTrue(workflow.renew { result, values in
+            firstResult = result
+            firstBeans = RenewPresentationOrchestration.beans(from: values)
             firstRenew.fulfill()
         })
         wait(for: [firstRenew], timeout: 1)
@@ -719,9 +756,9 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let secondRenew = expectation(description: "second renew")
         var secondResult: RenewRunResult?
         var secondBeans: [ConvertHistoryUIBean] = []
-        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: manager) {
-            secondResult = $0
-            secondBeans = $1
+        XCTAssertTrue(workflow.renew { result, values in
+            secondResult = result
+            secondBeans = RenewPresentationOrchestration.beans(from: values)
             secondRenew.fulfill()
         })
         wait(for: [secondRenew], timeout: 1)

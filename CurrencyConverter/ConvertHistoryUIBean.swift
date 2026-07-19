@@ -14,12 +14,12 @@ class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
     let dataManager: AtomicRenewStore
     let converter: RenewConverter
-    private let renewCoordinator: AtomicRenewCoordinator
+    private let renewWorkflow: AtomicRenewWorkflow
 
     init(dataManager: AtomicRenewStore = CHDataManager.shared, converter: RenewConverter = CurrencyConverter.shared) {
         self.dataManager = dataManager
         self.converter = converter
-        self.renewCoordinator = AtomicRenewCoordinator(store: dataManager, converter: converter)
+        self.renewWorkflow = AtomicRenewWorkflow(store: dataManager, converter: converter)
     }
     
     @objc func reload() {
@@ -53,16 +53,14 @@ class ConvertHistoryDMCollection : ObservableObject {
     
     @discardableResult
     func renewFx(completion: ((RenewRunResult) -> Void)? = nil) -> Bool {
-        renewCoordinator.renew { [weak self] result in
+        renewWorkflow.renew { [weak self] result, values in
             guard result.accepted else {
                 completion?(result)
                 return
             }
-            guard let self else {
-                completion?(result)
-                return
-            }
-            self.publishReload {
+            let beans = RenewPresentationOrchestration.beans(from: values)
+            DispatchQueue.main.async {
+                self?.data = beans
                 completion?(result)
             }
         }

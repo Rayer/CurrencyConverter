@@ -46,31 +46,6 @@ struct RenewHistoryValue {
     let ratio: Float32
 }
 
-struct ConvertHistoryUIBean: Identifiable {
-    var id: UUID
-    var title: String?
-    var url: String
-    var fromSymbol: String
-    var toSymbol: String
-    var fromAmount: Float
-
-    var toAmount: Float {
-        LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
-    }
-
-    var fxFee: Float {
-        LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
-    }
-
-    var toAmountWithFx: Float {
-        LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
-    }
-
-    var fxFeeRate: Float
-    var ratio: Float
-    var isChecked = false
-}
-
 struct RenewApplyOutcome {
     let appliedCount: Int
     let changedCount: Int
@@ -103,27 +78,53 @@ protocol RenewConverter: AnyObject {
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void)
 }
 
-enum RenewPresentationOrchestration {
-    static func reload(from store: AtomicRenewStore, completion: @escaping ([ConvertHistoryUIBean]) -> Void) {
-        store.readHistory { values in
-            completion(values.map { value in
-                let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
-                    fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
-                    fxFeeRate: value.fxFee, ratio: value.ratio
-                )
-                return ConvertHistoryUIBean(
-                    id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
-                    title: value.title ?? "", url: value.url ?? "",
-                    fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
-                    fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
-                    ratio: normalized.ratio
-                )
-            })
+extension CurrencyConverter: RenewConverter {}
+
+private final class AtomicRenewCompletionGate {
+    private let lock = NSLock()
+    private var didComplete = false
+
+    func complete(
+        result: RenewRunResult,
+        history: [RenewHistoryValue],
+        completion: @escaping (RenewRunResult, [RenewHistoryValue]) -> Void
+    ) {
+        lock.lock()
+        guard !didComplete else {
+            lock.unlock()
+            return
+        }
+        didComplete = true
+        lock.unlock()
+        DispatchQueue.main.async {
+            completion(result, history)
         }
     }
 }
 
-extension CurrencyConverter: RenewConverter {}
+final class AtomicRenewWorkflow {
+    private let store: AtomicRenewStore
+    private let coordinator: AtomicRenewCoordinator
+
+    init(store: AtomicRenewStore, converter: RenewConverter) {
+        self.store = store
+        self.coordinator = AtomicRenewCoordinator(store: store, converter: converter)
+    }
+
+    @discardableResult
+    func renew(completion: @escaping (RenewRunResult, [RenewHistoryValue]) -> Void) -> Bool {
+        let completionGate = AtomicRenewCompletionGate()
+        return coordinator.renew { [store] result in
+            guard result.accepted else {
+                completionGate.complete(result: result, history: [], completion: completion)
+                return
+            }
+            store.readHistory { values in
+                completionGate.complete(result: result, history: values, completion: completion)
+            }
+        }
+    }
+}
 
 final class AtomicRenewCoordinator {
     private let store: AtomicRenewStore
@@ -208,7 +209,7 @@ final class AtomicRenewCoordinator {
                         return
                     }
                     let ratio = amount / row.fromAmount
-                    complete(ratio.isFinite ? ratio : nil)
+                    complete(ratio.isFinite && ratio > 0 ? ratio : nil)
                 }
             }
         }

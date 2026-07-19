@@ -1,5 +1,54 @@
 import Foundation
 
+struct ConvertHistoryUIBean: Identifiable {
+    var id: UUID
+    var title: String?
+    var url: String
+    var fromSymbol: String
+    var toSymbol: String
+    var fromAmount: Float
+
+    var toAmount: Float {
+        LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
+    }
+
+    var fxFee: Float {
+        LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
+    }
+
+    var toAmountWithFx: Float {
+        LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
+    }
+
+    var fxFeeRate: Float
+    var ratio: Float
+    var isChecked = false
+}
+
+enum RenewPresentationOrchestration {
+    static func beans(from values: [RenewHistoryValue]) -> [ConvertHistoryUIBean] {
+        values.map { value in
+            let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
+                fxFeeRate: value.fxFee, ratio: value.ratio
+            )
+            return ConvertHistoryUIBean(
+                id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
+                title: value.title ?? "", url: value.url ?? "",
+                fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
+                fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
+                ratio: normalized.ratio
+            )
+        }
+    }
+
+    static func reload(from store: AtomicRenewStore, completion: @escaping ([ConvertHistoryUIBean]) -> Void) {
+        store.readHistory { values in
+            completion(beans(from: values))
+        }
+    }
+}
+
 extension ConvertHistoryUIBean {
     static func fromCoreData(c: ConvertHistoryRecord) -> ConvertHistoryUIBean {
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
