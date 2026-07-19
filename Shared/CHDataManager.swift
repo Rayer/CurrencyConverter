@@ -41,20 +41,10 @@ class CHDataManager {
         let vc = context
         vc.performAndWait {
             do {
-                let businessIDRequest = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
-                businessIDRequest.predicate = NSPredicate(format: "id == %@", at as CVarArg)
-                let businessIDMatches = try vc.fetch(businessIDRequest)
-                if !businessIDMatches.isEmpty {
-                    businessIDMatches.forEach { vc.delete($0) }
-                    try vc.save()
-                    return
-                }
-
-                let nilIDRequest = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
-                nilIDRequest.predicate = NSPredicate(format: "id == nil")
-                let nilIDRows = try vc.fetch(nilIDRequest)
-                try ensurePermanentIDs(for: nilIDRows)
-                guard let fallbackMatch = nilIDRows.first(where: { object in
+                let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                let objects = try vc.fetch(request)
+                try ensurePermanentIDs(for: objects)
+                guard let match = objects.first(where: { object in
                     RenewPresentationIdentity.id(
                         businessID: object.id,
                         objectIDURI: object.objectID.uriRepresentation().absoluteString
@@ -62,7 +52,7 @@ class CHDataManager {
                 }) else {
                     return
                 }
-                vc.delete(fallbackMatch)
+                vc.delete(match)
                 try vc.save()
             } catch {
                 vc.rollback()
@@ -100,6 +90,9 @@ extension CHDataManager: AtomicRenewStore {
     func applyRenew(updates: [RenewUpdate], completion: @escaping (RenewApplyOutcome) -> Void) {
         context.perform {
             do {
+                // The renewal context can have registered objects from the snapshot.
+                // Refresh before comparing so edits saved by another context are visible.
+                self.context.refreshAllObjects()
                 let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
                 let objects = try self.context.fetch(request)
                 var byObjectID: [String: ConvertHistory] = [:]
@@ -114,6 +107,10 @@ extension CHDataManager: AtomicRenewStore {
                           let object = byObjectID[update.objectID],
                           object.objectID.uriRepresentation().absoluteString == update.objectID,
                           object.id == update.businessID,
+                          object.fromSymbol == update.originalFromSymbol,
+                          object.toSymbol == update.originalToSymbol,
+                          object.fromAmount.bitPattern == update.originalFromAmountBitPattern,
+                          object.ratio.bitPattern == update.originalRatioBitPattern,
                           !object.isDeleted else {
                         continue
                     }
@@ -152,15 +149,14 @@ extension CHDataManager: AtomicRenewStore {
         }
     }
 
-    func readHistory(completion: @escaping ([RenewHistoryValue]) -> Void) {
+    func readHistory(completion: @escaping (Result<[RenewHistoryValue], Error>) -> Void) {
         context.perform {
-            let values: [RenewHistoryValue]
             do {
                 let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
                 request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
                 let objects = try self.context.fetch(request)
                 try self.ensurePermanentIDs(for: objects)
-                values = objects.map { object in
+                let values = objects.map { object in
                     RenewHistoryValue(
                         objectID: object.objectID.uriRepresentation().absoluteString,
                         id: object.id,
@@ -173,10 +169,10 @@ extension CHDataManager: AtomicRenewStore {
                         ratio: object.ratio
                     )
                 }
+                completion(.success(values))
             } catch {
-                values = []
+                completion(.failure(error))
             }
-            completion(values)
         }
     }
 }

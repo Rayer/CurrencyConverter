@@ -42,9 +42,17 @@ enum RenewPresentationOrchestration {
         }
     }
 
-    static func reload(from store: AtomicRenewStore, completion: @escaping ([ConvertHistoryUIBean]) -> Void) {
+    static func reload(
+        from store: AtomicRenewStore,
+        completion: @escaping (Result<[ConvertHistoryUIBean], Error>) -> Void
+    ) {
         store.readHistory { values in
-            completion(beans(from: values))
+            switch values {
+            case .success(let values):
+                completion(.success(beans(from: values)))
+            case .failure(let error):
+                completion(.failure(error))
+            }
         }
     }
 }
@@ -54,8 +62,11 @@ extension ConvertHistoryUIBean {
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
             fromSymbol: c.fromSymbol, toSymbol: c.toSymbol, fxFeeRate: c.fxFee, ratio: c.ratio
         )
+        let presentationID = c.objectIDURI.map {
+            RenewPresentationIdentity.id(businessID: c.id, objectIDURI: $0)
+        } ?? c.id ?? UUID()
         return ConvertHistoryUIBean(
-            id: c.id ?? UUID(), title: c.title ?? "", url: c.url ?? "",
+            id: presentationID, title: c.title ?? "", url: c.url ?? "",
             fromSymbol: c.fromSymbol ?? "", toSymbol: c.toSymbol ?? "", fromAmount: c.fromAmount,
             fxFeeRate: values.fxFeeRate, ratio: values.ratio
         )
@@ -71,4 +82,9 @@ protocol ConvertHistoryRecord {
     var fromAmount: Float { get }
     var fxFee: Float { get }
     var ratio: Float { get }
+    var objectIDURI: String? { get }
+}
+
+extension ConvertHistoryRecord {
+    var objectIDURI: String? { nil }
 }

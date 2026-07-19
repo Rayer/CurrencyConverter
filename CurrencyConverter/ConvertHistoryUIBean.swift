@@ -9,9 +9,15 @@
 import Foundation
 
 extension ConvertHistory: ConvertHistoryRecord {}
+extension ConvertHistory {
+    var objectIDURI: String? {
+        objectID.uriRepresentation().absoluteString
+    }
+}
 
 class ConvertHistoryDMCollection : ObservableObject {
     @Published var data : [ConvertHistoryUIBean] = []
+    @Published private(set) var lastHistoryError: RenewHistoryError?
     let dataManager: AtomicRenewStore
     let converter: RenewConverter
     private let renewWorkflow: AtomicRenewWorkflow
@@ -27,9 +33,16 @@ class ConvertHistoryDMCollection : ObservableObject {
     }
 
     private func publishReload(completion: (() -> Void)? = nil) {
-        RenewPresentationOrchestration.reload(from: dataManager) { [weak self] beans in
+        RenewPresentationOrchestration.reload(from: dataManager) { [weak self] result in
             DispatchQueue.main.async {
-                self?.data = beans
+                guard let self else { return }
+                switch result {
+                case .success(let beans):
+                    self.lastHistoryError = nil
+                    self.data = beans
+                case .failure(let error):
+                    self.lastHistoryError = .failed(error)
+                }
                 completion?()
             }
         }
@@ -54,12 +67,16 @@ class ConvertHistoryDMCollection : ObservableObject {
     @discardableResult
     func renewFx(completion: ((RenewRunResult) -> Void)? = nil) -> Bool {
         renewWorkflow.renew { [weak self] result, values in
-            guard result.accepted else {
+            guard result.accepted, let values else {
+                if let historyError = result.historyError {
+                    self?.lastHistoryError = historyError
+                }
                 completion?(result)
                 return
             }
             let beans = RenewPresentationOrchestration.beans(from: values)
             DispatchQueue.main.async {
+                self?.lastHistoryError = nil
                 self?.data = beans
                 completion?(result)
             }
