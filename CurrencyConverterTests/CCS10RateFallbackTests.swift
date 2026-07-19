@@ -89,6 +89,7 @@ private final class CCS10SnapshotBarrierDefaults: CCS10Defaults {
 
 final class CCS10RateFallbackTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1000)
+    private let safeFeedConfiguration = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
     private let response = HTTPURLResponse(
         url: URL(string: "https://example.test")!,
         statusCode: 200,
@@ -145,7 +146,7 @@ final class CCS10RateFallbackTests: XCTestCase {
         defaults.set(updated, forKey: "LastUpdateDate")
         defaults.set(["USD": Float32(1)], forKey: "CurrencyData")
         defaults.set(123, forKey: "CurrencyDataTime")
-        let converter = CurrencyConverter(clock: { self.now }, defaults: defaults, transport: transport.send)
+        let converter = CurrencyConverter(clock: { self.now }, defaults: defaults, feedConfiguration: safeFeedConfiguration, transport: transport.send)
 
         let completion = expectation(description: "http failure")
         converter.loadData { error in
@@ -362,6 +363,7 @@ final class CCS10RateFallbackTests: XCTestCase {
                 return self.now
             },
             defaults: CCS10Defaults(),
+            feedConfiguration: safeFeedConfiguration,
             transport: CCS10Transport().send
         )
 
@@ -449,6 +451,7 @@ final class CCS10RateFallbackTests: XCTestCase {
         let converter = CurrencyConverter(
             clock: { self.now },
             defaults: CCS10Defaults(),
+            feedConfiguration: safeFeedConfiguration,
             transport: { _, completion in
                 completion(
                     Data(#"{"base":"EUR","date":"2026-07-18","rates":{"USD":1.2},"timestamp":456}"#.utf8),
@@ -477,6 +480,7 @@ final class CCS10RateFallbackTests: XCTestCase {
         let converter = CurrencyConverter(
             clock: { self.now },
             defaults: defaults,
+            feedConfiguration: safeFeedConfiguration,
             transport: { _, completion in
                 transportStarted.signal()
                 completion(webPayload, self.response, nil)
@@ -518,6 +522,7 @@ final class CCS10RateFallbackTests: XCTestCase {
         converter = CurrencyConverter(
             clock: { self.now },
             defaults: defaults,
+            feedConfiguration: safeFeedConfiguration,
             transport: { _, completion in
                 completion(webPayload, self.response, nil)
             }
@@ -622,6 +627,123 @@ final class CCS10RateFallbackTests: XCTestCase {
     }
 
     private func makeConverter(defaults: CCS10Defaults = CCS10Defaults(), transport: CCS10Transport) -> CurrencyConverter {
-        CurrencyConverter(clock: { self.now }, defaults: defaults, transport: transport.send)
+        CurrencyConverter(clock: { self.now }, defaults: defaults, feedConfiguration: safeFeedConfiguration, transport: transport.send)
+    }
+}
+
+final class CCS28SecurityTests: XCTestCase {
+    func testSafeHTTPSFeedIsAccepted() {
+        let result = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
+
+        guard case .success(let url) = result else {
+            return XCTFail("safe HTTPS feed should be accepted")
+        }
+        XCTAssertEqual(url.absoluteString, "https://rates.example.invalid/feed")
+    }
+
+    func testMissingFeedIsTypedAsMissing() {
+        assertConfigurationFailure(nil, equals: .missing)
+    }
+
+    func testHTTPFeedIsRejected() {
+        assertConfigurationFailure("http://rates.example.invalid/feed", equals: .nonHTTPS)
+    }
+
+    func testQueryBearingFeedIsRejected() {
+        assertConfigurationFailure("https://rates.example.invalid/feed?source=example", equals: .query)
+    }
+
+    func testFragmentBearingFeedIsRejected() {
+        assertConfigurationFailure("https://rates.example.invalid/feed#fragment", equals: .fragment)
+    }
+
+    func testUserinfoBearingFeedIsRejected() {
+        assertConfigurationFailure("https://user@rates.example.invalid/feed", equals: .userinfo)
+    }
+
+    func testMalformedFeedIsRejected() {
+        assertConfigurationFailure("not a URL", equals: .malformed)
+    }
+
+    func testMissingFeedDoesNotInvokeTransportAndUsesUnavailableStatus() {
+        let transport = CCS10Transport()
+        let converter = CurrencyConverter(
+            clock: { Date(timeIntervalSince1970: 1000) },
+            defaults: CCS10Defaults(),
+            feedConfiguration: .failure(.missing),
+            transport: transport.send
+        )
+        let completed = expectation(description: "missing feed")
+
+        converter.loadData { error in
+            XCTAssertEqual(error as? RateDataError, .unavailable)
+            XCTAssertEqual(converter.rateDataStatus.lastRefreshError, .unavailable)
+            completed.fulfill()
+        }
+
+        wait(for: [completed], timeout: 1)
+        XCTAssertEqual(transport.requestCount, 0)
+    }
+
+    func testRejectedFeedDoesNotInvokeTransportAndUsesInvalidConfigurationStatus() {
+        let transport = CCS10Transport()
+        let converter = CurrencyConverter(
+            clock: { Date(timeIntervalSince1970: 1000) },
+            defaults: CCS10Defaults(),
+            feedConfiguration: .failure(.query),
+            transport: transport.send
+        )
+        let completed = expectation(description: "rejected feed")
+
+        converter.loadData { error in
+            XCTAssertEqual(error as? RateDataError, .invalidConfiguration)
+            XCTAssertEqual(converter.rateDataStatus.lastRefreshError, .invalidConfiguration)
+            completed.fulfill()
+        }
+
+        wait(for: [completed], timeout: 1)
+        XCTAssertEqual(transport.requestCount, 0)
+    }
+
+    func testScannerFailsOnTemporarySyntheticViolationWithoutEchoingValue() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: scanner.path))
+
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-synthetic-violation-\(UUID().uuidString).swift")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let keyName = ["api", "key"].joined(separator: "_")
+        let syntheticViolation = keyName + "=" + String(repeating: "x", count: 16)
+        try syntheticViolation.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["python3", scanner.path, "--root", repositoryRoot.path, "--extra-file", temporaryFile.path]
+        process.standardOutput = output
+        process.standardError = output
+        try process.run()
+        process.waitUntilExit()
+
+        let outputText = String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        XCTAssertNotEqual(process.terminationStatus, 0)
+        XCTAssertFalse(outputText.contains(String(repeating: "x", count: 16)))
+    }
+
+    private func assertConfigurationFailure(
+        _ value: Any?,
+        equals expected: CurrencyInfoFeedConfigurationError,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard case .failure(let error) = CurrencyInfoFeedConfiguration.resolve(value: value) else {
+            return XCTFail("feed should be rejected", file: file, line: line)
+        }
+        XCTAssertEqual(error, expected, file: file, line: line)
     }
 }

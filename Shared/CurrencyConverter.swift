@@ -16,7 +16,6 @@ struct CurrencyRateEntity : Decodable {
     var fetched_localtime : Date?
     var timestamp: Int
 }
-
 class CurrencyConverter {
     private let currencyRateEntityLock = NSLock()
     private var currencyRateEntityStorage: CurrencyRateEntity?
@@ -62,6 +61,7 @@ class CurrencyConverter {
     private let clock: () -> Date
     private let defaults: UserDefaults
     private let transport: RateTransport
+    private let feedConfiguration: CurrencyInfoFeedConfiguration.Resolution
     // When both are needed, defaultsLock is acquired before currencyRateEntityLock;
     // injected defaults callbacks never run while the entity lock is held.
     private let defaultsLock = NSRecursiveLock()
@@ -75,15 +75,17 @@ class CurrencyConverter {
     private init() {
         clock = Date.init
         defaults = sharedUserDefaults
+        feedConfiguration = CurrencyInfoFeedConfiguration.resolve(bundle: .main)
         transport = { url, completion in
             URLSession.shared.dataTask(with: url, completionHandler: completion).resume()
         }
     }
 
-    init(context: NSExtensionContext? = nil, clock: @escaping () -> Date = Date.init, defaults: UserDefaults = sharedUserDefaults, transport: RateTransport? = nil) {
+    init(context: NSExtensionContext? = nil, clock: @escaping () -> Date = Date.init, defaults: UserDefaults = sharedUserDefaults, feedConfiguration: CurrencyInfoFeedConfiguration.Resolution? = nil, transport: RateTransport? = nil) {
         self.context = context
         self.clock = clock
         self.defaults = defaults
+        self.feedConfiguration = feedConfiguration ?? CurrencyInfoFeedConfiguration.resolve(bundle: .main)
         self.transport = transport ?? { url, completion in
             URLSession.shared.dataTask(with: url, completionHandler: completion).resume()
         }
@@ -124,21 +126,20 @@ class CurrencyConverter {
     }
 
     private func loadFromWebRequest(_ completionHandler: @escaping (Error?) -> Void) {
-        let feed_url : URL?
-        if let feed_url_str = Bundle.main.object(forInfoDictionaryKey: "CurrencyInfoFeed") as? String {
-            feed_url = URL(string: feed_url_str)
-        } else {
-            feed_url = URL(string: "http://data.fixer.io/api/latest?access_key=676ac77e5ce5d4b9a57ee6464ff84433&format=1")
-        }
-
-        guard let feed_url else {
-            let error = RateDataError.unavailable
-            self.recordRefreshFailure(error)
-            completionHandler(error)
+        let feedURL: URL
+        switch feedConfiguration {
+        case .success(let url):
+            feedURL = url
+        case .failure(let configurationError):
+            let refreshError: RateDataError = configurationError == .missing
+                ? .unavailable
+                : .invalidConfiguration
+            self.recordRefreshFailure(refreshError)
+            completionHandler(refreshError)
             return
         }
 
-        transport(feed_url, { (data, response, error) in
+        transport(feedURL, { (data, response, error) in
             if error != nil {
                 let refreshError = RateDataError.transport
                 self.recordRefreshFailure(refreshError)

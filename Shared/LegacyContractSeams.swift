@@ -1,5 +1,62 @@
 import Foundation
 
+enum CurrencyInfoFeedConfigurationError: Error, Equatable {
+    case missing
+    case malformed
+    case nonHTTPS
+    case userinfo
+    case query
+    case fragment
+}
+
+enum CurrencyInfoFeedConfiguration {
+    typealias Resolution = Result<URL, CurrencyInfoFeedConfigurationError>
+    static let infoDictionaryKey = "CurrencyInfoFeed"
+
+    static func resolve(value: Any?) -> Resolution {
+        guard let value = value as? String else {
+            return .failure(value == nil ? .missing : .malformed)
+        }
+        guard !value.isEmpty else { return .failure(.missing) }
+        guard value == value.trimmingCharacters(in: .whitespacesAndNewlines),
+              value.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
+              let url = URL(string: value),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme?.lowercased() == "https",
+              let host = components.host,
+              !host.isEmpty else {
+            if let url = URL(string: value),
+               let scheme = URLComponents(url: url, resolvingAgainstBaseURL: false)?.scheme,
+               scheme.lowercased() != "https" {
+                return .failure(.nonHTTPS)
+            }
+            return .failure(.malformed)
+        }
+
+        if components.user != nil || components.password != nil || authority(in: value).contains("@") {
+            return .failure(.userinfo)
+        }
+        if value.contains("?") || components.query != nil {
+            return .failure(.query)
+        }
+        if value.contains("#") || components.fragment != nil {
+            return .failure(.fragment)
+        }
+        return .success(url)
+    }
+
+    static func resolve(bundle: Bundle) -> Resolution {
+        resolve(value: bundle.object(forInfoDictionaryKey: infoDictionaryKey))
+    }
+
+    private static func authority(in value: String) -> String {
+        guard let separator = value.range(of: "://") else { return "" }
+        let authorityStart = separator.upperBound
+        let remainder = value[authorityStart...]
+        return String(remainder.prefix { $0 != "/" && $0 != "?" && $0 != "#" })
+    }
+}
+
 enum RateDataSource: Equatable {
     case memory
     case defaults
@@ -11,6 +68,7 @@ enum RateDataError: Error, Equatable {
     case httpStatus(Int)
     case decode
     case invalidPayload
+    case invalidConfiguration
     case missingRate(String)
     case unavailable
 
@@ -24,6 +82,8 @@ enum RateDataError: Error, Equatable {
             return "Rate service returned unreadable data."
         case .invalidPayload:
             return "Rate service returned invalid data."
+        case .invalidConfiguration:
+            return "Rate feed configuration is invalid."
         case .missingRate:
             return "Requested currency rate unavailable."
         case .unavailable:

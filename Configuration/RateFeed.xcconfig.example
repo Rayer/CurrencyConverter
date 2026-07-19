@@ -1,0 +1,4 @@
+// Copy this file to RateFeed.xcconfig for a local or release build.
+// The endpoint must be credential-free HTTPS with no userinfo, query, or fragment.
+CURRENCY_INFO_FEED = https://rates.example.invalid/feed
+INFOPLIST_KEY_CurrencyInfoFeed = $(CURRENCY_INFO_FEED)
