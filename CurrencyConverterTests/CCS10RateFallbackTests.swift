@@ -1094,6 +1094,28 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertTrue(safeResult.output.isEmpty, safeResult.output)
     }
 
+    func testScannerTreatsEmbeddedPlistMarkerInBinaryAsBinaryContent() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-safe-embedded-plist-\(UUID().uuidString).bin")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+        let embeddedMarker = "<" + "plist><dict/></plist>"
+        try Data([0, 1, 2] + Array(embeddedMarker.utf8))
+            .write(to: temporaryFile)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--artifact", temporaryFile.path]
+        )
+        XCTAssertEqual(result.status, 0, result.output)
+        XCTAssertTrue(result.output.isEmpty, result.output)
+    }
+
     func testScannerOnlyFlagsStringAndDataForSensitivePlistKeys() throws {
         let sourceFile = URL(fileURLWithPath: #filePath)
         let repositoryRoot = sourceFile

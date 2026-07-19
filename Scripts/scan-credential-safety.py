@@ -277,10 +277,29 @@ def scan_plist(raw: bytes, display: str, findings: list[tuple[str, str]], artifa
 
 def looks_like_plist(raw: bytes) -> bool:
     prefix = raw.lstrip()
+    if prefix.startswith(PLIST_BINARY_HEADER):
+        return True
+    lowered_prefix = prefix[:256].lower()
     lowered = raw.lower()
+    if lowered_prefix.startswith((PLIST_XML_MARKER, PLIST_DOCTYPE_MARKER)) or (
+        lowered_prefix.startswith(b"<?xml")
+        and (
+            PLIST_XML_MARKER in lowered
+            or PLIST_DOCTYPE_MARKER in lowered
+            or PLIST_PROPERTY_MARKER in lowered
+        )
+    ):
+        return True
+    # Executables and other binaries can embed plist-shaped string tables.
+    # Scan their printable bytes, but do not parse the entire binary as a plist.
+    if b"\x00" in raw:
+        return False
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
     return (
-        prefix.startswith(PLIST_BINARY_HEADER)
-        or PLIST_XML_MARKER in lowered
+        PLIST_XML_MARKER in lowered
         or PLIST_DOCTYPE_MARKER in lowered
         or PLIST_PROPERTY_MARKER in lowered
     )
