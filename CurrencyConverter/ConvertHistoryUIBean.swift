@@ -34,7 +34,8 @@ class ConvertHistoryDMCollection : ObservableObject {
                     fxFeeRate: value.fxFee, ratio: value.ratio
                 )
                 return ConvertHistoryUIBean(
-                    id: value.id ?? UUID(), title: value.title ?? "", url: value.url ?? "",
+                    id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
+                    title: value.title ?? "", url: value.url ?? "",
                     fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
                     fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
                     ratio: normalized.ratio

@@ -1,4 +1,22 @@
 import Foundation
+import CryptoKit
+
+enum RenewPresentationIdentity {
+    static func id(businessID: UUID?, objectIDURI: String) -> UUID {
+        if let businessID {
+            return businessID
+        }
+
+        var bytes = Array(SHA256.hash(data: Data(objectIDURI.utf8)))
+        bytes[6] = (bytes[6] & 0x0F) | 0x50
+        bytes[8] = (bytes[8] & 0x3F) | 0x80
+        return UUID(uuid: (
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
+            bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[12], bytes[13], bytes[14], bytes[15]
+        ))
+    }
+}
 
 struct RenewRowSnapshot: Equatable {
     let objectID: String
@@ -16,6 +34,7 @@ struct RenewUpdate: Equatable {
 }
 
 struct RenewHistoryValue {
+    let objectID: String
     let id: UUID?
     let title: String?
     let url: String?

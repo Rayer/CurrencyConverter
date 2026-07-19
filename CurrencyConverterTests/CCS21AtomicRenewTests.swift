@@ -14,52 +14,91 @@ private enum CCS21TestError: Error {
 }
 
 private final class CCS21StoreFixture: AtomicRenewStore {
-    var rows: [RenewRowSnapshot]
     private let lock = NSLock()
-    var events: [CCS21Event] = []
+    private var storedRows: [RenewRowSnapshot]
+    private var storedEvents: [CCS21Event] = []
+    private var storedSnapshotCount = 0
+    private var storedApplyCount = 0
+    private var storedReloadCount = 0
+    private var storedLastUpdates: [RenewUpdate] = []
     var applyOutcomes: [RenewApplyOutcome] = []
     var reloadValues: [RenewHistoryValue] = []
-    var snapshotCount = 0
-    var applyCount = 0
-    var reloadCount = 0
-    var lastUpdates: [RenewUpdate] = []
 
     init(rows: [RenewRowSnapshot]) {
-        self.rows = rows
+        self.storedRows = rows
+    }
+
+    var rows: [RenewRowSnapshot] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedRows
+    }
+
+    var events: [CCS21Event] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedEvents
+    }
+
+    var snapshotCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedSnapshotCount
+    }
+
+    var applyCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedApplyCount
+    }
+
+    var reloadCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedReloadCount
+    }
+
+    var lastUpdates: [RenewUpdate] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedLastUpdates
     }
 
     func snapshotForRenew(completion: @escaping (Result<[RenewRowSnapshot], Error>) -> Void) {
         lock.lock()
-        snapshotCount += 1
-        events.append(.snapshot)
+        storedSnapshotCount += 1
+        storedEvents.append(.snapshot)
+        let snapshot = storedRows
         lock.unlock()
-        completion(.success(rows))
+        completion(.success(snapshot))
     }
 
     func applyRenew(updates: [RenewUpdate], completion: @escaping (RenewApplyOutcome) -> Void) {
         lock.lock()
-        applyCount += 1
-        lastUpdates = updates
-        events.append(.apply(updates))
-        for update in updates {
-            if let index = rows.firstIndex(where: { $0.objectID == update.objectID }) {
-                let row = rows[index]
-                rows[index] = RenewRowSnapshot(
-                    objectID: row.objectID, businessID: row.businessID,
-                    fromSymbol: row.fromSymbol, toSymbol: row.toSymbol,
-                    fromAmount: row.fromAmount, ratio: update.ratio
-                )
+        storedApplyCount += 1
+        storedLastUpdates = updates
+        storedEvents.append(.apply(updates))
+        let outcome = applyOutcomes.isEmpty ? RenewApplyOutcome(appliedCount: updates.count, changedCount: updates.count, saveError: nil) : applyOutcomes.removeFirst()
+        if outcome.saveError == nil {
+            for update in updates {
+                if let index = storedRows.firstIndex(where: { $0.objectID == update.objectID }) {
+                    let row = storedRows[index]
+                    storedRows[index] = RenewRowSnapshot(
+                        objectID: row.objectID, businessID: row.businessID,
+                        fromSymbol: row.fromSymbol, toSymbol: row.toSymbol,
+                        fromAmount: row.fromAmount, ratio: update.ratio
+                    )
+                }
             }
         }
-        let outcome = applyOutcomes.isEmpty ? RenewApplyOutcome(appliedCount: updates.count, changedCount: updates.count, saveError: nil) : applyOutcomes.removeFirst()
         lock.unlock()
         completion(outcome)
     }
 
     func readHistory(completion: @escaping ([RenewHistoryValue]) -> Void) {
         lock.lock()
-        reloadCount += 1
-        events.append(.reload)
+        storedReloadCount += 1
+        storedEvents.append(.reload)
         lock.unlock()
         completion(reloadValues)
     }
@@ -110,7 +149,7 @@ private final class CCS21ConverterFixture: RenewConverter {
 }
 
 final class CCS21AtomicRenewTests: XCTestCase {
-    private func makeContext() -> NSManagedObjectContext {
+    private func makeContainer() -> NSPersistentContainer {
         let model = NSManagedObjectModel.mergedModel(from: [Bundle(for: CCS21AtomicRenewTests.self)])!
         let container = NSPersistentContainer(name: "CurrencyExchangeRate", managedObjectModel: model)
         let description = NSPersistentStoreDescription()
@@ -124,7 +163,11 @@ final class CCS21AtomicRenewTests: XCTestCase {
         }
         wait(for: [loaded], timeout: 1)
         XCTAssertNil(loadError)
-        return container.viewContext
+        return container
+    }
+
+    private func makeContext() -> NSManagedObjectContext {
+        makeContainer().viewContext
     }
 
     private func seedHistory(in context: NSManagedObjectContext, id: UUID?, ratio: Float32) {
@@ -141,7 +184,7 @@ final class CCS21AtomicRenewTests: XCTestCase {
         }
     }
 
-    func testLegacyOrderingCharacterizationIsRedUntilRenewIsWiredAtomically() {
+    func testRenewPublishesOneReloadAfterAtomicApply() {
         let row = RenewRowSnapshot(objectID: "row-1", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 3)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
@@ -269,7 +312,9 @@ final class CCS21AtomicRenewTests: XCTestCase {
 
         XCTAssertNotNil(result?.saveError)
         XCTAssertEqual(store.reloadCount, 1)
-        XCTAssertEqual(store.rows.count, 1)
+        XCTAssertEqual(store.rows, [row])
+        XCTAssertEqual(store.rows.first?.businessID, row.businessID)
+        XCTAssertEqual(store.rows.first?.ratio, row.ratio)
     }
 
     func testOverlappingRenewIsRejectedWithoutSecondSnapshot() {
@@ -308,7 +353,6 @@ final class CCS21AtomicRenewTests: XCTestCase {
             saveLock.unlock()
             try context.save()
         })
-        _ = manager.readFromCore()
         context.performAndWait {
             let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
             XCTAssertNil(try! context.fetch(request).first?.value(forKey: "id"))
@@ -386,5 +430,227 @@ final class CCS21AtomicRenewTests: XCTestCase {
             XCTAssertEqual(object?.value(forKey: "ratio") as? Float32, 4)
             XCTAssertEqual(object?.value(forKey: "id") as? UUID, id)
         }
+    }
+
+    func testPresentationIdentityIsStableForNilBusinessIDAndPreservesBusinessID() {
+        let businessID = UUID()
+        let objectID = "x-coredata://store/ConvertHistory/p1"
+        XCTAssertEqual(
+            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID),
+            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID)
+        )
+        XCTAssertNotEqual(
+            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID),
+            RenewPresentationIdentity.id(businessID: nil, objectIDURI: "x-coredata://store/ConvertHistory/p2")
+        )
+        XCTAssertEqual(RenewPresentationIdentity.id(businessID: businessID, objectIDURI: objectID), businessID)
+    }
+
+    func testRepeatedReloadOfNilBusinessIDUsesStableObjectIDPresentationID() {
+        let objectID = "x-coredata://store/ConvertHistory/p1"
+        let store = CCS21StoreFixture(rows: [])
+        store.reloadValues = [RenewHistoryValue(
+            objectID: objectID, id: nil, title: nil, url: nil,
+            fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, fxFee: 0, ratio: 4
+        )]
+        let collection = ConvertHistoryDMCollection(dataManager: store, converter: CCS21ConverterFixture())
+
+        collection.reload()
+        let firstReload = expectation(description: "first reload")
+        DispatchQueue.main.async { firstReload.fulfill() }
+        wait(for: [firstReload], timeout: 1)
+        let firstID = collection.data.first?.id
+
+        collection.reload()
+        let secondReload = expectation(description: "second reload")
+        DispatchQueue.main.async { secondReload.fulfill() }
+        wait(for: [secondReload], timeout: 1)
+
+        XCTAssertEqual(store.reloadCount, 2)
+        XCTAssertEqual(collection.data.first?.id, firstID)
+        XCTAssertEqual(collection.data.first?.id, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
+    }
+
+    func testSnapshotMakesUnsavedInsertedRowPermanentWithoutAssigningBusinessID() {
+        let container = makeContainer()
+        let context = container.newBackgroundContext()
+        context.performAndWait {
+            let object = NSEntityDescription.insertNewObject(forEntityName: "ConvertHistory", into: context)
+            object.setValue(nil, forKey: "id")
+            object.setValue(Date(timeIntervalSince1970: 1), forKey: "date")
+            object.setValue("USD", forKey: "fromSymbol")
+            object.setValue("TWD", forKey: "toSymbol")
+            object.setValue(Float32(2), forKey: "fromAmount")
+            object.setValue(Float32(4), forKey: "ratio")
+            object.setValue(Float32(0), forKey: "fxFee")
+            XCTAssertTrue(object.objectID.isTemporaryID)
+        }
+        let manager = CHDataManager(context: context)
+
+        let firstSnapshot = expectation(description: "permanent snapshot")
+        var firstRow: RenewRowSnapshot?
+        manager.snapshotForRenew {
+            if case .success(let rows) = $0 { firstRow = rows.first }
+            firstSnapshot.fulfill()
+        }
+        wait(for: [firstSnapshot], timeout: 1)
+        let row = try! XCTUnwrap(firstRow)
+        XCTAssertNil(row.businessID)
+
+        let applied = expectation(description: "inserted row saved")
+        manager.applyRenew(updates: [RenewUpdate(objectID: row.objectID, businessID: nil, ratio: 2)]) { outcome in
+            XCTAssertEqual(outcome.changedCount, 1)
+            XCTAssertNil(outcome.saveError)
+            applied.fulfill()
+        }
+        wait(for: [applied], timeout: 1)
+
+        let secondSnapshot = expectation(description: "saved snapshot")
+        var secondRow: RenewRowSnapshot?
+        manager.snapshotForRenew {
+            if case .success(let rows) = $0 { secondRow = rows.first }
+            secondSnapshot.fulfill()
+        }
+        wait(for: [secondSnapshot], timeout: 1)
+        XCTAssertEqual(secondRow?.objectID, row.objectID)
+        XCTAssertNil(secondRow?.businessID)
+        XCTAssertEqual(secondRow?.ratio, 2)
+    }
+
+    func testDedicatedRenewSaveLeavesUnrelatedViewContextEditPending() {
+        let container = makeContainer()
+        let viewContext = container.viewContext
+        let renewID = UUID()
+        let unrelatedID = UUID()
+        seedHistory(in: viewContext, id: renewID, ratio: 4)
+        seedHistory(in: viewContext, id: unrelatedID, ratio: 8)
+        viewContext.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+            request.predicate = NSPredicate(format: "id == %@", unrelatedID as CVarArg)
+            try! viewContext.fetch(request).first!.setValue("pending", forKey: "title")
+            XCTAssertTrue(viewContext.hasChanges)
+        }
+
+        let renewContext = container.newBackgroundContext()
+        let manager = CHDataManager(context: renewContext)
+        let snapshot = expectation(description: "snapshot")
+        var row: RenewRowSnapshot?
+        manager.snapshotForRenew {
+            if case .success(let rows) = $0 { row = rows.first(where: { $0.businessID == renewID }) }
+            snapshot.fulfill()
+        }
+        wait(for: [snapshot], timeout: 1)
+        let updateRow = try! XCTUnwrap(row)
+
+        let applied = expectation(description: "renew save")
+        manager.applyRenew(updates: [RenewUpdate(objectID: updateRow.objectID, businessID: renewID, ratio: 2)]) { outcome in
+            XCTAssertEqual(outcome.changedCount, 1)
+            XCTAssertNil(outcome.saveError)
+            applied.fulfill()
+        }
+        wait(for: [applied], timeout: 1)
+
+        viewContext.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+            request.predicate = NSPredicate(format: "id == %@", unrelatedID as CVarArg)
+            let object = try! viewContext.fetch(request).first
+            XCTAssertEqual(object?.value(forKey: "title") as? String, "pending")
+            XCTAssertTrue(viewContext.hasChanges)
+        }
+    }
+
+    func testDedicatedRenewSaveFailureLeavesUnrelatedViewContextEditPending() {
+        let container = makeContainer()
+        let viewContext = container.viewContext
+        let renewID = UUID()
+        let unrelatedID = UUID()
+        seedHistory(in: viewContext, id: renewID, ratio: 4)
+        seedHistory(in: viewContext, id: unrelatedID, ratio: 8)
+        viewContext.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+            request.predicate = NSPredicate(format: "id == %@", unrelatedID as CVarArg)
+            try! viewContext.fetch(request).first!.setValue("pending", forKey: "title")
+        }
+
+        let renewContext = container.newBackgroundContext()
+        let manager = CHDataManager(context: renewContext, saveOperation: { throw CCS21TestError.save })
+        let snapshot = expectation(description: "snapshot")
+        var row: RenewRowSnapshot?
+        manager.snapshotForRenew {
+            if case .success(let rows) = $0 { row = rows.first(where: { $0.businessID == renewID }) }
+            snapshot.fulfill()
+        }
+        wait(for: [snapshot], timeout: 1)
+        let updateRow = try! XCTUnwrap(row)
+
+        let failed = expectation(description: "renew save failure")
+        manager.applyRenew(updates: [RenewUpdate(objectID: updateRow.objectID, businessID: renewID, ratio: 2)]) { outcome in
+            XCTAssertEqual(outcome.changedCount, 0)
+            XCTAssertNotNil(outcome.saveError)
+            failed.fulfill()
+        }
+        wait(for: [failed], timeout: 1)
+
+        renewContext.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+            request.predicate = NSPredicate(format: "id == %@", renewID as CVarArg)
+            let object = try! renewContext.fetch(request).first
+            XCTAssertEqual(object?.value(forKey: "ratio") as? Float32, 4)
+        }
+        viewContext.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
+            request.predicate = NSPredicate(format: "id == %@", unrelatedID as CVarArg)
+            let object = try! viewContext.fetch(request).first
+            XCTAssertEqual(object?.value(forKey: "title") as? String, "pending")
+            XCTAssertTrue(viewContext.hasChanges)
+        }
+    }
+
+    func testCoreDataRepeatedRenewPreservesIdentityCountAndSavesOnlyChangedRatios() {
+        let container = makeContainer()
+        let context = container.newBackgroundContext()
+        let firstID = UUID()
+        let secondID = UUID()
+        seedHistory(in: context, id: firstID, ratio: 4)
+        seedHistory(in: context, id: secondID, ratio: 8)
+        var saveCalls = 0
+        let saveLock = NSLock()
+        let manager = CHDataManager(context: context, saveOperation: {
+            saveLock.lock()
+            saveCalls += 1
+            saveLock.unlock()
+            try context.save()
+        })
+        let collection = ConvertHistoryDMCollection(dataManager: manager, converter: CCS21ConverterFixture())
+
+        let firstRenew = expectation(description: "first renew")
+        var firstResult: RenewRunResult?
+        XCTAssertTrue(collection.renewFx {
+            firstResult = $0
+            firstRenew.fulfill()
+        })
+        wait(for: [firstRenew], timeout: 1)
+        XCTAssertEqual(firstResult?.changedCount, 2)
+        let firstIDs = collection.data.map(\.id)
+        XCTAssertEqual(Set(firstIDs), Set([firstID, secondID]))
+
+        let secondRenew = expectation(description: "second renew")
+        var secondResult: RenewRunResult?
+        XCTAssertTrue(collection.renewFx {
+            secondResult = $0
+            secondRenew.fulfill()
+        })
+        wait(for: [secondRenew], timeout: 1)
+        XCTAssertEqual(secondResult?.changedCount, 0)
+        XCTAssertEqual(collection.data.map(\.id), firstIDs)
+
+        context.performAndWait {
+            let objects = try! context.fetch(NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory"))
+            XCTAssertEqual(objects.count, 2)
+            XCTAssertEqual(Set(objects.compactMap { $0.value(forKey: "id") as? UUID }), Set([firstID, secondID]))
+        }
+        saveLock.lock()
+        XCTAssertEqual(saveCalls, 1)
+        saveLock.unlock()
     }
 }

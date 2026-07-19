@@ -12,24 +12,20 @@ import CoreData
 class CHDataManager {
     static let shared = CHDataManager()
 
+    // Renew owns this private queue/context. It must never save or roll back the UI viewContext.
     private let context: NSManagedObjectContext
     private let saveOperation: (() throws -> Void)?
 
-    init(context: NSManagedObjectContext = sharedPersistentContainer.viewContext, saveOperation: (() throws -> Void)? = nil) {
-        self.context = context
+    init(context: NSManagedObjectContext? = nil, saveOperation: (() throws -> Void)? = nil) {
+        self.context = context ?? sharedPersistentContainer.newBackgroundContext()
         self.saveOperation = saveOperation
     }
-    
-    func readFromCore() -> [ConvertHistory]? {
-        let vc = context
-        let fetchRequst = NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory")
-        let sort = NSSortDescriptor(keyPath: \ConvertHistory.date, ascending: false)
-        fetchRequst.sortDescriptors = [sort]
-        var objects: [ConvertHistory]?
-        vc.performAndWait {
-            objects = try? vc.fetch(fetchRequst) as? [ConvertHistory]
+
+    private func ensurePermanentIDs(for objects: [ConvertHistory]) throws {
+        let temporaryObjects = objects.filter { $0.objectID.isTemporaryID }
+        if !temporaryObjects.isEmpty {
+            try context.obtainPermanentIDs(for: temporaryObjects)
         }
-        return objects
     }
     
     func wipeAll() {
@@ -45,7 +41,7 @@ class CHDataManager {
         let vc = context
         vc.performAndWait {
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-            let predicate = NSPredicate(format: "id = '\(at)'")
+            let predicate = NSPredicate(format: "id == %@", at as CVarArg)
             fetchRequest.predicate = predicate
             if let result = try? vc.fetch(fetchRequest) {
                 for object in result {
@@ -66,6 +62,7 @@ extension CHDataManager: AtomicRenewStore {
                 let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
                 request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
                 let objects = try self.context.fetch(request)
+                try self.ensurePermanentIDs(for: objects)
                 completion(.success(objects.map { object in
                     RenewRowSnapshot(
                         objectID: object.objectID.uriRepresentation().absoluteString,
@@ -139,20 +136,28 @@ extension CHDataManager: AtomicRenewStore {
 
     func readHistory(completion: @escaping ([RenewHistoryValue]) -> Void) {
         context.perform {
-            let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
-            request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-            let values = (try? self.context.fetch(request))?.map { object in
-                RenewHistoryValue(
-                    id: object.id,
-                    title: object.title,
-                    url: object.url,
-                    fromSymbol: object.fromSymbol,
-                    toSymbol: object.toSymbol,
-                    fromAmount: object.fromAmount,
-                    fxFee: object.fxFee,
-                    ratio: object.ratio
-                )
-            } ?? []
+            let values: [RenewHistoryValue]
+            do {
+                let request = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+                let objects = try self.context.fetch(request)
+                try self.ensurePermanentIDs(for: objects)
+                values = objects.map { object in
+                    RenewHistoryValue(
+                        objectID: object.objectID.uriRepresentation().absoluteString,
+                        id: object.id,
+                        title: object.title,
+                        url: object.url,
+                        fromSymbol: object.fromSymbol,
+                        toSymbol: object.toSymbol,
+                        fromAmount: object.fromAmount,
+                        fxFee: object.fxFee,
+                        ratio: object.ratio
+                    )
+                }
+            } catch {
+                values = []
+            }
             completion(values)
         }
     }
