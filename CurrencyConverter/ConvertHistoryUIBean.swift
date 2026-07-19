@@ -27,20 +27,7 @@ class ConvertHistoryDMCollection : ObservableObject {
     }
 
     private func publishReload(completion: (() -> Void)? = nil) {
-        dataManager.readHistory { [weak self] values in
-            let beans = values.map { value in
-                let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
-                    fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
-                    fxFeeRate: value.fxFee, ratio: value.ratio
-                )
-                return ConvertHistoryUIBean(
-                    id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
-                    title: value.title ?? "", url: value.url ?? "",
-                    fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
-                    fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
-                    ratio: normalized.ratio
-                )
-            }
+        RenewPresentationOrchestration.reload(from: dataManager) { [weak self] beans in
             DispatchQueue.main.async {
                 self?.data = beans
                 completion?()

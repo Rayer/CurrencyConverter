@@ -8,7 +8,8 @@ enum RenewPresentationIdentity {
         }
 
         var bytes = Array(SHA256.hash(data: Data(objectIDURI.utf8)))
-        bytes[6] = (bytes[6] & 0x0F) | 0x50
+        // This is a deterministic SHA-256 construction, not RFC 4122 UUIDv5.
+        bytes[6] = (bytes[6] & 0x0F) | 0x80
         bytes[8] = (bytes[8] & 0x3F) | 0x80
         return UUID(uuid: (
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
@@ -45,6 +46,31 @@ struct RenewHistoryValue {
     let ratio: Float32
 }
 
+struct ConvertHistoryUIBean: Identifiable {
+    var id: UUID
+    var title: String?
+    var url: String
+    var fromSymbol: String
+    var toSymbol: String
+    var fromAmount: Float
+
+    var toAmount: Float {
+        LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
+    }
+
+    var fxFee: Float {
+        LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
+    }
+
+    var toAmountWithFx: Float {
+        LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
+    }
+
+    var fxFeeRate: Float
+    var ratio: Float
+    var isChecked = false
+}
+
 struct RenewApplyOutcome {
     let appliedCount: Int
     let changedCount: Int
@@ -75,6 +101,26 @@ protocol AtomicRenewStore: AnyObject {
 
 protocol RenewConverter: AnyObject {
     func convert(from: String, to: String, unit: Float32, completionHandler: @escaping (Float32, Error?) -> Void)
+}
+
+enum RenewPresentationOrchestration {
+    static func reload(from store: AtomicRenewStore, completion: @escaping ([ConvertHistoryUIBean]) -> Void) {
+        store.readHistory { values in
+            completion(values.map { value in
+                let normalized = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                    fromSymbol: value.fromSymbol, toSymbol: value.toSymbol,
+                    fxFeeRate: value.fxFee, ratio: value.ratio
+                )
+                return ConvertHistoryUIBean(
+                    id: RenewPresentationIdentity.id(businessID: value.id, objectIDURI: value.objectID),
+                    title: value.title ?? "", url: value.url ?? "",
+                    fromSymbol: value.fromSymbol ?? "", toSymbol: value.toSymbol ?? "",
+                    fromAmount: value.fromAmount, fxFeeRate: normalized.fxFeeRate,
+                    ratio: normalized.ratio
+                )
+            })
+        }
+    }
 }
 
 extension CurrencyConverter: RenewConverter {}

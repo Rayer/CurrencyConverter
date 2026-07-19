@@ -40,15 +40,33 @@ class CHDataManager {
     func wipeById(_ at: UUID) {
         let vc = context
         vc.performAndWait {
-            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ConvertHistory")
-            let predicate = NSPredicate(format: "id == %@", at as CVarArg)
-            fetchRequest.predicate = predicate
-            if let result = try? vc.fetch(fetchRequest) {
-                for object in result {
-                    vc.delete(object as! NSManagedObject)
+            do {
+                let businessIDRequest = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                businessIDRequest.predicate = NSPredicate(format: "id == %@", at as CVarArg)
+                let businessIDMatches = try vc.fetch(businessIDRequest)
+                if !businessIDMatches.isEmpty {
+                    businessIDMatches.forEach { vc.delete($0) }
+                    try vc.save()
+                    return
                 }
+
+                let nilIDRequest = NSFetchRequest<ConvertHistory>(entityName: "ConvertHistory")
+                nilIDRequest.predicate = NSPredicate(format: "id == nil")
+                let nilIDRows = try vc.fetch(nilIDRequest)
+                try ensurePermanentIDs(for: nilIDRows)
+                guard let fallbackMatch = nilIDRows.first(where: { object in
+                    RenewPresentationIdentity.id(
+                        businessID: object.id,
+                        objectIDURI: object.objectID.uriRepresentation().absoluteString
+                    ) == at
+                }) else {
+                    return
+                }
+                vc.delete(fallbackMatch)
+                try vc.save()
+            } catch {
+                vc.rollback()
             }
-            try! vc.save()
         }
     }
 

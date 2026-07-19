@@ -1,6 +1,5 @@
 import XCTest
 import CoreData
-@testable import CurrencyConverter
 
 private enum CCS21Event: Equatable {
     case snapshot
@@ -170,13 +169,36 @@ final class CCS21AtomicRenewTests: XCTestCase {
         makeContainer().viewContext
     }
 
-    private func seedHistory(in context: NSManagedObjectContext, id: UUID?, ratio: Float32) {
+    @discardableResult
+    private func renewAndReload(
+        coordinator: AtomicRenewCoordinator,
+        store: AtomicRenewStore,
+        completion: @escaping (RenewRunResult, [ConvertHistoryUIBean]) -> Void
+    ) -> Bool {
+        coordinator.renew { result in
+            guard result.accepted else {
+                completion(result, [])
+                return
+            }
+            RenewPresentationOrchestration.reload(from: store) { beans in
+                completion(result, beans)
+            }
+        }
+    }
+
+    private func seedHistory(
+        in context: NSManagedObjectContext,
+        id: UUID?,
+        ratio: Float32,
+        fromSymbol: String = "USD",
+        toSymbol: String = "TWD"
+    ) {
         context.performAndWait {
             let object = NSEntityDescription.insertNewObject(forEntityName: "ConvertHistory", into: context)
             object.setValue(id, forKey: "id")
             object.setValue(Date(timeIntervalSince1970: 1), forKey: "date")
-            object.setValue("USD", forKey: "fromSymbol")
-            object.setValue("TWD", forKey: "toSymbol")
+            object.setValue(fromSymbol, forKey: "fromSymbol")
+            object.setValue(toSymbol, forKey: "toSymbol")
             object.setValue(Float32(2), forKey: "fromAmount")
             object.setValue(ratio, forKey: "ratio")
             object.setValue(Float32(0), forKey: "fxFee")
@@ -188,12 +210,12 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row-1", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 3)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
 
         let finished = expectation(description: "renew finished")
         let requestReady = expectation(description: "conversion requested")
         converter.onRequest = { requestReady.fulfill() }
-        XCTAssertTrue(collection.renewFx { _ in finished.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
         XCTAssertEqual(store.events, [.snapshot])
         wait(for: [requestReady], timeout: 1)
         XCTAssertEqual(converter.requestCount, 1)
@@ -210,14 +232,24 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let second = RenewRowSnapshot(objectID: "row-2", businessID: UUID(), fromSymbol: "JPY", toSymbol: "USD", fromAmount: 100, ratio: 4)
         let store = CCS21StoreFixture(rows: [first, second])
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
 
         let finished = expectation(description: "renew finished")
         let requestsReady = expectation(description: "conversions requested")
+        let requestsReadyLock = NSLock()
+        var requestsReadyFulfilled = false
         converter.onRequest = {
-            if converter.requestCount == 2 { requestsReady.fulfill() }
+            guard converter.requestCount == 2 else { return }
+            requestsReadyLock.lock()
+            guard !requestsReadyFulfilled else {
+                requestsReadyLock.unlock()
+                return
+            }
+            requestsReadyFulfilled = true
+            requestsReadyLock.unlock()
+            requestsReady.fulfill()
         }
-        XCTAssertTrue(collection.renewFx { _ in finished.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
         XCTAssertEqual(store.events, [.snapshot])
         wait(for: [requestsReady], timeout: 1)
         converter.finish(from: "JPY", to: "USD", amount: 1)
@@ -239,14 +271,14 @@ final class CCS21AtomicRenewTests: XCTestCase {
         ]
         let store = CCS21StoreFixture(rows: rows)
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
         let first = expectation(description: "first renew")
-        XCTAssertTrue(collection.renewFx { _ in first.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in first.fulfill() })
         wait(for: [first], timeout: 1)
         let firstIDs = store.lastUpdates.map(\.objectID)
 
         let second = expectation(description: "second renew")
-        XCTAssertTrue(collection.renewFx { _ in second.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in second.fulfill() })
         wait(for: [second], timeout: 1)
 
         XCTAssertEqual(store.rows.count, rows.count)
@@ -267,11 +299,11 @@ final class CCS21AtomicRenewTests: XCTestCase {
         ]
         let store = CCS21StoreFixture(rows: rows)
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
         let finished = expectation(description: "renew finished")
         let requestReady = expectation(description: "failed conversion requested")
         converter.onRequest = { requestReady.fulfill() }
-        XCTAssertTrue(collection.renewFx { _ in finished.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
         wait(for: [requestReady], timeout: 1)
         converter.finish(0, amount: .nan, error: CCS21TestError.conversion)
         converter.finish(0, amount: 10)
@@ -287,9 +319,9 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "same", businessID: UUID(), fromSymbol: "USD", toSymbol: "USD", fromAmount: 20, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
         let finished = expectation(description: "renew finished")
-        XCTAssertTrue(collection.renewFx { _ in finished.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in finished.fulfill() })
         wait(for: [finished], timeout: 1)
 
         XCTAssertEqual(converter.requestCount, 0)
@@ -301,11 +333,11 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row", businessID: UUID(), fromSymbol: "USD", toSymbol: "USD", fromAmount: 2, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         store.applyOutcomes = [RenewApplyOutcome(appliedCount: 0, changedCount: 0, saveError: CCS21TestError.save)]
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: CCS21ConverterFixture())
+        let coordinator = AtomicRenewCoordinator(store: store, converter: CCS21ConverterFixture())
         let finished = expectation(description: "renew finished")
         var result: RenewRunResult?
-        XCTAssertTrue(collection.renewFx {
-            result = $0
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { renewResult, _ in
+            result = renewResult
             finished.fulfill()
         })
         wait(for: [finished], timeout: 1)
@@ -321,17 +353,17 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let row = RenewRowSnapshot(objectID: "row", businessID: UUID(), fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, ratio: 4)
         let store = CCS21StoreFixture(rows: [row])
         let converter = CCS21ConverterFixture()
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: converter)
+        let coordinator = AtomicRenewCoordinator(store: store, converter: converter)
         let requestReady = expectation(description: "conversion requested")
         converter.onRequest = { requestReady.fulfill() }
         let first = expectation(description: "first renew")
-        XCTAssertTrue(collection.renewFx { _ in first.fulfill() })
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: store) { _, _ in first.fulfill() })
         wait(for: [requestReady], timeout: 1)
 
         let overlap = expectation(description: "overlap rejected")
         var overlapResult: RenewRunResult?
-        XCTAssertFalse(collection.renewFx {
-            overlapResult = $0
+        XCTAssertFalse(renewAndReload(coordinator: coordinator, store: store) { rejectedResult, _ in
+            overlapResult = rejectedResult
             overlap.fulfill()
         })
         wait(for: [overlap], timeout: 1)
@@ -435,15 +467,15 @@ final class CCS21AtomicRenewTests: XCTestCase {
     func testPresentationIdentityIsStableForNilBusinessIDAndPreservesBusinessID() {
         let businessID = UUID()
         let objectID = "x-coredata://store/ConvertHistory/p1"
-        XCTAssertEqual(
-            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID),
-            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID)
-        )
+        let fallbackID = RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID)
+        XCTAssertEqual(fallbackID, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
         XCTAssertNotEqual(
-            RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID),
+            fallbackID,
             RenewPresentationIdentity.id(businessID: nil, objectIDURI: "x-coredata://store/ConvertHistory/p2")
         )
         XCTAssertEqual(RenewPresentationIdentity.id(businessID: businessID, objectIDURI: objectID), businessID)
+        XCTAssertEqual(fallbackID.uuid.6 & 0xF0, 0x80)
+        XCTAssertEqual(fallbackID.uuid.8 & 0xC0, 0x80)
     }
 
     func testRepeatedReloadOfNilBusinessIDUsesStableObjectIDPresentationID() {
@@ -453,22 +485,70 @@ final class CCS21AtomicRenewTests: XCTestCase {
             objectID: objectID, id: nil, title: nil, url: nil,
             fromSymbol: "USD", toSymbol: "TWD", fromAmount: 2, fxFee: 0, ratio: 4
         )]
-        let collection = ConvertHistoryDMCollection(dataManager: store, converter: CCS21ConverterFixture())
-
-        collection.reload()
+        var firstBeans: [ConvertHistoryUIBean] = []
         let firstReload = expectation(description: "first reload")
-        DispatchQueue.main.async { firstReload.fulfill() }
+        RenewPresentationOrchestration.reload(from: store) { beans in
+            firstBeans = beans
+            firstReload.fulfill()
+        }
         wait(for: [firstReload], timeout: 1)
-        let firstID = collection.data.first?.id
+        let firstID = firstBeans.first?.id
 
-        collection.reload()
         let secondReload = expectation(description: "second reload")
-        DispatchQueue.main.async { secondReload.fulfill() }
+        var secondBeans: [ConvertHistoryUIBean] = []
+        RenewPresentationOrchestration.reload(from: store) { beans in
+            secondBeans = beans
+            secondReload.fulfill()
+        }
         wait(for: [secondReload], timeout: 1)
 
         XCTAssertEqual(store.reloadCount, 2)
-        XCTAssertEqual(collection.data.first?.id, firstID)
-        XCTAssertEqual(collection.data.first?.id, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
+        XCTAssertEqual(secondBeans.first?.id, firstID)
+        XCTAssertEqual(secondBeans.first?.id, RenewPresentationIdentity.id(businessID: nil, objectIDURI: objectID))
+    }
+
+    func testNilBusinessIDReloadFallbackDeletesExactRowAndBusinessIDDeleteStillWorks() {
+        let container = makeContainer()
+        let context = container.newBackgroundContext()
+        let businessID = UUID()
+        seedHistory(in: context, id: nil, ratio: 1)
+        seedHistory(in: context, id: nil, ratio: 2)
+        seedHistory(in: context, id: businessID, ratio: 3)
+        let manager = CHDataManager(context: context)
+
+        let reloaded = expectation(description: "history reloaded")
+        var values: [RenewHistoryValue] = []
+        var beans: [ConvertHistoryUIBean] = []
+        manager.readHistory { history in
+            values = history
+            RenewPresentationOrchestration.reload(from: manager) { presented in
+                beans = presented
+                reloaded.fulfill()
+            }
+        }
+        wait(for: [reloaded], timeout: 1)
+
+        let nilValues = values.filter { $0.id == nil }
+        XCTAssertEqual(nilValues.count, 2)
+        let deletedValue = try! XCTUnwrap(nilValues.first)
+        let deletedFallbackID = try! XCTUnwrap(beans.first { $0.id == RenewPresentationIdentity.id(businessID: nil, objectIDURI: deletedValue.objectID) }?.id)
+        manager.wipeById(deletedFallbackID)
+
+        let afterFallbackDelete = expectation(description: "fallback row deleted")
+        var remainingAfterFallback: [RenewHistoryValue] = []
+        manager.readHistory { remainingAfterFallback = $0; afterFallbackDelete.fulfill() }
+        wait(for: [afterFallbackDelete], timeout: 1)
+        XCTAssertEqual(remainingAfterFallback.count, 2)
+        XCTAssertFalse(remainingAfterFallback.contains { $0.objectID == deletedValue.objectID })
+        XCTAssertEqual(remainingAfterFallback.filter { $0.id == nil }.count, 1)
+
+        manager.wipeById(businessID)
+        let afterBusinessDelete = expectation(description: "business row deleted")
+        var remainingAfterBusinessDelete: [RenewHistoryValue] = []
+        manager.readHistory { remainingAfterBusinessDelete = $0; afterBusinessDelete.fulfill() }
+        wait(for: [afterBusinessDelete], timeout: 1)
+        XCTAssertEqual(remainingAfterBusinessDelete.count, 1)
+        XCTAssertNil(remainingAfterBusinessDelete.first?.id)
     }
 
     func testSnapshotMakesUnsavedInsertedRowPermanentWithoutAssigningBusinessID() {
@@ -611,8 +691,8 @@ final class CCS21AtomicRenewTests: XCTestCase {
         let context = container.newBackgroundContext()
         let firstID = UUID()
         let secondID = UUID()
-        seedHistory(in: context, id: firstID, ratio: 4)
-        seedHistory(in: context, id: secondID, ratio: 8)
+        seedHistory(in: context, id: firstID, ratio: 4, fromSymbol: "USD", toSymbol: "USD")
+        seedHistory(in: context, id: secondID, ratio: 8, fromSymbol: "USD", toSymbol: "USD")
         var saveCalls = 0
         let saveLock = NSLock()
         let manager = CHDataManager(context: context, saveOperation: {
@@ -621,28 +701,32 @@ final class CCS21AtomicRenewTests: XCTestCase {
             saveLock.unlock()
             try context.save()
         })
-        let collection = ConvertHistoryDMCollection(dataManager: manager, converter: CCS21ConverterFixture())
+        let coordinator = AtomicRenewCoordinator(store: manager, converter: CCS21ConverterFixture())
 
         let firstRenew = expectation(description: "first renew")
         var firstResult: RenewRunResult?
-        XCTAssertTrue(collection.renewFx {
+        var firstBeans: [ConvertHistoryUIBean] = []
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: manager) {
             firstResult = $0
+            firstBeans = $1
             firstRenew.fulfill()
         })
         wait(for: [firstRenew], timeout: 1)
         XCTAssertEqual(firstResult?.changedCount, 2)
-        let firstIDs = collection.data.map(\.id)
+        let firstIDs = firstBeans.map(\.id)
         XCTAssertEqual(Set(firstIDs), Set([firstID, secondID]))
 
         let secondRenew = expectation(description: "second renew")
         var secondResult: RenewRunResult?
-        XCTAssertTrue(collection.renewFx {
+        var secondBeans: [ConvertHistoryUIBean] = []
+        XCTAssertTrue(renewAndReload(coordinator: coordinator, store: manager) {
             secondResult = $0
+            secondBeans = $1
             secondRenew.fulfill()
         })
         wait(for: [secondRenew], timeout: 1)
         XCTAssertEqual(secondResult?.changedCount, 0)
-        XCTAssertEqual(collection.data.map(\.id), firstIDs)
+        XCTAssertEqual(secondBeans.map(\.id), firstIDs)
 
         context.performAndWait {
             let objects = try! context.fetch(NSFetchRequest<NSManagedObject>(entityName: "ConvertHistory"))

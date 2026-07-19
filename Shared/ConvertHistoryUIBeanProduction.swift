@@ -1,29 +1,6 @@
 import Foundation
 
-struct ConvertHistoryUIBean: Identifiable {
-    var id: UUID
-    var title: String?
-    var url: String
-    var fromSymbol: String
-    var toSymbol: String
-    var fromAmount: Float
-
-    var toAmount: Float {
-        LegacyConvertHistoryCalculations.toAmount(fromAmount: fromAmount, ratio: ratio)
-    }
-
-    var fxFee: Float {
-        LegacyConvertHistoryCalculations.fxFee(toAmount: toAmount, fxFeeRate: fxFeeRate)
-    }
-
-    var toAmountWithFx: Float {
-        LegacyConvertHistoryCalculations.toAmountWithFx(toAmount: toAmount, fxFeeRate: fxFeeRate)
-    }
-
-    var fxFeeRate: Float
-    var ratio: Float
-    var isChecked = false
-
+extension ConvertHistoryUIBean {
     static func fromCoreData(c: ConvertHistoryRecord) -> ConvertHistoryUIBean {
         let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
             fromSymbol: c.fromSymbol, toSymbol: c.toSymbol, fxFeeRate: c.fxFee, ratio: c.ratio
