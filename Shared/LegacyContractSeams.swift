@@ -26,22 +26,34 @@ enum CurrencyInfoFeedConfiguration {
     }
 
     static func validate(url: URL) -> CurrencyInfoFeedConfigurationError? {
-        validate(url: url, rawValue: url.absoluteString)
+        validate(url: url, rawValue: url.absoluteString, rejectCanonicalizedPercent: true)
     }
 
     static func resolve(bundle: Bundle) -> Resolution {
         resolve(value: bundle.object(forInfoDictionaryKey: infoDictionaryKey))
     }
 
-    private static func validate(url: URL, rawValue: String) -> CurrencyInfoFeedConfigurationError? {
+    private static func validate(
+        url: URL,
+        rawValue: String,
+        rejectCanonicalizedPercent: Bool = false
+    ) -> CurrencyInfoFeedConfigurationError? {
         guard !rawValue.isEmpty,
               rawValue == rawValue.trimmingCharacters(in: .whitespacesAndNewlines),
               rawValue.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return .malformed
         }
-        if let decoded = rawValue.removingPercentEncoding,
-           decoded.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+        guard let decoded = rawValue.removingPercentEncoding else {
+            return .malformed
+        }
+        // Foundation canonicalizes malformed injected percent escapes to %25,
+        // so reject that canonicalized form during URL-only revalidation.
+        if rejectCanonicalizedPercent,
+           rawValue.range(of: "%25", options: [.caseInsensitive]) != nil {
+            return .malformed
+        }
+        if decoded.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
             return .malformed
         }
 

@@ -645,6 +645,26 @@ final class CCS28SecurityTests: XCTestCase {
             return XCTFail("safe HTTPS feed with explicit numeric port should be accepted")
         }
         XCTAssertEqual(explicitPortURL.absoluteString, "https://rates.example.invalid:443/feed")
+
+        let encodedPathResult = CurrencyInfoFeedConfiguration.resolve(
+            value: "https://rates.example.invalid/feed%2Fv1"
+        )
+        guard case .success(let encodedPathURL) = encodedPathResult else {
+            return XCTFail("safe percent-encoded feed path should be accepted")
+        }
+        XCTAssertEqual(encodedPathURL.absoluteString, "https://rates.example.invalid/feed%2Fv1")
+    }
+
+    func testMalformedPercentEscapesAreRejectedForRawValues() {
+        let malformedValues = [
+            "https://rates.example.invalid/feed%",
+            "https://rates.example.invalid/feed%2",
+            "https://rates.example.invalid/feed%GG"
+        ]
+
+        for value in malformedValues {
+            assertConfigurationFailure(value, equals: .malformed)
+        }
     }
 
     func testMalformedPortFeedIsRejected() {
@@ -723,7 +743,10 @@ final class CCS28SecurityTests: XCTestCase {
             "https://rates.example.invalid/feed#",
             "https://" + "user" + "@rates.example.invalid/feed",
             "https://rates.example.invalid:99999/feed",
-            "https://rates.example.invalid/feed%20with-space"
+            "https://rates.example.invalid/feed%20with-space",
+            "https://rates.example.invalid/feed%",
+            "https://rates.example.invalid/feed%2",
+            "https://rates.example.invalid/feed%GG"
         ]
 
         for value in unsafeValues {
@@ -910,7 +933,7 @@ final class CCS28SecurityTests: XCTestCase {
         <!DOCTYPE \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("List")-1.0.dtd">
         <\("plist") version="1.0"><dict>
         <key>Nested</key><dict><key>Enabled</key><true/></dict>
-        <key>CurrencyInfoFeed</key><string>https://rates.example.invalid/feed</string>
+        <key>CurrencyInfoFeed</key><string>https://rates.example.invalid/feed%2Fv1</string>
         </dict></plist>
         """
         try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
@@ -918,6 +941,67 @@ final class CCS28SecurityTests: XCTestCase {
         let result = try runScanner(scanner: scanner, root: repositoryRoot, arguments: ["--artifact", temporaryFile.path])
         XCTAssertEqual(result.status, 0, result.output)
         XCTAssertTrue(result.output.isEmpty, result.output)
+    }
+
+    func testScannerRecognizesWhitespaceDoctypeInExtensionlessPlistAndFindsSensitiveValueWithoutEcho() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-whitespace-doctype-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let syntheticValue = "synthetic-sensitive-value"
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE
+          \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("List")-1.0.dtd">
+        <\("plist") version="1.0"><dict>
+        <key>apiKey</key><string>\(syntheticValue)</string>
+        </dict></plist>
+        """
+        try plist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--artifact", temporaryFile.path]
+        )
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertTrue(result.output.contains("artifact-1:file-1:apiKey"), result.output)
+        XCTAssertFalse(result.output.contains(syntheticValue), result.output)
+    }
+
+    func testScannerRecognizesMalformedWhitespaceDoctypeStructureInExtensionlessFixture() throws {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = sourceFile
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let scanner = repositoryRoot.appendingPathComponent("Scripts/scan-credential-safety.py")
+        let temporaryFile = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ccs28-malformed-whitespace-doctype-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: temporaryFile) }
+
+        let syntheticValue = "synthetic-malformed-value"
+        let malformedPlist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE \("plist") PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/Property\("\n        List - 1.0.dtd")">
+        <\("plist") version="1.0"><dict>
+        <key>apiKey</key><string>\(syntheticValue)</string>
+        </dict>
+        """
+        try malformedPlist.write(to: temporaryFile, atomically: true, encoding: .utf8)
+
+        let result = try runScanner(
+            scanner: scanner,
+            root: repositoryRoot,
+            arguments: ["--artifact", temporaryFile.path]
+        )
+        XCTAssertNotEqual(result.status, 0)
+        XCTAssertTrue(result.output.contains("artifact-1:file-1:invalid-plist"), result.output)
+        XCTAssertFalse(result.output.contains(syntheticValue), result.output)
     }
 
     func testScannerDetectsDataDrivenSensitiveAssignmentsAcrossFileNames() throws {
@@ -989,7 +1073,7 @@ final class CCS28SecurityTests: XCTestCase {
             arguments: ["--artifact", artifactRoot.path]
         )
         XCTAssertNotEqual(artifactResult.status, 0)
-        XCTAssertTrue(artifactResult.output.contains("artifact-1:redacted-"), artifactResult.output)
+        XCTAssertTrue(artifactResult.output.contains("artifact-1:file-1:"), artifactResult.output)
         XCTAssertFalse(artifactResult.output.contains(artifactRoot.path), artifactResult.output)
         XCTAssertFalse(artifactResult.output.contains(syntheticValue), artifactResult.output)
     }
@@ -1201,6 +1285,9 @@ final class CCS28SecurityTests: XCTestCase {
             "https://rates.example.invalid/feed#fragment",
             "https://rates.example.invalid/feed?",
             "https://rates.example.invalid/feed#",
+            "https://rates.example.invalid/feed%",
+            "https://rates.example.invalid/feed%2",
+            "https://rates.example.invalid/feed%GG",
             "https://rates.example.invalid:abc/feed",
             "https://rates.example.invalid:99999/feed",
             userinfoValue,

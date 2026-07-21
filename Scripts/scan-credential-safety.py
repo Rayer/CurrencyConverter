@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Credential-safe scanner for tracked sources and built app artifacts.
 
-Findings intentionally contain only a path and a line/byte location.
+Findings intentionally contain only an opaque label and a line/byte location.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
 import plistlib
 import re
@@ -20,9 +19,17 @@ from urllib.parse import parse_qsl, unquote, unquote_plus, urlsplit
 
 PLIST_SUFFIXES = {".plist"}
 PLIST_BINARY_HEADER = b"bplist" + b"00"
-PLIST_XML_MARKER = b"<" + b"plist"
-PLIST_DOCTYPE_MARKER = b"<!" + b"doctype " + b"plist"
-PLIST_PROPERTY_MARKER = b"property" + b"list-1.0.dtd"
+PLIST_XML_PATTERN = re.compile(
+    b"<" + rb"\s*" + b"plist" + rb"(?:\s|>)", re.IGNORECASE
+)
+PLIST_DOCTYPE_PATTERN = re.compile(
+    b"<" + rb"!\s*" + b"doctype" + rb"\s+" + b"plist" + rb"\b",
+    re.IGNORECASE,
+)
+PLIST_PROPERTY_DTD_PATTERN = re.compile(
+    b"property" + rb"\s*list" + rb"\s*-\s*1\.0" + rb"\s*\.dtd",
+    re.IGNORECASE,
+)
 SENSITIVE_NAMES = frozenset(
     {
         "apikey",
@@ -214,6 +221,8 @@ def safe_endpoint(value: object) -> bool:
         return False
     if any(character.isspace() for character in value) or "$(" in value:
         return False
+    if re.search(r"%(?![0-9A-Fa-f]{2})", value):
+        return False
     if any(character.isspace() for character in unquote(value)):
         return False
     try:
@@ -279,15 +288,15 @@ def looks_like_plist(raw: bytes) -> bool:
     prefix = raw.lstrip()
     if prefix.startswith(PLIST_BINARY_HEADER):
         return True
-    lowered_prefix = prefix[:256].lower()
-    lowered = raw.lower()
-    if lowered_prefix.startswith((PLIST_XML_MARKER, PLIST_DOCTYPE_MARKER)) or (
-        lowered_prefix.startswith(b"<?xml")
-        and (
-            PLIST_XML_MARKER in lowered
-            or PLIST_DOCTYPE_MARKER in lowered
-            or PLIST_PROPERTY_MARKER in lowered
-        )
+    prefix_window = prefix[:1024]
+    if PLIST_XML_PATTERN.match(prefix_window) or PLIST_DOCTYPE_PATTERN.match(
+        prefix_window
+    ):
+        return True
+    if prefix_window.lower().startswith(b"<?xml") and (
+        PLIST_XML_PATTERN.search(prefix_window)
+        or PLIST_DOCTYPE_PATTERN.search(prefix_window)
+        or PLIST_PROPERTY_DTD_PATTERN.search(prefix_window)
     ):
         return True
     # Executables and other binaries can embed plist-shaped string tables.
@@ -298,10 +307,10 @@ def looks_like_plist(raw: bytes) -> bool:
         raw.decode("utf-8")
     except UnicodeDecodeError:
         return False
-    return (
-        PLIST_XML_MARKER in lowered
-        or PLIST_DOCTYPE_MARKER in lowered
-        or PLIST_PROPERTY_MARKER in lowered
+    return bool(
+        PLIST_XML_PATTERN.search(raw)
+        or PLIST_DOCTYPE_PATTERN.search(raw)
+        or PLIST_PROPERTY_DTD_PATTERN.search(raw)
     )
 
 
@@ -320,23 +329,6 @@ def scan_file(path: Path, display: str, findings: list[tuple[str, str]], artifac
     scan_bytes(path, display, raw, findings)
 
 
-def safe_path_component(component: str) -> str:
-    if scan_line(component):
-        digest = hashlib.sha256(os.fsencode(component)).hexdigest()[:12]
-        return f"redacted-{digest}"
-    return component
-
-
-def safe_relative_path(root: Path, path: Path) -> str:
-    try:
-        relative = path.relative_to(root)
-    except ValueError:
-        return "outside-root"
-    if not relative.parts:
-        return "."
-    return "/".join(safe_path_component(part) for part in relative.parts)
-
-
 def scan_artifact(
     path: Path,
     findings: list[tuple[str, str]],
@@ -350,7 +342,7 @@ def scan_artifact(
         return
 
     if stat.S_ISREG(root_mode):
-        scan_file(path, label, findings, artifact=True)
+        scan_file(path, f"{label}:file-1", findings, artifact=True)
         return
     if not stat.S_ISDIR(root_mode) or stat.S_ISLNK(root_mode):
         report(findings, f"{label}:unreadable-root")
@@ -359,8 +351,21 @@ def scan_artifact(
     if walker is None:
         walker = os.walk
 
+    directory_labels: dict[Path, str] = {path: f"{label}:dir-1"}
+    next_directory_number = 2
+    next_file_number = 1
+
+    def directory_label(directory: Path) -> str:
+        nonlocal next_directory_number
+        if directory not in directory_labels:
+            directory_labels[directory] = f"{label}:dir-{next_directory_number}"
+            next_directory_number += 1
+        return directory_labels[directory]
+
+    current_directory_label = directory_label(path)
+
     def traversal_error(_error: OSError) -> None:
-        report(findings, f"{label}:unreadable")
+        report(findings, f"{current_directory_label}:unreadable")
 
     try:
         for directory, directories, filenames in walker(
@@ -370,27 +375,32 @@ def scan_artifact(
             followlinks=False,
         ):
             directory_path = Path(directory)
+            current_directory_label = directory_label(directory_path)
+            directories.sort()
+            filenames.sort()
             for name in list(directories):
                 child = directory_path / name
+                child_directory_label = directory_label(child)
                 try:
                     child_mode = child.lstat().st_mode
                 except OSError:
                     directories.remove(name)
                     report(
                         findings,
-                        f"{label}:{safe_relative_path(path, child)}:unreadable",
+                        f"{child_directory_label}:unreadable",
                     )
                     continue
                 if stat.S_ISLNK(child_mode):
                     directories.remove(name)
                     report(
                         findings,
-                        f"{label}:{safe_relative_path(path, child)}:symlink",
+                        f"{child_directory_label}:symlink",
                     )
 
             for name in filenames:
                 child = directory_path / name
-                display = f"{label}:{safe_relative_path(path, child)}"
+                display = f"{label}:file-{next_file_number}"
+                next_file_number += 1
                 try:
                     child_mode = child.lstat().st_mode
                 except OSError:
@@ -401,7 +411,7 @@ def scan_artifact(
                     continue
                 scan_file(child, display, findings, artifact=True)
     except OSError:
-        report(findings, f"{label}:unreadable")
+        report(findings, f"{current_directory_label}:unreadable")
 
 
 def main() -> int:
@@ -419,8 +429,8 @@ def main() -> int:
         report(findings, "tracked:git-files")
         files = []
 
-    for path in files:
-        scan_file(path, safe_relative_path(root, path), findings, artifact=False)
+    for index, path in enumerate(files, start=1):
+        scan_file(path, f"tracked-file-{index}", findings, artifact=False)
     for index, path in enumerate(args.extra_file, start=1):
         scan_file(path, f"extra-file-{index}", findings, artifact=False)
     for index, path in enumerate(args.artifact, start=1):
