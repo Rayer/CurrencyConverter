@@ -68,7 +68,7 @@ ASSIGNMENT_PATTERN = re.compile(
     (?P<name>
         \"(?:[^\"\\]|\\.)*\"
         |'(?:[^'\\]|\\.)*'
-        |[A-Za-z%][A-Za-z0-9_.%\-]{0,80}
+        |[A-Za-z%][A-Za-z0-9_.%\-]*
     )
     [ \t]*(?:=(?!=)|:(?!=))[ \t]*(?P<value>[^\r\n]*)
     """,
@@ -82,12 +82,15 @@ def report(findings: list[tuple[str, str]], location: str) -> None:
 
 def decode_name(value: object) -> str:
     decoded = str(value)
-    for _ in range(3):
+    while True:
         next_value = unquote_plus(decoded)
         if next_value == decoded:
-            break
+            return decoded
+        # Percent decoding strictly shrinks every changing input, which bounds
+        # the loop without imposing a bypassable nesting-depth limit.
+        if len(next_value) >= len(decoded):
+            return next_value
         decoded = next_value
-    return decoded
 
 
 def normalized_name(value: object) -> str:
@@ -144,13 +147,14 @@ def scan_line(line: str) -> bool:
     if has_sensitive_assignment(line):
         return True
     for match in URL_PATTERN.finditer(line):
-        candidate = match.group(0).rstrip(".,;!?)]}")
+        candidate = match.group(0).rstrip(".,;!)]}")
         try:
             parsed = urlsplit(candidate)
         except ValueError:
             return True
         if (
-            parsed.username is not None
+            candidate.endswith(("?", "#"))
+            or parsed.username is not None
             or parsed.password is not None
             or has_credential_param(parsed.query)
             or has_credential_param(parsed.fragment)
@@ -253,10 +257,6 @@ def is_credential_material(value: object) -> bool:
     if isinstance(value, (bytes, bytearray)):
         return bool(value)
     return False
-
-
-def plist_key_name(key: object) -> str:
-    return normalized_name(key)
 
 
 def scan_plist(raw: bytes, display: str, findings: list[tuple[str, str]], artifact: bool) -> None:

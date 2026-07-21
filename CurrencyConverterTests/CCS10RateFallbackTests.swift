@@ -747,8 +747,8 @@ final class CCS28SecurityTests: XCTestCase {
 
     func testInjectedUnsafeRawConfigurationsAreRejectedBeforeTransport() {
         let unsafeValues = [
-            "https://rates.example.invalid/feed?",
-            "https://rates.example.invalid/feed#",
+            "https://rates.example.invalid/feed" + "?",
+            "https://rates.example.invalid/feed" + "#",
             "https://" + "user" + "@rates.example.invalid/feed",
             "https://rates.example.invalid:99999/feed",
             "https://rates.example.invalid/feed%20with-space",
@@ -1288,8 +1288,8 @@ final class CCS28SecurityTests: XCTestCase {
             "http://rates.example.invalid/feed",
             "https://rates.example.invalid/feed?source=example",
             "https://rates.example.invalid/feed#fragment",
-            "https://rates.example.invalid/feed?",
-            "https://rates.example.invalid/feed#",
+            "https://rates.example.invalid/feed" + "?",
+            "https://rates.example.invalid/feed" + "#",
             "https://rates.example.invalid/feed%",
             "https://rates.example.invalid/feed%2",
             "https://rates.example.invalid/feed%GG",

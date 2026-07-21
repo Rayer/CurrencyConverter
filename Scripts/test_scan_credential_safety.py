@@ -11,6 +11,20 @@ SCANNER = runpy.run_path(str(Path(__file__).with_name("scan-credential-safety.py
 
 
 class ScannerTraversalTests(unittest.TestCase):
+    def test_sensitive_names_have_no_length_or_percent_nesting_bypass(self):
+        long_name = "api" + ("-" * 256) + "key"
+        self.assertTrue(SCANNER["has_sensitive_assignment"](long_name + "=x"))
+
+        encoded_name = "api" + "%5F" + "key"
+        for _ in range(8):
+            encoded_name = encoded_name.replace("%", "%25")
+        self.assertTrue(SCANNER["has_credential_param"](encoded_name + "=x"))
+
+    def test_empty_url_delimiters_are_not_trimmed(self):
+        endpoint = "https://" + "rates.example.invalid/feed"
+        self.assertTrue(SCANNER["scan_line"](endpoint + "?"))
+        self.assertTrue(SCANNER["scan_line"](endpoint + "#"))
+
     def test_injected_traversal_error_is_reported_with_opaque_label(self):
         with tempfile.TemporaryDirectory() as directory:
             findings = []
