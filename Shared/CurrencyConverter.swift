@@ -128,14 +128,8 @@ class CurrencyConverter {
     private func loadFromWebRequest(_ completionHandler: @escaping (Error?) -> Void) {
         let feedURL: URL
         switch feedConfiguration {
-        case .success(let url):
-            guard CurrencyInfoFeedConfiguration.validate(url: url) == nil else {
-                let refreshError = RateDataError.invalidConfiguration
-                self.recordRefreshFailure(refreshError)
-                completionHandler(refreshError)
-                return
-            }
-            feedURL = url
+        case .success(let endpoint):
+            feedURL = endpoint.url
         case .failure(let configurationError):
             let refreshError: RateDataError = configurationError == .missing
                 ? .unavailable

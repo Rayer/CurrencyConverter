@@ -9,8 +9,16 @@ enum CurrencyInfoFeedConfigurationError: Error, Equatable {
     case fragment
 }
 
+struct CurrencyInfoFeedEndpoint: Equatable {
+    let url: URL
+
+    fileprivate init(url: URL) {
+        self.url = url
+    }
+}
+
 enum CurrencyInfoFeedConfiguration {
-    typealias Resolution = Result<URL, CurrencyInfoFeedConfigurationError>
+    typealias Resolution = Result<CurrencyInfoFeedEndpoint, CurrencyInfoFeedConfigurationError>
     static let infoDictionaryKey = "CurrencyInfoFeed"
 
     static func resolve(value: Any?) -> Resolution {
@@ -22,22 +30,14 @@ enum CurrencyInfoFeedConfiguration {
         if let error = validate(url: url, rawValue: value) {
             return .failure(error)
         }
-        return .success(url)
-    }
-
-    static func validate(url: URL) -> CurrencyInfoFeedConfigurationError? {
-        validate(url: url, rawValue: url.absoluteString, rejectCanonicalizedPercent: true)
+        return .success(CurrencyInfoFeedEndpoint(url: url))
     }
 
     static func resolve(bundle: Bundle) -> Resolution {
         resolve(value: bundle.object(forInfoDictionaryKey: infoDictionaryKey))
     }
 
-    private static func validate(
-        url: URL,
-        rawValue: String,
-        rejectCanonicalizedPercent: Bool = false
-    ) -> CurrencyInfoFeedConfigurationError? {
+    private static func validate(url: URL, rawValue: String) -> CurrencyInfoFeedConfigurationError? {
         guard !rawValue.isEmpty,
               rawValue == rawValue.trimmingCharacters(in: .whitespacesAndNewlines),
               rawValue.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
@@ -45,12 +45,6 @@ enum CurrencyInfoFeedConfiguration {
             return .malformed
         }
         guard let decoded = rawValue.removingPercentEncoding else {
-            return .malformed
-        }
-        // Foundation canonicalizes malformed injected percent escapes to %25,
-        // so reject that canonicalized form during URL-only revalidation.
-        if rejectCanonicalizedPercent,
-           rawValue.range(of: "%25", options: [.caseInsensitive]) != nil {
             return .malformed
         }
         if decoded.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {

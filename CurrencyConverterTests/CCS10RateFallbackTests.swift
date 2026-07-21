@@ -635,24 +635,32 @@ final class CCS28SecurityTests: XCTestCase {
     func testSafeHTTPSFeedIsAccepted() {
         let implicitPortResult = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
 
-        guard case .success(let url) = implicitPortResult else {
+        guard case .success(let endpoint) = implicitPortResult else {
             return XCTFail("safe HTTPS feed should be accepted")
         }
-        XCTAssertEqual(url.absoluteString, "https://rates.example.invalid/feed")
+        XCTAssertEqual(endpoint.url.absoluteString, "https://rates.example.invalid/feed")
 
         let explicitPortResult = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid:443/feed")
-        guard case .success(let explicitPortURL) = explicitPortResult else {
+        guard case .success(let explicitPortEndpoint) = explicitPortResult else {
             return XCTFail("safe HTTPS feed with explicit numeric port should be accepted")
         }
-        XCTAssertEqual(explicitPortURL.absoluteString, "https://rates.example.invalid:443/feed")
+        XCTAssertEqual(explicitPortEndpoint.url.absoluteString, "https://rates.example.invalid:443/feed")
 
         let encodedPathResult = CurrencyInfoFeedConfiguration.resolve(
             value: "https://rates.example.invalid/feed%2Fv1"
         )
-        guard case .success(let encodedPathURL) = encodedPathResult else {
+        guard case .success(let encodedPathEndpoint) = encodedPathResult else {
             return XCTFail("safe percent-encoded feed path should be accepted")
         }
-        XCTAssertEqual(encodedPathURL.absoluteString, "https://rates.example.invalid/feed%2Fv1")
+        XCTAssertEqual(encodedPathEndpoint.url.absoluteString, "https://rates.example.invalid/feed%2Fv1")
+
+        let encodedPercentResult = CurrencyInfoFeedConfiguration.resolve(
+            value: "https://rates.example.invalid/feed%25v1"
+        )
+        guard case .success(let encodedPercentEndpoint) = encodedPercentResult else {
+            return XCTFail("valid encoded percent should be accepted")
+        }
+        XCTAssertEqual(encodedPercentEndpoint.url.absoluteString, "https://rates.example.invalid/feed%25v1")
     }
 
     func testMalformedPercentEscapesAreRejectedForRawValues() {
@@ -737,7 +745,7 @@ final class CCS28SecurityTests: XCTestCase {
         XCTAssertEqual(transport.requestCount, 0)
     }
 
-    func testInjectedUnsafeSuccessURLsAreRejectedBeforeTransport() {
+    func testInjectedUnsafeRawConfigurationsAreRejectedBeforeTransport() {
         let unsafeValues = [
             "https://rates.example.invalid/feed?",
             "https://rates.example.invalid/feed#",
@@ -750,14 +758,11 @@ final class CCS28SecurityTests: XCTestCase {
         ]
 
         for value in unsafeValues {
-            guard let url = URL(string: value) else {
-                return XCTFail("test URL should be representable")
-            }
             let transport = CCS10Transport()
             let converter = CurrencyConverter(
                 clock: { Date(timeIntervalSince1970: 1000) },
                 defaults: CCS10Defaults(),
-                feedConfiguration: .success(url),
+                feedConfiguration: CurrencyInfoFeedConfiguration.resolve(value: value),
                 transport: transport.send
             )
             let completed = expectation(description: "invalid injected feed")
