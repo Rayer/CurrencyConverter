@@ -145,6 +145,7 @@ private final class CCS17LateJoinConverter: CurrencyConverter {
 
 final class CCS17RefreshCoalescingTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1000)
+    private let safeFeedConfiguration = CurrencyInfoFeedConfiguration.resolve(value: "https://rates.example.invalid/feed")
     private let successData = Data(#"{"base":"EUR","date":"2026-07-18","rates":{"USD":1.0,"JPY":110.0},"timestamp":123}"#.utf8)
 
     func testConcurrentStaleLoadsUseOneTransportAndFanOutSuccessOnce() {
@@ -256,7 +257,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         defaults.set(now, forKey: "LastUpdateDate")
         defaults.set(["USD": Float32(1)], forKey: "CurrencyData")
         defaults.set(123, forKey: "CurrencyDataTime")
-        let defaultsConverter = CurrencyConverter(clock: { self.now }, defaults: defaults, transport: defaultsTransport.send)
+        let defaultsConverter = CurrencyConverter(clock: { self.now }, defaults: defaults, feedConfiguration: safeFeedConfiguration, transport: defaultsTransport.send)
         let defaultsExpectation = expectation(description: "fresh defaults callers complete")
         defaultsExpectation.expectedFulfillmentCount = 8
         defaultsExpectation.assertForOverFulfill = true
@@ -274,7 +275,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
         var transportCount = 0
         let response = HTTPURLResponse(url: URL(string: "https://example.test")!, statusCode: 200, httpVersion: nil, headerFields: nil)
         let failure = NSError(domain: "CCS17", code: 19)
-        let converter = CurrencyConverter(clock: { self.now }, defaults: defaults) { [self] _, completion in
+        let converter = CurrencyConverter(clock: { self.now }, defaults: defaults, feedConfiguration: safeFeedConfiguration) { [self] _, completion in
             transportCount += 1
             if transportCount == 1 {
                 completion(nil, nil, failure)
@@ -302,7 +303,7 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
 
     func testLateCacheMissJoinsFreshCacheAfterRefreshFinishes() {
         let transport = CCS17ControlledTransport()
-        let converter = CCS17LateJoinConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+        let converter = CCS17LateJoinConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), feedConfiguration: safeFeedConfiguration, transport: transport.send)
         let firstCompletion = expectation(description: "first refresh completion")
 
         converter.loadData { error in
@@ -364,11 +365,11 @@ final class CCS17RefreshCoalescingTests: XCTestCase {
     }
 
     private func makeStaleConverter(transport: CCS17ControlledTransport) -> CurrencyConverter {
-        CurrencyConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+        CurrencyConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), feedConfiguration: safeFeedConfiguration, transport: transport.send)
     }
 
     private func makeObservedStaleConverter(transport: CCS17ControlledTransport) -> CCS17ObservedConverter {
-        CCS17ObservedConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), transport: transport.send)
+        CCS17ObservedConverter(clock: { self.now }, defaults: CCS17MemoryDefaults(), feedConfiguration: safeFeedConfiguration, transport: transport.send)
     }
 
     private func startConcurrentLoads(

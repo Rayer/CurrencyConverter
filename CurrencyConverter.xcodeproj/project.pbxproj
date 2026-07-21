@@ -115,6 +115,7 @@
 		63CC34402371982E00466679 /* CCS21AtomicRenewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCS21AtomicRenewTests.swift; sourceTree = "<group>"; };
 		63CC34502531982E00466679 /* AtomicRenew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicRenew.swift; sourceTree = "<group>"; };
 		625712E62371982E00466679 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		62C49F31252AA15400ED2E72 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		625712F62371982E00466679 /* CurrencyConverter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "CurrencyConverter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		625712FB2371982E00466679 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		625712FE2371982E00466679 /* SafariExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariExtensionHandler.swift; sourceTree = "<group>"; };
@@ -178,6 +179,7 @@
 		625712C42371982500466679 = {
 			isa = PBXGroup;
 			children = (
+				62C49F30252AA15400ED2E72 /* Configuration */,
 				6257131E23719B9800466679 /* Shared */,
 				625712E32371982E00466679 /* CurrencyConverterTests */,
 				625712FD2371982E00466679 /* CurrencyConverter Extension */,
@@ -209,6 +211,14 @@
 				62985BB6238464640022ED28 /* ConvertPasteboardFormatterTest.swift */,
 			);
 			path = CurrencyConverterTests;
+			sourceTree = "<group>";
+		};
+		62C49F30252AA15400ED2E72 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				62C49F31252AA15400ED2E72 /* Base.xcconfig */,
+			);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 		625712FA2371982E00466679 /* Frameworks */ = {
@@ -640,6 +650,7 @@
 		};
 		6257130E2371982E00466679 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C49F31252AA15400ED2E72 /* Base.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -664,6 +675,7 @@
 		};
 		6257130F2371982E00466679 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C49F31252AA15400ED2E72 /* Base.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "CurrencyConverter Extension/CurrencyConverter_Extension.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -728,6 +740,7 @@
 		};
 		628503AC251B937100E381AA /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C49F31252AA15400ED2E72 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -756,6 +769,7 @@
 		};
 		628503AD251B937100E381AA /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62C49F31252AA15400ED2E72 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

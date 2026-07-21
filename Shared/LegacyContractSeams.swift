@@ -1,5 +1,86 @@
 import Foundation
 
+enum CurrencyInfoFeedConfigurationError: Error, Equatable {
+    case missing
+    case malformed
+    case nonHTTPS
+    case userinfo
+    case query
+    case fragment
+}
+
+struct CurrencyInfoFeedEndpoint: Equatable {
+    let url: URL
+
+    fileprivate init(url: URL) {
+        self.url = url
+    }
+}
+
+enum CurrencyInfoFeedConfiguration {
+    typealias Resolution = Result<CurrencyInfoFeedEndpoint, CurrencyInfoFeedConfigurationError>
+    static let infoDictionaryKey = "CurrencyInfoFeed"
+
+    static func resolve(value: Any?) -> Resolution {
+        guard let value = value as? String else {
+            return .failure(value == nil ? .missing : .malformed)
+        }
+        guard !value.isEmpty else { return .failure(.missing) }
+        guard let url = URL(string: value) else { return .failure(.malformed) }
+        if let error = validate(url: url, rawValue: value) {
+            return .failure(error)
+        }
+        return .success(CurrencyInfoFeedEndpoint(url: url))
+    }
+
+    static func resolve(bundle: Bundle) -> Resolution {
+        resolve(value: bundle.object(forInfoDictionaryKey: infoDictionaryKey))
+    }
+
+    private static func validate(url: URL, rawValue: String) -> CurrencyInfoFeedConfigurationError? {
+        guard !rawValue.isEmpty,
+              rawValue == rawValue.trimmingCharacters(in: .whitespacesAndNewlines),
+              rawValue.rangeOfCharacter(from: .whitespacesAndNewlines) == nil,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return .malformed
+        }
+        guard let decoded = rawValue.removingPercentEncoding else {
+            return .malformed
+        }
+        if decoded.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+            return .malformed
+        }
+
+        guard components.scheme?.lowercased() == "https" else {
+            if let scheme = components.scheme, scheme.lowercased() != "https" {
+                return .nonHTTPS
+            }
+            return .malformed
+        }
+        guard let host = components.host, !host.isEmpty else { return .malformed }
+        if let port = components.port, !(1...65535).contains(port) {
+            return .malformed
+        }
+        if components.user != nil || components.password != nil || authority(in: rawValue).contains("@") {
+            return .userinfo
+        }
+        if rawValue.contains("?") || components.query != nil {
+            return .query
+        }
+        if rawValue.contains("#") || components.fragment != nil {
+            return .fragment
+        }
+        return nil
+    }
+
+    private static func authority(in value: String) -> String {
+        guard let separator = value.range(of: "://") else { return "" }
+        let authorityStart = separator.upperBound
+        let remainder = value[authorityStart...]
+        return String(remainder.prefix { $0 != "/" && $0 != "?" && $0 != "#" })
+    }
+}
+
 enum RateDataSource: Equatable {
     case memory
     case defaults
@@ -11,6 +92,7 @@ enum RateDataError: Error, Equatable {
     case httpStatus(Int)
     case decode
     case invalidPayload
+    case invalidConfiguration
     case missingRate(String)
     case unavailable
 
@@ -24,6 +106,8 @@ enum RateDataError: Error, Equatable {
             return "Rate service returned unreadable data."
         case .invalidPayload:
             return "Rate service returned invalid data."
+        case .invalidConfiguration:
+            return "Rate feed configuration is invalid."
         case .missingRate:
             return "Requested currency rate unavailable."
         case .unavailable:

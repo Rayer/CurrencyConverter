@@ -1,0 +1,3 @@
+// Safe default: local/release builds may override this through the optional include.
+CURRENCY_INFO_FEED =
+#include? "RateFeed.xcconfig"

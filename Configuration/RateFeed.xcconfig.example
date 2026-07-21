@@ -1,0 +1,5 @@
+// Copy this file to RateFeed.xcconfig for a local or release build.
+// The endpoint must be credential-free HTTPS with no userinfo, query, or fragment.
+CURRENCY_INFO_FEED = https:/$()/rates.example.invalid/feed
+// After Xcode expands the escaped slash, the processed plist contains:
+// https://rates.example.invalid/feed

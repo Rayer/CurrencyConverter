@@ -37,6 +37,33 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 1. ~~首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。~~ 現在我架設自己的server來解決這問題，希望他不要被打爆（不可能吧！？）
 2. 沒有i18n....說真的也不太需要吧
 
+## Rate-feed configuration
+
+The repository and its default app/extension builds contain no configured rate feed. `Configuration/Base.xcconfig` is the tracked base configuration for the app and Safari extension Debug/Release targets. It sets `CURRENCY_INFO_FEED` empty, then Xcode automatically loads the optional, ignored `Configuration/RateFeed.xcconfig` when that file exists.
+
+For a local or release-injected build, copy the safe example and build both targets:
+
+```sh
+cp Configuration/RateFeed.xcconfig.example Configuration/RateFeed.xcconfig
+xcodebuild -project CurrencyConverter.xcodeproj -scheme CurrencyConverter -configuration Release -destination "platform=macOS,arch=$(uname -m)" build
+xcodebuild -project CurrencyConverter.xcodeproj -scheme "CurrencyConverter Extension" -configuration Release -destination "platform=macOS,arch=$(uname -m)" build
+rm Configuration/RateFeed.xcconfig
+```
+
+The example uses xcconfig-safe escaped slashes (`https:/$()/rates.example.invalid/feed`); after Xcode expands the variable, the processed plist contains the normal credential-free HTTPS URL `https://rates.example.invalid/feed`. Without the copied file, the processed `CurrencyInfoFeed` value is empty. The value must never contain credentials, userinfo, a query, or a fragment. Never put provider credentials in source, plist files, build settings, tests, logs, or release artifacts.
+
+## CCS-28 owner-only incident runbook (2026-07-19)
+
+Treat every previously tracked credential as compromised. This runbook is owner-only and records work that must be evidenced before CCS-28 is marked Fixed; external rotation is not claimed complete here.
+
+1. Code removal: verify credential literals and credential-bearing feed URLs are removed from source, plists, tests, configuration, build settings, and generated app/extension artifacts; run the tracked-tree and artifact scanners.
+2. External provider revoke/rotate: revoke each compromised provider credential, issue replacements through the provider, and confirm the old credentials no longer authenticate. Record provider ticket IDs and timestamps.
+3. Intermediary/server configuration rotation: if any rate intermediary exists outside this repository, rotate its upstream credentials and deployment secrets, redeploy, verify access logs and health checks, and record the deployment/change IDs. Do not add an intermediary as part of CCS-28.
+4. Git history assessment: identify affected commits, refs, tags, forks, mirrors, caches, and retention windows; obtain an owner decision on whether history exposure requires a separate remediation. Do not rewrite history as part of CCS-28.
+5. GitHub release artifact replacement/removal: inventory releases and attached archives, remove or replace affected artifacts, invalidate distribution links where applicable, and record release IDs and timestamps.
+6. Downstream forks/clones/caches: notify owners of forks, clones, CI caches, package mirrors, and backups; request purge/reclone actions and record acknowledgements or outstanding owners.
+7. Evidence before Fixed: attach the code-removal diff, scanner/build/test results, provider revoke/rotate confirmations, intermediary deployment evidence when applicable, history assessment, release artifact actions, downstream notifications, and owner sign-off. CCS-28 remains open until the external evidence is complete.
+
 ## Xcode 26.6 build and test baseline
 
 The reproducible baseline uses Xcode 26.6 (build 17F113) explicitly:
