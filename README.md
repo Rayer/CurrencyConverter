@@ -17,8 +17,8 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 
 1. 從[Release頁面](https://github.com/Rayer/CurrencyConverter/releases)下載`CurrencyConverter.app.zip`，目前版本是1.5。預設我放上去的版本都是開發者簽名過且AppConnect認證過的application。
 2. 就像普通macOS App一樣，把他丟進Application
-3. 執行App，按下Enable/Disable extension。如果沒有反應的話，請打開Safari -> Preference -> Extensions，啟動CurrencyConverter。
-4. 他會自動打開Safari Preference，把Plugin的CurrencyConverter打勾即可。
+3. 執行App，按下`Open Safari Extension Settings`。App只能開啟Safari的Extension設定，不能直接替你切換開關。
+4. Safari設定會選取CurrencyConverter；在Safari的`Settings -> Extensions`中手動啟用或停用它，然後回到App查看狀態。
 
 
 ## 主要功能
