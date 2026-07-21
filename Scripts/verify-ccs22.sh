@@ -33,7 +33,8 @@ fi
 if rg -q 'com\.rayer\.CurrencyConverter-Extension' CurrencyConverter Shared; then
     fail "extension bundle identifier is duplicated in Swift"
 fi
-test "$(rg -c '^[[:space:]]+63CC34622531982E00466679 .*SafariExtensionSettingsState.swift in Sources.*,$' CurrencyConverter.xcodeproj/project.pbxproj)" = 2 || fail "state seam is not in app and test targets"
+test "$(rg -c '^[[:space:]]+63CC34612531982E00466679 .*SafariExtensionSettingsState.swift in Sources.*,$' CurrencyConverter.xcodeproj/project.pbxproj)" = 1 || fail "state seam app build file is missing or reused"
+test "$(rg -c '^[[:space:]]+63CC34622531982E00466679 .*SafariExtensionSettingsState.swift in Sources.*,$' CurrencyConverter.xcodeproj/project.pbxproj)" = 1 || fail "state seam test build file is missing or reused"
 test "$(rg -c '^[[:space:]]+63CC346[89]2531982E00466679 .*SafariExtensionSettingsViewModel.swift in Sources.*,$' CurrencyConverter.xcodeproj/project.pbxproj)" = 2 || fail "shared ViewModel is not in app and test targets"
 app_sources=$(awk '/62850394251B936F00E381AA \/\* Sources \*\/ =/ {in_sources=1} in_sources {print} in_sources && /runOnlyForDeploymentPostprocessing = 0;/ {exit}' CurrencyConverter.xcodeproj/project.pbxproj)
 test_sources=$(awk '/625712DC2371982E00466679 \/\* Sources \*\/ =/ {in_sources=1} in_sources {print} in_sources && /runOnlyForDeploymentPostprocessing = 0;/ {exit}' CurrencyConverter.xcodeproj/project.pbxproj)

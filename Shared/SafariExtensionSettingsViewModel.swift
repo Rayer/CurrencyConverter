@@ -40,6 +40,7 @@ final class SafariExtensionSettingsViewModel: ObservableObject {
                         guard self.stateMachine.apply(.failure(errorMessage), for: generation) else { return }
                         self.publishCopy()
                     } else {
+                        guard self.stateMachine.generation == generation else { return }
                         self.refresh()
                     }
                 }

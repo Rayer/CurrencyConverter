@@ -482,7 +482,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63CC34632531982E00466679 /* SafariExtensionSettingsAdapter.swift in Sources */,
-				63CC34622531982E00466679 /* SafariExtensionSettingsState.swift in Sources */,
+				63CC34612531982E00466679 /* SafariExtensionSettingsState.swift in Sources */,
 				63CC34682531982E00466679 /* SafariExtensionSettingsViewModel.swift in Sources */,
 				6262F06925220FA90066ADFA /* SharedPersistent.swift in Sources */,
 				6262F07F252226100066ADFA /* PreviewConvertHistory.swift in Sources */,

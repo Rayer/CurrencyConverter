@@ -73,6 +73,20 @@ func testSuccessfulHandoffTriggersRefresh() {
     require(viewModel.copy.accessibilityValue == "Enabled.", "handoff refresh result must be visible")
 }
 
+func testStaleSuccessfulHandoffCannotTriggerRefresh() {
+    let provider = FakeSafariExtensionSettingsProvider()
+    let viewModel = SafariExtensionSettingsViewModel(provider: provider)
+
+    viewModel.openSettings()
+    viewModel.openSettings()
+    require(provider.openSettingsCompletions.count == 2, "overlapping handoffs must remain independently controllable")
+
+    provider.openSettingsCompletions[0](nil)
+    require(provider.fetchCompletions.isEmpty, "stale successful handoff must not start a refresh")
+    provider.openSettingsCompletions[1](nil)
+    require(provider.fetchCompletions.count == 1, "current successful handoff must start one refresh")
+}
+
 func testStaleOutOfOrderCallbacksCannotOverwriteLatestState() {
     let provider = FakeSafariExtensionSettingsProvider()
     let viewModel = SafariExtensionSettingsViewModel(provider: provider)
@@ -128,8 +142,9 @@ struct CCS22StandaloneTests {
         testBackgroundRefreshPublishesOnMain()
         testOpenSettingsErrorIsVisible()
         testSuccessfulHandoffTriggersRefresh()
+        testStaleSuccessfulHandoffCannotTriggerRefresh()
         testStaleOutOfOrderCallbacksCannotOverwriteLatestState()
         testDuplicateActivationRefreshIsGenerationSafe()
-        print("CCS-22 standalone state/copy/ViewModel/provider checks passed (6 integration/state cases)")
+        print("CCS-22 standalone state/copy/ViewModel/provider checks passed (7 integration/state cases)")
     }
 }
