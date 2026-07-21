@@ -13,6 +13,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     var window: NSWindow!
+    private let extensionSettingsViewModel = SafariExtensionSettingsViewModel(provider: SafariExtensionSettingsAdapter())
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
@@ -22,7 +23,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Create the SwiftUI view and set the context as the value for the managedObjectContext environment keyPath.
         // Add `@Environment(\.managedObjectContext)` in the views that will need the context.
-        let contentView = ContentView().environment(\.managedObjectContext, persistentContainer.viewContext)
+        let contentView = ContentView(extensionSettings: extensionSettingsViewModel)
+            .environment(\.managedObjectContext, persistentContainer.viewContext)
 
         // Create the window and set the content view.
         window = NSWindow(
@@ -137,4 +139,3 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
 }
-

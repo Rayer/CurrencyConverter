@@ -12,11 +12,12 @@ import SwiftUI
 struct ContentView: View {
     
     @ObservedObject var dataset = ConvertHistoryDMCollection()
-    @ObservedObject private var extensionSettings = SafariExtensionSettingsViewModel()
+    @ObservedObject private var extensionSettings: SafariExtensionSettingsViewModel
     @State var showInstallButton = true
     @State var currentTab = 0
     
-    init() {
+    init(extensionSettings: SafariExtensionSettingsViewModel) {
+        _extensionSettings = ObservedObject(wrappedValue: extensionSettings)
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
         dataset.reload()
     }
@@ -98,6 +99,16 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
 
     static var previews: some View {
-        ContentView()
+        ContentView(extensionSettings: SafariExtensionSettingsViewModel(provider: PreviewSafariExtensionSettingsProvider()))
+    }
+}
+
+private struct PreviewSafariExtensionSettingsProvider: SafariExtensionSettingsProviding {
+    func fetchState(completion: @escaping (SafariExtensionSettingsResult) -> Void) {
+        completion(.status(.unknown))
+    }
+
+    func openSettings(completion: @escaping (String?) -> Void) {
+        completion(nil)
     }
 }
