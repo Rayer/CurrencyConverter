@@ -18,6 +18,7 @@ fi
 rg -q 'SFSafariApplication\.showPreferencesForExtension\(withIdentifier: identifier' CurrencyConverter/SafariExtensionSettingsAdapter.swift || fail "settings API wiring is missing"
 rg -q 'SFSafariExtensionManager\.getStateOfSafariExtension\(withIdentifier: identifier\)' CurrencyConverter/SafariExtensionSettingsAdapter.swift || fail "state API wiring is missing"
 rg -q 'builtInPlugInsURL' CurrencyConverter/SafariExtensionSettingsAdapter.swift || fail "configured embedded extension lookup is missing"
+rg -q 'NSApplication\.didBecomeActiveNotification' CurrencyConverter/ContentView.swift || fail "state is not refreshed when the user returns from Safari"
 if rg -q 'com\.rayer\.CurrencyConverter-Extension' CurrencyConverter Shared; then
     fail "extension bundle identifier is duplicated in Swift"
 fi

@@ -6,6 +6,7 @@
 //  Copyright © 2020 Rayer. All rights reserved.
 //
 
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -61,6 +62,9 @@ struct ContentView: View {
                 }
             }
             .onAppear {
+                extensionSettings.refresh()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 extensionSettings.refresh()
             }
             .tabItem {
