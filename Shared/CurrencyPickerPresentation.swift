@@ -24,7 +24,10 @@ enum CurrencyPickerPresentation {
 
     static func items(for codes: [String], flagProvider: (String) -> String) -> [CurrencyPickerItem] {
         sortedCodes(codes).map { code in
-            CurrencyPickerItem(code: code, flag: flagProvider(code))
+            CurrencyPickerItem(
+                code: code,
+                flag: flagProvider(code).trimmingCharacters(in: .whitespacesAndNewlines)
+            )
         }
     }
 

@@ -46,7 +46,17 @@ class CreditCardManagerViewModel : ObservableObject {
     init() {
         let c = CurrencyConverter.shared
         c.getSymbols { (symbols, error) in
-            self.clearinghouseCurrencyList = CurrencyPickerPresentation.sortedCodes(symbols ?? [], including: self.clearinghouseCurrency)
+            let publish = {
+                self.clearinghouseCurrencyList = CurrencyPickerPresentation.sortedCodes(
+                    symbols ?? [],
+                    including: self.clearinghouseCurrency
+                )
+            }
+            if Thread.isMainThread {
+                publish()
+            } else {
+                DispatchQueue.main.async(execute: publish)
+            }
         }
         
         self.savedProfile = FetchAllCreditCardProfileEntities()

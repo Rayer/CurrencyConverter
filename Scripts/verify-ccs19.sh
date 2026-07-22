@@ -12,9 +12,7 @@ fail() {
 
 command -v rg >/dev/null 2>&1 || fail "rg is required"
 
-rg -q 'Text\(item\.code\)' "$picker_file" || fail "picker rows must render the code first"
-rg -q 'Text\(item\.flag\)' "$picker_file" || fail "picker rows must retain decorative flags"
-rg -q '\.accessibility\(hidden: true\)' "$picker_file" || fail "flags must be hidden from accessibility"
+rg -q 'Text\(item\.label\)' "$picker_file" || fail "picker rows must use one native code-first text title"
 rg -q '\.accessibility\(label: Text\(item\.accessibilityLabel\)\)' "$picker_file" || fail "picker rows need an explicit code-only accessibility label"
 if rg -q 'Text\("\(CountryCurrency\.shared\.getFlag' "$picker_file"; then
     fail "flag-first Text remains in the currency picker"

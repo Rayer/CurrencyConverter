@@ -38,7 +38,7 @@ final class CCS19CurrencyPickerTests: XCTestCase {
     }
 
     func testMissingFlagFallsBackWithoutChangingCodeIdentity() {
-        let item = CurrencyPickerPresentation.items(for: ["ZZZ"], flagProvider: { _ in "" }).first!
+        let item = CurrencyPickerPresentation.items(for: ["ZZZ"], flagProvider: { _ in " " }).first!
 
         XCTAssertEqual(item.code, "ZZZ")
         XCTAssertEqual(item.label, "ZZZ")

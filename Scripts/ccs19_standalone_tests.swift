@@ -29,7 +29,7 @@ func testExactCodeAndExistingSelection() {
 }
 
 func testAccessibilityAndMissingFlag() {
-    let item = CurrencyPickerPresentation.items(for: ["ZZZ"], flagProvider: { _ in "" }).first!
+    let item = CurrencyPickerPresentation.items(for: ["ZZZ"], flagProvider: { _ in " " }).first!
     require(item.label == "ZZZ", "missing flags must not change visible code identity")
     require(item.accessibilityLabel == "ZZZ", "accessibility must remain code-first")
 }

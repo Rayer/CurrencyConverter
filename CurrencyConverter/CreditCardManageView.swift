@@ -26,11 +26,7 @@ struct CreditCardManageView: View {
                     
                     Picker(selection: self.$model.clearinghouseCurrency, label: Text("Clearinghouse Currency")){
                         ForEach(CurrencyPickerPresentation.items(for: self.model.clearinghouseCurrencyList, flagProvider: { CountryCurrency.shared.getFlag(symbol: $0) }), id: \.code) { item in
-                            HStack(spacing: 4) {
-                                Text(item.code)
-                                Text(item.flag)
-                                    .accessibility(hidden: true)
-                            }
+                            Text(item.label)
                             .accessibility(label: Text(item.accessibilityLabel))
                             .tag(item.code)
                         }
