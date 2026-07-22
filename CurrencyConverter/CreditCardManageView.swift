@@ -25,8 +25,14 @@ struct CreditCardManageView: View {
                     UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique and between length of 1 to 24", errorMessage: "Invalid name, it must be between 1-24", bindedValue: self.$model.creditCardName, isValid: self.model.creditCardNameValid, is2liner: false).padding()
                     
                     Picker(selection: self.$model.clearinghouseCurrency, label: Text("Clearinghouse Currency")){
-                        ForEach(self.model.clearinghouseCurrencyList, id:\.self) { (symbol) in
-                            Text("\(CountryCurrency.shared.getFlag(symbol: symbol)) \(symbol)").tag(symbol)
+                        ForEach(CurrencyPickerPresentation.items(for: self.model.clearinghouseCurrencyList, flagProvider: { CountryCurrency.shared.getFlag(symbol: $0) }), id: \.code) { item in
+                            HStack(spacing: 4) {
+                                Text(item.code)
+                                Text(item.flag)
+                                    .accessibility(hidden: true)
+                            }
+                            .accessibility(label: Text(item.accessibilityLabel))
+                            .tag(item.code)
                         }
                     }.padding()
                     

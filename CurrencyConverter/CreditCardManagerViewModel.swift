@@ -19,7 +19,7 @@ class CreditCardManagerViewModel : ObservableObject {
     @Published var isUpdateCard = false
     @Published var creditCardNameValid = true
     @Published var clearinghouseCurrency = "TWD"
-    var clearinghouseCurrencyList: [String] = []
+    @Published var clearinghouseCurrencyList: [String] = CurrencyPickerPresentation.sortedCodes([], including: "TWD")
     @Published var FxRate = "1.5"
     @Published var FxRateValidate = true
     @Published var cbDomesticRate = ""
@@ -46,7 +46,7 @@ class CreditCardManagerViewModel : ObservableObject {
     init() {
         let c = CurrencyConverter.shared
         c.getSymbols { (symbols, error) in
-            self.clearinghouseCurrencyList = symbols?.sorted() ?? [""]
+            self.clearinghouseCurrencyList = CurrencyPickerPresentation.sortedCodes(symbols ?? [], including: self.clearinghouseCurrency)
         }
         
         self.savedProfile = FetchAllCreditCardProfileEntities()
@@ -186,6 +186,7 @@ class CreditCardManagerViewModel : ObservableObject {
         self.creditCardName = profile.name ?? "---"
         self.FxRate = "\(profile.fxRate)"
         self.clearinghouseCurrency = profile.clearinghouseCurrency ?? ""
+        self.clearinghouseCurrencyList = CurrencyPickerPresentation.sortedCodes(self.clearinghouseCurrencyList, including: self.clearinghouseCurrency)
         let decoder = JSONDecoder()
         switch profile.type {
         case 0:
