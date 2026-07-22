@@ -6,16 +6,18 @@
 //  Copyright © 2020 Rayer. All rights reserved.
 //
 
+import AppKit
 import SwiftUI
-import SafariServices
 
 struct ContentView: View {
     
     @ObservedObject var dataset = ConvertHistoryDMCollection()
+    @ObservedObject private var extensionSettings: SafariExtensionSettingsViewModel
     @State var showInstallButton = true
     @State var currentTab = 0
     
-    init() {
+    init(extensionSettings: SafariExtensionSettingsViewModel) {
+        _extensionSettings = ObservedObject(wrappedValue: extensionSettings)
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
         dataset.reload()
     }
@@ -45,18 +47,28 @@ struct ContentView: View {
                     }.padding(.all, 5)
                     Spacer()
                     if self.showInstallButton {
-                        Button("Enable/Disable Extension") {
-                            SFSafariApplication.showPreferencesForExtension(withIdentifier: "com.rayer.CurrencyConverter-Extension") { error in
-                                if let e = error {
-                                    // Insert code to inform the user that something went wrong.
-                                    print("Error opening preference for extension : \(e)")
-                                }
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(extensionSettings.copy.statusText)
+                                .font(.caption)
+                                .multilineTextAlignment(.trailing)
+                                .accessibility(label: Text("Safari extension status"))
+                                .accessibility(value: Text(extensionSettings.copy.accessibilityValue))
+                            Button(extensionSettings.copy.actionTitle) {
+                                extensionSettings.openSettings()
                             }
-                            
-                        }.padding(.all, 5)
+                            .accessibility(hint: Text(extensionSettings.copy.accessibilityHint))
+                        }
+                        .padding(.all, 5)
                     }
                 }
-            }.tabItem {
+            }
+            .onAppear {
+                extensionSettings.refresh()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                extensionSettings.refresh()
+            }
+            .tabItem {
                 Text("Stored Records")
                 
             }.tag(0)
@@ -87,6 +99,16 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
 
     static var previews: some View {
-        ContentView()
+        ContentView(extensionSettings: SafariExtensionSettingsViewModel(provider: PreviewSafariExtensionSettingsProvider()))
+    }
+}
+
+private struct PreviewSafariExtensionSettingsProvider: SafariExtensionSettingsProviding {
+    func fetchState(completion: @escaping (SafariExtensionSettingsResult) -> Void) {
+        completion(.status(.unknown))
+    }
+
+    func openSettings(completion: @escaping (String?) -> Void) {
+        completion(nil)
     }
 }
