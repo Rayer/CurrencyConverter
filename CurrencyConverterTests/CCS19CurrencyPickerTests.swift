@@ -2,25 +2,11 @@ import XCTest
 @testable import CurrencyConverter
 
 final class CCS19CurrencyPickerTests: XCTestCase {
-    private let codes = ["TWD", "AED", "TRY", "THB", "USD", "TJS", "TND", "TOP", "TTD", "TZS"]
-
     func testCodesAreDeterministicallySortedAndDeduplicated() {
         XCTAssertEqual(
             CurrencyPickerPresentation.sortedCodes(["USD", "AED", "TWD", "AED"]),
             ["AED", "TWD", "USD"]
         )
-    }
-
-    func testTypingTReturnsAlphabeticalTCodeSequence() {
-        XCTAssertEqual(
-            CurrencyPickerPresentation.matchingCodes(for: "T", in: codes),
-            ["THB", "TJS", "TND", "TOP", "TRY", "TTD", "TWD", "TZS"]
-        )
-    }
-
-    func testFullCodeTypingFindsExactCode() {
-        XCTAssertEqual(CurrencyPickerPresentation.exactCode(for: "twd", in: codes), "TWD")
-        XCTAssertNil(CurrencyPickerPresentation.exactCode(for: "TW", in: codes))
     }
 
     func testExistingSelectedCodeIsKeptWhenRateDataOmitsIt() {

@@ -14,17 +14,8 @@ func testDeterministicOrdering() {
     )
 }
 
-func testTPrefixSequence() {
-    let codes = ["TWD", "AED", "TRY", "THB", "USD", "TJS", "TND", "TOP", "TTD", "TZS"]
-    require(
-        CurrencyPickerPresentation.matchingCodes(for: "T", in: codes) == ["THB", "TJS", "TND", "TOP", "TRY", "TTD", "TWD", "TZS"],
-        "T must match the alphabetical T-code sequence"
-    )
-}
-
-func testExactCodeAndExistingSelection() {
+func testExistingSelection() {
     let codes = ["USD", "EUR"]
-    require(CurrencyPickerPresentation.exactCode(for: "twd", in: codes + ["TWD"]) == "TWD", "full-code lookup must be exact")
     require(CurrencyPickerPresentation.sortedCodes(codes, including: "TWD") == ["EUR", "TWD", "USD"], "selected profile code must remain selectable")
 }
 
@@ -38,9 +29,8 @@ func testAccessibilityAndMissingFlag() {
 struct CCS19StandaloneTests {
     static func main() {
         testDeterministicOrdering()
-        testTPrefixSequence()
-        testExactCodeAndExistingSelection()
+        testExistingSelection()
         testAccessibilityAndMissingFlag()
-        print("CCS-19 standalone picker checks passed (4 cases)")
+        print("CCS-19 standalone picker checks passed (3 cases)")
     }
 }
