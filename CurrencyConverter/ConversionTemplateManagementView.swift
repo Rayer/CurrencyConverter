@@ -42,11 +42,13 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
             case .failure(let error):
                 self.templates = []
                 selectedID = nil
+                preview = ""
                 errorMessage = error.errorDescription
             }
         case .failure(let error):
             templates = []
             selectedID = nil
+            preview = ""
             errorMessage = error.errorDescription
         }
     }

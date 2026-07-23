@@ -34,16 +34,6 @@ struct CCS15StandaloneTests {
         }
         require(output == "62.14 62.14 USD USD", "all occurrences were not formatted")
 
-        let gate = LatestRequestGate<String, Int>()
-        let stale = gate.begin(for: "page")
-        let current = gate.begin(for: "page")
-        let other = gate.begin(for: "other")
-        require(!gate.publish(1, generation: stale), "stale request published")
-        require(gate.publish(2, generation: current), "current request was rejected")
-        require(gate.publish(3, generation: other), "other page request was rejected")
-        require(gate.consume(for: "other") == 3, "other page result was not isolated")
-        require(gate.consume(for: "page") == 2, "current result was not consumed")
-        require(gate.consume(for: "page") == nil, "result was consumed more than once")
         print("CCS-15 standalone domain checks passed")
     }
 }

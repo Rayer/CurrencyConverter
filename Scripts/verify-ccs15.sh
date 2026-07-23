@@ -31,6 +31,7 @@ rg -q 'context\.reset\(\)' Shared/FormatStringDataManager.swift || fail "reposit
 rg -q 'flock\(descriptor, LOCK_EX\)' Shared/FormatStringDataManager.swift || fail "repository has no cross-process write serialization"
 rg -q 'objectsByID\[id, default: \[\]\]' Shared/FormatStringDataManager.swift || fail "repository does not repair duplicate stable IDs"
 rg -q 'objectID\.uriRepresentation\(\)\.absoluteString' Shared/FormatStringDataManager.swift || fail "duplicate repair has no permanent object-ID tie-breaker"
+rg -q 'obtainPermanentIDs\(for: temporaryObjects\)' Shared/FormatStringDataManager.swift || fail "duplicate repair does not obtain permanent object IDs"
 if rg -q 'initializationError|try performAndWait \{ try ensureBundledDefaults\(\) \}' Shared/FormatStringDataManager.swift; then
     fail "repository still performs sticky eager initialization"
 fi
@@ -44,10 +45,9 @@ if rg -q 'defaultFormattingString|\$\{to_amount\} \$\{to_symbol\}' 'CurrencyConv
     fail "extension contains a duplicate hard-coded template array"
 fi
 rg -q 'templateManager\.selectedTemplate\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context menu does not read selected repository template"
-rg -q 'LatestRequestGate<ContextMenuRequestKey, LastResult>' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu results are not request-scoped"
-rg -q 'pendingResults\.consume' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu result is not atomically consumed"
-rg -q 'pageIdentifier = ObjectIdentifier\(page\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu result is not page-scoped"
 rg -Fq 'OneShot<(Bool, String?)>' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu validation callback is not once-only"
+prepare_count=$(rg -c 'prepareResult\(userInfo: userInfo\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift')
+[ "$prepare_count" -eq 2 ] || fail "selection does not recompute its own context-menu result"
 if rg -q 'sharedUserDefaults.*lastResult|performBackgroundTask|try\? context\.save\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift'; then
     fail "context-menu output or history can remain stale or fire-and-forget"
 fi

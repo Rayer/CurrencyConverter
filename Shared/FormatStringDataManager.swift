@@ -233,7 +233,12 @@ final class FormatStringDataManager {
 
     private func ensureBundledDefaults() throws {
         let request = try formatStringFetchRequest()
-        let objects = try context.fetch(request).sorted(by: Self.objectOrder)
+        let fetched = try context.fetch(request)
+        let temporaryObjects = fetched.filter { $0.objectID.isTemporaryID }
+        if !temporaryObjects.isEmpty {
+            try context.obtainPermanentIDs(for: temporaryObjects)
+        }
+        let objects = fetched.sorted(by: Self.objectOrder)
         var changed = false
         var objectsByID: [UUID: [FormatString]] = [:]
 
