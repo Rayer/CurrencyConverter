@@ -128,12 +128,6 @@ Observed baseline on arm64: the test command passes and executes 5 tests (includ
 
 ## CCS-19 picker verification (2026-07-22)
 
-The code-first picker change was verified on arm64 with Xcode 26.6 (macOS deployment target 10.15): the standalone/static checks pass, the focused picker suite passes 6/6, the focused TSan run passes 6/6, and the full suite passes 122/122. App and extension Debug builds both succeed. Plists, project structure, diff whitespace, and credential safety checks pass.
+The code-first picker change was verified on arm64 with Xcode 26.6 (macOS deployment target 10.15): standalone/static checks pass, the focused production-causal picker suite passes 4/4, and the full suite passes 120/120. A focused TSan run passed 6/6 with no warning or race at the exact production code; the later change only removed unused helpers and their non-production-causal tests. App and extension Debug builds both succeed. Plists, project structure, diff whitespace, and credential safety checks pass.
 
-Runtime candidate launched after removing all stale `com.rayer.CurrencyConverter-Extension` registrations except its embedded extension:
-
-```text
-/tmp/ccs19-app-build.BQG13x/Build/Products/Debug/CurrencyConverter.app
-```
-
-The native picker accessibility tree exposes the selected row as `TWD` without a flag prefix. Manual verification of `T` cycling across multiple codes, exact full-code selection, mouse selection across rows, and VoiceOver remains pending because this no-network runtime has only the fallback `TWD` item. Safari permissions and extension toggles were not automated.
+Manual multi-code verification used a temporary native picker harness compiled from the production presentation seam. Typing `T` selected a T-prefixed code rather than AED, typing `TWD` selected the exact code, mouse selection updated the binding, VoiceOver exposed the ISO code without the decorative flag, and an existing `XTS` selection remained available when incoming data contained only EUR and USD. The temporary harness, Debug build roots, and stale extension registrations were removed after the gate passed. Safari permissions and extension toggles were not automated.
