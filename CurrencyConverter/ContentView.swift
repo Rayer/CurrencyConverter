@@ -39,14 +39,14 @@ struct ContentView: View {
                 }
                 HStack {
                     HStack {
-                        Button("Wipe all") {
+                        Button(NSLocalizedString("Wipe all", comment: "History action")) {
                             dataset.wipe()
                             //wipeAll()
                         }
-                        Button("Wipe selected") {
+                        Button(NSLocalizedString("Wipe selected", comment: "History action")) {
                             dataset.wipeChecked()
                         }
-                        Button("Renew currency exchange rate") {
+                        Button(NSLocalizedString("Renew currency exchange rate", comment: "History action")) {
                             dataset.renewFx()
                         }
                     }.padding(.all, 5)
@@ -56,7 +56,7 @@ struct ContentView: View {
                             Text(extensionSettings.copy.statusText)
                                 .font(.caption)
                                 .multilineTextAlignment(.trailing)
-                                .accessibility(label: Text("Safari extension status"))
+                                .accessibility(label: Text(NSLocalizedString("Safari extension status", comment: "Accessibility label")))
                                 .accessibility(value: Text(extensionSettings.copy.accessibilityValue))
                             Button(extensionSettings.copy.actionTitle) {
                                 extensionSettings.openSettings()
@@ -74,7 +74,7 @@ struct ContentView: View {
                 extensionSettings.refresh()
             }
             .tabItem {
-                Text("Stored Records")
+                Text(NSLocalizedString("Stored Records", comment: "Main tab title"))
                 
             }.tag(0)
             .onAppear() {
@@ -84,21 +84,21 @@ struct ContentView: View {
             ScrollView(.vertical, showsIndicators: true, content: {
                 CreditCardManageView()
             })
-            .tabItem { Text("Credit Cards") }.tag(1)
+            .tabItem { Text(NSLocalizedString("Credit Cards", comment: "Main tab title")) }.tag(1)
             .onAppear() {
                 self.currentTab = 1
             }
             
             #if DEBUG
             APISyncInfoView(host: ApiSyncInfoViewModel(sharedUserDefaults))
-                .tabItem { Text("API Sync Records") }.tag(2)
+                .tabItem { Text(NSLocalizedString("API Sync Records", comment: "Main tab title")) }.tag(2)
                 .onAppear() {
                     self.currentTab = 2
             }
             #endif
 
             ConversionTemplateManagementView(model: templates)
-                .tabItem { Text("Conversion Formats") }
+                .tabItem { Text(NSLocalizedString("Conversion Formats", comment: "Main tab title")) }
                 .tag(3)
                 .onAppear {
                     self.currentTab = 3

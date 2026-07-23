@@ -15,16 +15,23 @@ struct CreditCardManageView: View {
         VStack {
             HStack {
                 VStack(alignment: .leading, spacing: 5.0) {
-                    Picker(selection: self.$model.creditCardType, label: Text("Credit Card Type")){
-                        Text("Cash-back based").tag(CreditCardType.CashBack)
-                        Text("Mileage or point based").tag(CreditCardType.Mileage)
+                    Picker(selection: self.$model.creditCardType, label: Text(NSLocalizedString("Credit Card Type", comment: "Credit card type picker label"))){
+                        Text(NSLocalizedString("Cash-back based", comment: "Credit card type option")).tag(CreditCardType.CashBack)
+                        Text(NSLocalizedString("Mileage or point based", comment: "Credit card type option")).tag(CreditCardType.Mileage)
                     }
                     .pickerStyle(RadioGroupPickerStyle())
                     .padding()
                     
-                    UnifiedView(title: "Card Profile Name", description: "Card Indentifier, must be unique and between length of 1 to 24", errorMessage: "Invalid name, it must be between 1-24", bindedValue: self.$model.creditCardName, isValid: self.model.creditCardNameValid, is2liner: false).padding()
+                    UnifiedView(
+                        title: NSLocalizedString("Card Profile Name", comment: "Credit card editor title"),
+                        description: NSLocalizedString("Card Indentifier, must be unique and between length of 1 to 24", comment: "Credit card editor description"),
+                        errorMessage: NSLocalizedString("Invalid name, it must be between 1-24", comment: "Credit card editor validation"),
+                        bindedValue: self.$model.creditCardName,
+                        isValid: self.model.creditCardNameValid,
+                        is2liner: false
+                    ).padding()
                     
-                    Picker(selection: self.$model.clearinghouseCurrency, label: Text("Clearinghouse Currency")){
+                    Picker(selection: self.$model.clearinghouseCurrency, label: Text(NSLocalizedString("Clearinghouse Currency", comment: "Credit card editor label"))){
                         ForEach(CurrencyPickerPresentation.items(for: self.model.clearinghouseCurrencyList, flagProvider: { CountryCurrency.shared.getFlag(symbol: $0) }), id: \.code) { item in
                             Text(item.label)
                             .accessibility(label: Text(item.accessibilityLabel))
@@ -34,31 +41,94 @@ struct CreditCardManageView: View {
                     
                     Group {
                         if self.model.creditCardType == CreditCardType.CashBack {
-                            UnifiedView(title: "Domestic Cash-Back Rate", description: "Cash Back rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbDomesticRate, isValid: self.model.cbDomesticRateValidate, is2liner: true,                           textFieldWidth: 80, withSuffix: "%")
+                            UnifiedView(
+                                title: NSLocalizedString("Domestic Cash-Back Rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("Cash Back rate while applying domestic currency", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Value must be a number", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.cbDomesticRate,
+                                isValid: self.model.cbDomesticRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: "%"
+                            )
 
-                            UnifiedView(title: "International Cash-Back Rate", description: "Cash Back rate while applying foreign currency", errorMessage: "Value must be a number", bindedValue: self.$model.cbInternationalRate, isValid: self.model.cbInternationalRateValidate, is2liner: true,                           textFieldWidth: 80, withSuffix: "%")
+                            UnifiedView(
+                                title: NSLocalizedString("International Cash-Back Rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("Cash Back rate while applying foreign currency", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Value must be a number", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.cbInternationalRate,
+                                isValid: self.model.cbInternationalRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: "%"
+                            )
 
-                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
-                                textFieldWidth: 80, withSuffix: "%")
+                            UnifiedView(
+                                title: NSLocalizedString("FX Rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("International FX Rate", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Must be a number and between 0 and 100", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.FxRate,
+                                isValid: self.model.FxRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: "%"
+                            )
                             
                             
                         } else if self.model.creditCardType == CreditCardType.Mileage {
                             
-                            Picker(selection: $model.mConvertType, label: Text("Convert Type"), content:{
-                                Text("Dollars per point").tag(0)
-                                Text("Points per dollar").tag(1)
+                            Picker(selection: $model.mConvertType, label: Text(NSLocalizedString("Convert Type", comment: "Credit card editor label")), content:{
+                                Text(NSLocalizedString("Dollars per point", comment: "Credit card editor option")).tag(0)
+                                Text(NSLocalizedString("Points per dollar", comment: "Credit card editor option")).tag(1)
                             })
                             .pickerStyle(SegmentedPickerStyle())
 
                             
-                            UnifiedView(title: "Mileage/Point domestic rate", description: "Mileage(Point) rate while applying domestic currency", errorMessage: "Value must be a number", bindedValue: self.$model.mDomesticRate, isValid: self.model.mDomesticRateValidate, is2liner: true,
-                                        textFieldWidth: 80, withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar")
-                            UnifiedView(title: "Mileage / Point international rate", description: "Mileage(Point) ratewhile applying international currency", errorMessage: "Value must be a number", bindedValue: self.$model.mInternationalRate, isValid: self.model.mInternationalRateValidate, is2liner: true,
-                                textFieldWidth: 80, withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar")
+                            UnifiedView(
+                                title: NSLocalizedString("Mileage/Point domestic rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("Mileage(Point) rate while applying domestic currency", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Value must be a number", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.mDomesticRate,
+                                isValid: self.model.mDomesticRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: model.mConvertType == 0
+                                    ? NSLocalizedString("per Point", comment: "Mileage reward unit label")
+                                    : NSLocalizedString("per Dollar", comment: "Mileage reward unit label")
+                            )
+                            UnifiedView(
+                                title: NSLocalizedString("Mileage / Point international rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("Mileage(Point) ratewhile applying international currency", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Value must be a number", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.mInternationalRate,
+                                isValid: self.model.mInternationalRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: model.mConvertType == 0
+                                    ? NSLocalizedString("per Point", comment: "Mileage reward unit label")
+                                    : NSLocalizedString("per Dollar", comment: "Mileage reward unit label")
+                            )
 
-                            UnifiedView(title: "FX Rate", description: "International FX Rate", errorMessage: "Must be a number and between 0 and 100", bindedValue: self.$model.FxRate, isValid: self.model.FxRateValidate, is2liner: true,
-                                textFieldWidth: 80, withSuffix: "%")
-                            UnifiedView(title: "Estimated Mileage(point) value", description: "Estimated Mileage(Point) value per point", errorMessage: "Must be a number!", bindedValue: self.$model.mEstimatedValuePerMile, isValid: self.model.mEstimatedValuePerMileValid, is2liner: true,                           textFieldWidth: 80, withSuffix: " ")
+                            UnifiedView(
+                                title: NSLocalizedString("FX Rate", comment: "Credit card editor title"),
+                                description: NSLocalizedString("International FX Rate", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Must be a number and between 0 and 100", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.FxRate,
+                                isValid: self.model.FxRateValidate,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: "%"
+                            )
+                            UnifiedView(
+                                title: NSLocalizedString("Estimated Mileage(point) value", comment: "Credit card editor title"),
+                                description: NSLocalizedString("Estimated Mileage(Point) value per point", comment: "Credit card editor description"),
+                                errorMessage: NSLocalizedString("Must be a number!", comment: "Credit card editor validation"),
+                                bindedValue: self.$model.mEstimatedValuePerMile,
+                                isValid: self.model.mEstimatedValuePerMileValid,
+                                is2liner: true,
+                                textFieldWidth: 80,
+                                withSuffix: " "
+                            )
 
                         }
                     }
@@ -81,11 +151,14 @@ struct CreditCardManageView: View {
 
             HStack {
                 
-                Button(model.isUpdateCard ? "Update Card" : "Add Card") {
+                Button(model.isUpdateCard
+                    ? NSLocalizedString("Update Card", comment: "Credit card action")
+                    : NSLocalizedString("Add Card", comment: "Credit card action")
+                ) {
                     model.persist()
                 }.padding()
                 
-                Button("Delete Card") {
+                Button(NSLocalizedString("Delete Card", comment: "Credit card action")) {
                     model.deleteByCardName(model.creditCardName)
                 }.disabled(!model.isUpdateCard)
             }

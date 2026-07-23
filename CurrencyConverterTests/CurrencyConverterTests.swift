@@ -8,6 +8,7 @@
 
 import XCTest
 import CoreData
+import Foundation
 @testable import CurrencyConverter
 
 class CurrencyConverterTests: XCTestCase {
@@ -46,6 +47,243 @@ class CurrencyConverterTests: XCTestCase {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testCCS29_LocalizationFilesContainSameKeysAndPlaceholderStructure() throws {
+        let root = projectRoot()
+        let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
+        let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
+        let appInfoPlistEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/InfoPlist.strings"))
+        let appInfoPlistZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/InfoPlist.strings"))
+        let extensionInfoPlistEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/InfoPlist.strings"))
+        let extensionInfoPlistZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/InfoPlist.strings"))
+        let appXibLocale = try? loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Main.strings"))
+        let extensionXibEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/SafariExtensionViewController.strings"))
+        let extensionXibZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/SafariExtensionViewController.strings"))
+
+        XCTAssertGreaterThan(appLocalizationEn.count, 0)
+        XCTAssertGreaterThan(extensionLocalizationEn.count, 0)
+        assertLocaleParity(label: "App Localizable.strings", source: appLocalizationEn, target: appLocalizationZh)
+        assertLocaleParity(label: "Extension Localizable.strings", source: extensionLocalizationEn, target: extensionLocalizationZh)
+        assertLocaleParity(label: "App InfoPlist.strings", source: appInfoPlistEn, target: appInfoPlistZh, expectLocalizedTarget: true)
+        assertLocaleParity(label: "Extension InfoPlist.strings", source: extensionInfoPlistEn, target: extensionInfoPlistZh, expectLocalizedTarget: true)
+        assertLocaleParity(label: "Extension XIB strings", source: extensionXibEn, target: extensionXibZh, expectLocalizedTarget: true)
+        XCTAssertNil(appXibLocale)
+    }
+
+    func testCCS29_LocalizedCallsitesAreFullyBackedByFallbackLocale() throws {
+        let root = projectRoot()
+        let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
+        let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
+        let appSourceKeys = try collectLocalizedKeys(in: [
+            root.appendingPathComponent("CurrencyConverter"),
+            root.appendingPathComponent("Shared")
+        ])
+        let extensionSourceKeys = try collectLocalizedKeys(in: [
+            root.appendingPathComponent("CurrencyConverter Extension"),
+            root.appendingPathComponent("Shared")
+        ])
+
+        XCTAssertGreaterThan(appSourceKeys.count, 0)
+        XCTAssertGreaterThan(extensionSourceKeys.count, 0)
+        XCTAssertEqual(Set(appLocalizationEn.keys), appSourceKeys, "App Localizable.strings must exactly match app + Shared callsites")
+        XCTAssertEqual(Set(extensionLocalizationEn.keys), extensionSourceKeys, "Extension Localizable.strings must exactly match extension + Shared callsites")
+        XCTAssertEqual(Set(appLocalizationEn.keys), Set(appLocalizationZh.keys), "App en/zh-Hant Localizable.strings must have identical keys")
+        XCTAssertEqual(Set(extensionLocalizationEn.keys), Set(extensionLocalizationZh.keys), "Extension en/zh-Hant Localizable.strings must have identical keys")
+    }
+
+    func testCCS29_PlaceholderParserDetectsSupportedClasses() {
+        XCTAssertEqual(
+            placeholders(in: "%% %d %@ %1$@ %08.2f ${amount}"),
+            ["%d", "%@", "%1$@", "%08.2f", "${amount}"]
+        )
+    }
+
+    func testCCS29_zhHantLocalizedValuesAreNotRawKeys() throws {
+        let root = projectRoot()
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
+        let extensionXibZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/SafariExtensionViewController.strings"))
+
+        assertAllValuesAreTranslated(source: "App zh-Hant Localizable.strings", values: appLocalizationZh)
+        assertAllValuesAreTranslated(source: "Extension zh-Hant Localizable.strings", values: extensionLocalizationZh)
+        assertAllValuesAreTranslated(source: "Extension zh-Hant SafariExtensionViewController.strings", values: extensionXibZh)
+    }
+
+    func testCCS29_TargetedInventoryPathsAreLocalizedAndParitySafe() throws {
+        let root = projectRoot()
+        let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
+        let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
+
+        let sharedTargetedKeys = [
+            "Safari did not provide more details.",
+            " — saved rates; refresh failed"
+        ]
+        let appOnlyTargetedKeys = [
+            "Cashback",
+            "%d points",
+            "per Point",
+            "per Dollar"
+        ]
+        let staleWarning = " — saved rates; refresh failed"
+
+        for key in sharedTargetedKeys {
+            XCTAssertNotNil(appLocalizationEn[key], "Missing app fallback key: \(key)")
+            XCTAssertNotNil(appLocalizationZh[key], "Missing app zh-Hant key: \(key)")
+            XCTAssertNotNil(extensionLocalizationEn[key], "Missing extension fallback key: \(key)")
+            XCTAssertNotNil(extensionLocalizationZh[key], "Missing extension zh-Hant key: \(key)")
+        }
+        for key in appOnlyTargetedKeys {
+            XCTAssertNotNil(appLocalizationEn[key], "Missing app fallback key: \(key)")
+            XCTAssertNotNil(appLocalizationZh[key], "Missing app zh-Hant key: \(key)")
+            XCTAssertNil(extensionLocalizationEn[key], "App-only key should not be present in extension fallback: \(key)")
+            XCTAssertNil(extensionLocalizationZh[key], "App-only key should not be present in extension zh-Hant: \(key)")
+        }
+
+        XCTAssertNotEqual(
+            appLocalizationZh["Safari did not provide more details."],
+            appLocalizationEn["Safari did not provide more details."],
+            "App zh-Hant should not keep raw English fallback for error details"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["Safari did not provide more details."],
+            extensionLocalizationEn["Safari did not provide more details."],
+            "Extension zh-Hant should not keep raw English fallback for error details"
+        )
+
+        XCTAssertTrue(staleWarning.hasPrefix(" —"), "Stale warning should keep a leading separator")
+        XCTAssertTrue(
+            (appLocalizationZh[staleWarning]?.hasPrefix(" —")) == true,
+            "App zh-Hant stale warning should keep leading separator"
+        )
+        XCTAssertTrue(
+            (extensionLocalizationZh[staleWarning]?.hasPrefix(" —")) == true,
+            "Extension zh-Hant stale warning should keep leading separator"
+        )
+        XCTAssertNotEqual(
+            appLocalizationZh[staleWarning],
+            appLocalizationEn[staleWarning],
+            "App zh-Hant should not keep raw English stale warning"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh[staleWarning],
+            extensionLocalizationEn[staleWarning],
+            "Extension zh-Hant should not keep raw English stale warning"
+        )
+
+        XCTAssertNotEqual(appLocalizationZh["Cashback"], appLocalizationEn["Cashback"], "App zh-Hant should not keep raw English Cashback")
+        XCTAssertNotEqual(appLocalizationZh["%d points"], appLocalizationEn["%d points"], "App zh-Hant should not keep raw English points format")
+        XCTAssertNotEqual(appLocalizationZh["per Point"], appLocalizationEn["per Point"], "App zh-Hant should not keep raw English per-Point suffix")
+        XCTAssertNotEqual(appLocalizationZh["per Dollar"], appLocalizationEn["per Dollar"], "App zh-Hant should not keep raw English per-Dollar suffix")
+        XCTAssertEqual(placeholders(in: appLocalizationEn["%d points"]!), placeholders(in: appLocalizationZh["%d points"]!))
+    }
+
+    private func projectRoot() -> URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+    }
+
+    private func loadLocalizationFile(at path: URL) throws -> [String: String] {
+        let data = try Data(contentsOf: path)
+        let source = String(decoding: data, as: UTF8.self)
+        let keyRegex = try NSRegularExpression(pattern: #"(?m)^\s*"((?:\\.|[^"])*)"\s*="#, options: [])
+        let keys = keyRegex.matches(in: source, options: [], range: NSRange(source.startIndex..., in: source)).compactMap {
+            Range($0.range(at: 1), in: source).map { String(source[$0]) }
+        }
+        let duplicates = Dictionary(grouping: keys, by: { $0 }).filter { $0.value.count > 1 }.map(\.key)
+        if !duplicates.isEmpty {
+            XCTFail("Duplicate localization keys in \(path.path): \(duplicates.sorted())")
+            return [:]
+        }
+        guard let object = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: String] else {
+            XCTFail("Unable to parse plist-like localization file: \(path.path)")
+            return [:]
+        }
+        return object
+    }
+
+    private func assertLocaleParity(
+        label: String,
+        source: [String: String],
+        target: [String: String],
+        expectLocalizedTarget: Bool = false
+    ) {
+        XCTAssertEqual(Set(source.keys), Set(target.keys), "\(label) has mismatched keys")
+
+        for key in source.keys {
+            guard let sourceValue = source[key], let targetValue = target[key] else {
+                XCTFail("\(label) key \(key) missing in one locale")
+                continue
+            }
+            XCTAssertFalse(sourceValue.isEmpty, "\(label) source value is empty for key: \(key)")
+            XCTAssertFalse(targetValue.isEmpty, "\(label) target value is empty for key: \(key)")
+            XCTAssertEqual(
+                placeholders(in: sourceValue),
+                placeholders(in: targetValue),
+                "Placeholder mismatch for key '\(key)' in \(label)"
+            )
+            if expectLocalizedTarget {
+                XCTAssertNotEqual(
+                    targetValue,
+                    key,
+                    "Potential raw-key fallback for '\(key)' in \(label) target"
+                )
+            }
+        }
+    }
+
+    private func assertAllValuesAreTranslated(source: String, values: [String: String]) {
+        for (key, value) in values {
+            XCTAssertFalse(value.isEmpty, "\(source) has empty value for key: \(key)")
+            XCTAssertNotEqual(value, key, "\(source) appears to contain raw key for: \(key)")
+        }
+    }
+
+    private func collectLocalizedKeys(in folders: [URL]) throws -> Set<String> {
+        var keys = Set<String>()
+        let regex = try NSRegularExpression(pattern: "NSLocalizedString\\(\\s*\"([^\"]+)\"", options: [])
+
+        for folder in folders {
+            let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey])
+            while let fileURL = enumerator?.nextObject() as? URL {
+                guard fileURL.pathExtension == "swift" else { continue }
+                let text = try String(contentsOf: fileURL)
+                let matches = regex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
+                for match in matches {
+                    let keyRange = Range(match.range(at: 1), in: text)!
+                    keys.insert(String(text[keyRange]))
+                }
+            }
+        }
+
+        return keys
+    }
+
+    private func placeholders(in value: String) -> [String] {
+        let placeholderPatterns = [
+            #"%(?!%)(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[A-Za-z@]"#,
+            #"\$\{[^\}]+\}"#
+        ].compactMap { try? NSRegularExpression(pattern: $0, options: []) }
+
+        var findings: [(Int, String)] = []
+
+        for regex in placeholderPatterns {
+            let matches = regex.matches(in: value, options: [], range: NSRange(value.startIndex..., in: value))
+            for match in matches {
+                if match.range.location == NSNotFound { continue }
+                let formatToken = String(value[Range(match.range, in: value)!])
+                findings.append((match.range.location, formatToken))
+            }
+        }
+
+        return findings.sorted { $0.0 < $1.0 }.map { $0.1 }
     }
 
     private func inMemoryContext() -> NSManagedObjectContext {

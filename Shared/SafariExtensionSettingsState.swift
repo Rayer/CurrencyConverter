@@ -16,8 +16,8 @@ struct SafariExtensionSettingsCopy: Equatable {
 }
 
 enum SafariExtensionSettingsCopyMapping {
-    static let actionTitle = "Open Safari Extension Settings"
-    static let accessibilityHint = "Opens Safari settings for this extension. Enable or disable it there."
+    static let actionTitle = NSLocalizedString("Open Safari Extension Settings", comment: "Install/action title")
+    static let accessibilityHint = NSLocalizedString("Opens Safari settings for this extension. Enable or disable it there.", comment: "Extension settings accessibility hint")
 
     static func copy(for status: SafariExtensionSettingsStatus) -> SafariExtensionSettingsCopy {
         let statusText: String
@@ -25,21 +25,33 @@ enum SafariExtensionSettingsCopyMapping {
 
         switch status {
         case .loading:
-            statusText = "Checking extension status…"
-            accessibilityValue = "Checking."
+            statusText = NSLocalizedString("Checking extension status…", comment: "Extension status text")
+            accessibilityValue = NSLocalizedString("Checking.", comment: "Extension status accessibility value")
         case .unknown:
-            statusText = "Extension status is unavailable. Check Safari Extension Settings."
-            accessibilityValue = "Unknown."
+            statusText = NSLocalizedString("Extension status is unavailable. Check Safari Extension Settings.", comment: "Extension status text")
+            accessibilityValue = NSLocalizedString("Unknown.", comment: "Extension status accessibility value")
         case .enabled:
-            statusText = "Extension is enabled."
-            accessibilityValue = "Enabled."
+            statusText = NSLocalizedString("Extension is enabled.", comment: "Extension status text")
+            accessibilityValue = NSLocalizedString("Enabled.", comment: "Extension status accessibility value")
         case .disabled:
-            statusText = "Extension is disabled. Enable it in Safari Extension Settings."
-            accessibilityValue = "Disabled."
+            statusText = NSLocalizedString("Extension is disabled. Enable it in Safari Extension Settings.", comment: "Extension status text")
+            accessibilityValue = NSLocalizedString("Disabled.", comment: "Extension status accessibility value")
         case .error(let message):
-            let detail = message.isEmpty ? "Safari did not provide more details." : message
-            statusText = "Extension settings error: \(detail)"
-            accessibilityValue = "Error. \(detail)"
+            let detail = message.isEmpty ? NSLocalizedString("Safari did not provide more details.", comment: "Error fallback details") : message
+            statusText = String(
+                format: NSLocalizedString(
+                    "Extension settings error: %@",
+                    comment: "Extension status text"
+                ),
+                detail
+            )
+            accessibilityValue = String(
+                format: NSLocalizedString(
+                    "Error. %@",
+                    comment: "Extension status accessibility value"
+                ),
+                detail
+            )
         }
 
         return SafariExtensionSettingsCopy(

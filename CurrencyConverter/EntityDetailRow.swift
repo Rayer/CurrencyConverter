@@ -55,13 +55,13 @@ struct EntityDetailRow: View {
             
             
             if profile.getType() == 0 {
-                self.model.creditCardReward.append("Cashback")
+                self.model.creditCardReward.append(NSLocalizedString("Cashback", comment: "Credit card reward label"))
                 self.model.creditCardRewardWorth.append(FixedPercision(amount: profile.estimateRewardAmount(price: presentation.cardInputAmount, sourceSymbol: presentation.sourceSymbol), symbol: profile.currencySymbol))
                 
             } else {
                 let points = Int(profile.estimateRewardAmount(price: presentation.cardInputAmount, sourceSymbol: profile.currencySymbol))
                 let value = (profile as! MileageCreditCardProfile).mileageEstimatedValue * Float(points)
-                self.model.creditCardReward.append("\(points) points")
+                self.model.creditCardReward.append(String(format: NSLocalizedString("%d points", comment: "Credit card reward unit format"), points))
                 self.model.creditCardRewardWorth.append(FixedPercision(amount: value, symbol: profile.currencySymbol))
             }
             
@@ -137,7 +137,7 @@ struct EntityDetailRow: View {
                 }
                 NSWorkspace.shared.open(url)
             }, label: {
-                Text("Go To Page")
+                Text(NSLocalizedString("Go To Page", comment: "Open record URL"))
             })
                 .padding()
         }

@@ -53,7 +53,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
         let cc = CurrencyConverter.shared
         cc.getSymbols { (symbols, error) in
             DispatchQueue.main.async {
-                self.statusText.stringValue = error.map { ($0 as? RateDataError)?.message ?? "Exchange rates unavailable." } ?? cc.rateDataStatus.message
+                self.statusText.stringValue = error.map { ($0 as? RateDataError)?.message ?? NSLocalizedString("Exchange rates unavailable.", comment: "Extension status fallback") } ?? cc.rateDataStatus.message
                 guard let symbols, !symbols.isEmpty else { return }
                 self.symbols = symbols.sorted()
                 self.convertListBtn.removeAllItems()

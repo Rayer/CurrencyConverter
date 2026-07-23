@@ -18,14 +18,25 @@ final class SafariExtensionSettingsAdapter: SafariExtensionSettingsProviding {
 
     func fetchState(completion: @escaping (SafariExtensionSettingsResult) -> Void) {
         guard let identifier = extensionBundleIdentifier else {
-            publish(.failure("The bundled Safari extension identifier is unavailable."), completion: completion)
+            publish(
+                .failure(NSLocalizedString("The bundled Safari extension identifier is unavailable.", comment: "Safari extension adapter error")),
+                completion: completion
+            )
             return
         }
 
         SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: identifier) { state, error in
             let result: SafariExtensionSettingsResult
             if let error = error {
-                result = .failure("Unable to read Safari extension status: \(error.localizedDescription)")
+                result = .failure(
+                    String(
+                        format: NSLocalizedString(
+                            "Unable to read Safari extension status: %@",
+                            comment: "Safari extension adapter error"
+                        ),
+                        error.localizedDescription
+                    )
+                )
             } else if let state = state {
                 result = .status(state.isEnabled ? .enabled : .disabled)
             } else {
@@ -37,12 +48,26 @@ final class SafariExtensionSettingsAdapter: SafariExtensionSettingsProviding {
 
     func openSettings(completion: @escaping (String?) -> Void) {
         guard let identifier = extensionBundleIdentifier else {
-            publish("The bundled Safari extension identifier is unavailable.", completion: completion)
+            publish(
+                NSLocalizedString("The bundled Safari extension identifier is unavailable.", comment: "Safari extension adapter error"),
+                completion: completion
+            )
             return
         }
 
         SFSafariApplication.showPreferencesForExtension(withIdentifier: identifier) { error in
-            self.publish(error.map { "Unable to open Safari Extension Settings: \($0.localizedDescription)" }, completion: completion)
+            self.publish(
+                error.map {
+                    String(
+                        format: NSLocalizedString(
+                            "Unable to open Safari Extension Settings: %@",
+                            comment: "Safari extension adapter error"
+                        ),
+                        $0.localizedDescription
+                    )
+                },
+                completion: completion
+            )
         }
     }
 

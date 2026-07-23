@@ -1,0 +1,62 @@
+/* Class = "NSTextFieldCell"; title = "Convert"; ObjectID = "1aJ-XB-fks"; */
+"1aJ-XB-fks.title" = "轉換";
+
+/* Class = "NSMenuItem"; title = "Item 3"; ObjectID = "59d-eI-V5H"; */
+"59d-eI-V5H.title" = "項目 3";
+
+/* Class = "NSMenu"; title = "Loading"; ObjectID = "7en-Qr-0vp"; */
+"7en-Qr-0vp.title" = "載入中";
+
+/* Class = "NSMenuItem"; title = "Loading..."; ObjectID = "7iB-GU-NXP"; */
+"7iB-GU-NXP.title" = "載入中...";
+
+/* Class = "NSMenuItem"; title = "Item 3"; ObjectID = "8f8-fg-5BL"; */
+"8f8-fg-5BL.title" = "項目 3";
+
+/* Class = "NSButtonCell"; title = "1.5% (Most VISA and Master)"; ObjectID = "BKP-SH-ZYj"; */
+"BKP-SH-ZYj.title" = "1.5%（大部分 VISA 與 Master）";
+
+/* Class = "NSButtonCell"; title = "2%(AMEX)"; ObjectID = "Dc1-KS-m0D"; */
+"Dc1-KS-m0D.title" = "2%（AMEX）";
+
+/* Class = "NSMenuItem"; title = "Loading"; ObjectID = "G2X-eD-aCr"; */
+"G2X-eD-aCr.title" = "載入中";
+
+/* Class = "NSTextFieldCell"; title = "Label"; ObjectID = "OQe-oR-xBr"; */
+"OQe-oR-xBr.title" = "標籤";
+
+/* Class = "NSMenuItem"; title = "Item 2"; ObjectID = "Q7n-84-e5j"; */
+"Q7n-84-e5j.title" = "項目 2";
+
+/* Class = "NSTextFieldCell"; title = "Paste Format"; ObjectID = "SWx-gV-TgK"; */
+"SWx-gV-TgK.title" = "貼上格式";
+
+/* Class = "NSMenu"; title = "Loading"; ObjectID = "TnW-gn-x6r"; */
+"TnW-gn-x6r.title" = "載入中";
+
+/* Class = "NSTextFieldCell"; title = "To"; ObjectID = "V75-Um-qfu"; */
+"V75-Um-qfu.title" = "至";
+
+/* Class = "NSButtonCell"; title = "0%"; ObjectID = "Yis-qa-9Sr"; */
+"Yis-qa-9Sr.title" = "0%";
+
+/* Class = "NSTextFieldCell"; title = "Exchange rates are current."; ObjectID = "cCS10-status-cell"; */
+"cCS10-status-cell.title" = "匯率目前為最新。";
+
+/* Class = "NSMenuItem"; title = "Item 2"; ObjectID = "eVQ-jv-yJd"; */
+"eVQ-jv-yJd.title" = "項目 2";
+
+/* Class = "NSMenuItem"; title = "Item 2"; ObjectID = "ezg-fW-zYy"; */
+"ezg-fW-zYy.title" = "項目 2";
+
+/* Class = "NSTextFieldCell"; title = "Rates"; ObjectID = "iZu-Mz-CQl"; */
+"iZu-Mz-CQl.title" = "匯率";
+
+/* Class = "NSMenuItem"; title = "Loading..."; ObjectID = "sqG-R2-WNo"; */
+"sqG-R2-WNo.title" = "載入中...";
+
+/* Class = "NSMenuItem"; title = "Item 3"; ObjectID = "x1e-r1-89k"; */
+"x1e-r1-89k.title" = "項目 3";
+
+/* Class = "NSTextFieldCell"; title = "Credit Card Foreigen Transaction Fee"; ObjectID = "xM6-Ua-JWT"; */
+"xM6-Ua-JWT.title" = "信用卡海外交易手續費";

@@ -35,7 +35,7 @@ Safari App Extension跟以前的Safari Extension不同，他**無法**單獨安�
 ## 限制
 
 1. ~~首先，我不確定這東西很多人用的話，會不會讓一個月1000的quota擠爆。真的有這問題的話，我會用自己的server來解決。~~ 現在我架設自己的server來解決這問題，希望他不要被打爆（不可能吧！？）
-2. 沒有i18n....說真的也不太需要吧
+2. 已完成繁中（zh-Hant）支援；英文為預設/回退語言。`Localizable.strings`、`InfoPlist.strings`、XIB `.strings` 與 Context menu / 安裝設定相關字串皆已加入並保留佔位符與格式標記。
 
 ## Rate-feed configuration
 

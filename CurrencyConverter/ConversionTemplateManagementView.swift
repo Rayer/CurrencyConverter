@@ -110,7 +110,7 @@ struct ConversionTemplateManagementView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Conversion formats")
+            Text(NSLocalizedString("Conversion formats", comment: "Conversion template section title"))
                 .font(.headline)
 
             List {
@@ -120,50 +120,55 @@ struct ConversionTemplateManagementView: View {
                             Text(template.text)
                                 .lineLimit(2)
                             if model.selectedID == template.id {
-                                Text("Selected")
+                                Text(NSLocalizedString("Selected", comment: "Conversion template selection badge"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
                         Spacer()
-                        Button(model.selectedID == template.id ? "Selected" : "Use") {
+                        Button(model.selectedID == template.id
+                            ? NSLocalizedString("Selected", comment: "Conversion template selected button state")
+                            : NSLocalizedString("Use", comment: "Conversion template default action")) {
                             model.select(template.id)
                         }
                         .disabled(model.selectedID == template.id)
-                        .accessibility(label: Text("Select conversion format"))
-                        Button("Delete") {
+                        .accessibility(label: Text(NSLocalizedString("Select conversion format", comment: "Template action accessibility")))
+                        Button(NSLocalizedString("Delete", comment: "Template action")) {
                             model.delete(template.id)
                         }
                         .disabled(ConversionTemplateCatalog.defaultIDs.contains(template.id))
-                        .accessibility(label: Text("Delete conversion format"))
+                        .accessibility(label: Text(NSLocalizedString("Delete conversion format", comment: "Template action accessibility")))
                     }
                 }
             }
 
-            TextField("New format", text: Binding(
+            TextField(NSLocalizedString("New format", comment: "Template input placeholder"), text: Binding(
                 get: { model.input },
                 set: { model.updateInput($0) }
             ))
-            .accessibility(label: Text("New conversion format"))
+            .accessibility(label: Text(NSLocalizedString("New conversion format", comment: "Template input accessibility")))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Preview")
+                Text(NSLocalizedString("Preview", comment: "Template preview title"))
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text(model.preview.isEmpty ? "Enter a valid format to preview it." : model.preview)
+                Text(model.preview.isEmpty
+                    ? NSLocalizedString("Enter a valid format to preview it.", comment: "Template preview guidance")
+                    : model.preview
+                )
                     .foregroundColor(model.preview.isEmpty ? .secondary : .primary)
-                    .accessibility(label: Text("Conversion format preview"))
+                    .accessibility(label: Text(NSLocalizedString("Conversion format preview", comment: "Template preview accessibility")))
             }
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
-                    .accessibility(label: Text("Conversion format error"))
+                    .accessibility(label: Text(NSLocalizedString("Conversion format error", comment: "Template error accessibility")))
             }
 
             HStack {
-                Button("Add") { model.add() }
+                Button(NSLocalizedString("Add", comment: "Template action")) { model.add() }
                     .disabled(model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.preview.isEmpty)
-                Button("Reset defaults") { model.reset() }
+                Button(NSLocalizedString("Reset defaults", comment: "Template action")) { model.reset() }
                 Spacer()
             }
         }
