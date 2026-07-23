@@ -28,6 +28,8 @@ rg -q 'private lazy var conversionTemplateViewModel = ConversionTemplateManageme
 rg -q 'templates: conversionTemplateViewModel' CurrencyConverter/AppDelegate.swift || fail "AppDelegate does not inject its template ViewModel"
 rg -q 'sharedPersistentContainer\.newBackgroundContext\(\)' Shared/FormatStringDataManager.swift || fail "default repository does not use a dedicated context"
 rg -q 'context\.reset\(\)' Shared/FormatStringDataManager.swift || fail "repository does not refresh cross-process reads"
+rg -q 'flock\(descriptor, LOCK_EX\)' Shared/FormatStringDataManager.swift || fail "repository has no cross-process write serialization"
+rg -q 'objectsByID\[id, default: \[\]\]' Shared/FormatStringDataManager.swift || fail "repository does not repair duplicate stable IDs"
 if rg -q 'initializationError|try performAndWait \{ try ensureBundledDefaults\(\) \}' Shared/FormatStringDataManager.swift; then
     fail "repository still performs sticky eager initialization"
 fi
@@ -41,7 +43,12 @@ if rg -q 'defaultFormattingString|\$\{to_amount\} \$\{to_symbol\}' 'CurrencyConv
     fail "extension contains a duplicate hard-coded template array"
 fi
 rg -q 'templateManager\.selectedTemplate\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context menu does not read selected repository template"
-rg -q 'removeObject\(forKey: "lastResult"\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "encode failure can leave a stale clipboard result"
+rg -q 'LatestRequestGate<ContextMenuRequestKey, LastResult>' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu results are not request-scoped"
+rg -q 'pendingResults\.consume' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu result is not atomically consumed"
+if rg -q 'sharedUserDefaults.*lastResult|performBackgroundTask|try\? context\.save\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift'; then
+    fail "context-menu output or history can remain stale or fire-and-forget"
+fi
+rg -q 'requestGeneration == self\.formatterRequestGeneration' 'CurrencyConverter Extension/SafariExtensionViewController.swift' || fail "popover callbacks are not generation checked"
 if tail -n 35 'CurrencyConverter Extension/SafariExtensionViewController.swift' | awk '/addItems\(withTitles:/ {added=1} /selectItem\(at:/ {if (!added) exit 1; selected=1} END {exit !(added && selected)}'; then :; else
     fail "popover selection is published before asynchronous items"
 fi

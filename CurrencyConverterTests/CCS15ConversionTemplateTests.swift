@@ -138,6 +138,91 @@ final class CCS15ConversionTemplateTests: XCTestCase {
         XCTAssertEqual(saveFailureManager.availableTemplates(), .failure(.saveFailed))
     }
 
+    func testRepairRemovesInvalidAndDuplicateIDsWithoutCollapsingEqualText() throws {
+        let context = try makeContext()
+        let duplicateID = UUID()
+        let equalTextID = UUID()
+        var insertionError: Error?
+        context.performAndWait {
+            do {
+                try insertTemplate(id: nil, text: "${to_amount}", context: context)
+                try insertTemplate(id: UUID(), text: "${invalid}", context: context)
+                try insertTemplate(id: duplicateID, text: "first ${to_amount}", context: context)
+                try insertTemplate(id: duplicateID, text: "second ${to_amount}", context: context)
+                try insertTemplate(
+                    id: ConversionTemplateCatalog.defaultIDs[0],
+                    text: "corrupt default ${to_amount}",
+                    context: context
+                )
+                try insertTemplate(id: equalTextID, text: ConversionTemplateCatalog.defaultTexts[0], context: context)
+                try context.save()
+            } catch {
+                insertionError = error
+            }
+        }
+        if let insertionError { throw insertionError }
+
+        let manager = FormatStringDataManager(context: context, defaults: try makeDefaults())
+        let templates = try manager.availableTemplates().get()
+
+        XCTAssertEqual(templates.filter { $0.id == duplicateID }.count, 1)
+        XCTAssertEqual(templates.first { $0.id == duplicateID }?.text, "first ${to_amount}")
+        XCTAssertEqual(
+            templates.first { $0.id == ConversionTemplateCatalog.defaultIDs[0] }?.text,
+            ConversionTemplateCatalog.defaultTexts[0]
+        )
+        XCTAssertEqual(templates.first { $0.id == equalTextID }?.text, ConversionTemplateCatalog.defaultTexts[0])
+        XCTAssertFalse(templates.contains { $0.text == "${invalid}" })
+    }
+
+    func testLatestRequestGateRejectsStaleAndConsumesExactlyOnce() {
+        let gate = LatestRequestGate<String, Int>()
+        let stale = gate.begin()
+        let current = gate.begin()
+
+        XCTAssertFalse(gate.publish(1, for: "page-a", generation: stale))
+        XCTAssertTrue(gate.publish(2, for: "page-b", generation: current))
+        XCTAssertNil(gate.consume(for: "page-a"))
+        XCTAssertEqual(gate.consume(for: "page-b"), 2)
+        XCTAssertNil(gate.consume(for: "page-b"))
+    }
+
+    func testConcurrentRepositoriesSeedOneStableDefaultPerID() throws {
+        let seedContext = try makeContext()
+        let firstContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        let secondContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        firstContext.persistentStoreCoordinator = seedContext.persistentStoreCoordinator
+        secondContext.persistentStoreCoordinator = seedContext.persistentStoreCoordinator
+        let defaults = try makeDefaults()
+        let managers = [
+            FormatStringDataManager(context: firstContext, defaults: defaults),
+            FormatStringDataManager(context: secondContext, defaults: defaults)
+        ]
+        let resultLock = NSLock()
+        var successfulCounts: [Int] = []
+        let group = DispatchGroup()
+
+        for manager in managers {
+            group.enter()
+            DispatchQueue.global().async {
+                if case .success(let templates) = manager.availableTemplates() {
+                    resultLock.lock()
+                    successfulCounts.append(templates.count)
+                    resultLock.unlock()
+                }
+                group.leave()
+            }
+        }
+        XCTAssertEqual(group.wait(timeout: .now() + 2), .success)
+        XCTAssertEqual(successfulCounts.sorted(), [4, 4])
+
+        let templates = try managers[0].availableTemplates().get()
+        for defaultID in ConversionTemplateCatalog.defaultIDs {
+            XCTAssertEqual(templates.filter { $0.id == defaultID }.count, 1)
+        }
+    }
+
+
     private func makeContext() throws -> NSManagedObjectContext {
         guard let model = NSManagedObjectModel.mergedModel(from: [Bundle(for: CCS15ConversionTemplateTests.self)]) else {
             throw TestError.missingModel
@@ -155,6 +240,19 @@ final class CCS15ConversionTemplateTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
         if let loadError { throw loadError }
         return container.viewContext
+    }
+
+    private func insertTemplate(
+        id: UUID?,
+        text: String,
+        context: NSManagedObjectContext
+    ) throws {
+        let object = try XCTUnwrap(
+            NSEntityDescription.insertNewObject(forEntityName: "FormatString", into: context) as? FormatString
+        )
+        object.id = id
+        object.date = Date()
+        object.format_string = text
     }
 
     private func assertValidation(

@@ -6,10 +6,12 @@
 //  Copyright © 2019 Rayer. All rights reserved.
 //
 
+import CoreData
 import SafariServices
 
 class SafariExtensionHandler: SFSafariExtensionHandler {
     private let templateManager = FormatStringDataManager.shared
+    private let pendingResults = LatestRequestGate<ContextMenuRequestKey, LastResult>()
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
         if messageName == "CCInitialize" {
@@ -33,9 +35,9 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
     }
         
     override func validateContextMenuItem(withCommand command: String, in page: SFSafariPage, userInfo: [String : Any]? = nil, validationHandler: @escaping (Bool, String?) -> Void) {
-        NSLog("validateContextMenuItem : Command: \(command), userInfo: \(String(describing: userInfo)), validationHandler: \(String(describing: validationHandler))")
-        
         if command == "CurrencyExchange" {
+            let requestGeneration = pendingResults.begin()
+            let requestKey = ContextMenuRequestKey(userInfo: userInfo)
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
             if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
@@ -46,6 +48,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 
                 CurrencyConverter.shared.convertWithStatus(from: convertFromSym, to: convertToSym, unit: unit) { result, status, error in
                     guard error == nil else {
+                        self.pendingResults.invalidate(requestGeneration)
                         validationHandler(true, (error as? RateDataError)?.message ?? status.message)
                         return
                     }
@@ -63,21 +66,19 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     
                     let formatter = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
                     guard case .success(let template) = self.templateManager.selectedTemplate() else {
+                        self.pendingResults.invalidate(requestGeneration)
                         validationHandler(true, NSLocalizedString("Conversion templates are unavailable.", comment: "Context menu template repository error"))
                         return
                     }
                     let lastCurrencyExchangeStr = formatter.getFormattedString(template: template)
                     guard !lastCurrencyExchangeStr.isEmpty else {
+                        self.pendingResults.invalidate(requestGeneration)
                         validationHandler(true, NSLocalizedString("The selected conversion template is invalid.", comment: "Context menu selected template error"))
                         return
                     }
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
-                    do {
-                        let encoded = try LastResultPersistence.encode(lastResult)
-                        sharedUserDefaults.set(encoded, forKey: "lastResult")
-                    } catch {
-                        sharedUserDefaults.removeObject(forKey: "lastResult")
-                        validationHandler(true, NSLocalizedString("Could not prepare the conversion result.", comment: "Context menu result persistence error"))
+                    guard self.pendingResults.publish(lastResult, for: requestKey, generation: requestGeneration) else {
+                        validationHandler(true, nil)
                         return
                     }
                     let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
@@ -85,43 +86,65 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     
                 }
             } else {
+                pendingResults.invalidate(requestGeneration)
                 validationHandler(true, nil)
             }
         }
     }
     
     override func contextMenuItemSelected(withCommand command: String, in page: SFSafariPage, userInfo: [String : Any]? = nil) {
-        NSLog("contextMenuItemSelected : Command : \(command), UserInfo : \(String(describing: userInfo))")
         if command == "CurrencyExchange" {
-            NSLog("Executing Currency Exchange")
-            if let lastResultData = sharedUserDefaults.value(forKey: "lastResult") as? Data {
-                guard let lastResult = try? LastResultPersistence.decode(lastResultData) else { return }
+            if let lastResult = pendingResults.consume(for: ContextMenuRequestKey(userInfo: userInfo)) {
+                guard persistHistory(lastResult: lastResult, userInfo: userInfo) else { return }
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()
-                pasteBoard.setString(lastResult.resultString, forType: .string)
-                NSLog("Copying to pasteboard : \(lastResult)")
-
-                // Keep the shared Core Data context queue-confined in the extension.
-                sharedPersistentContainer.performBackgroundTask { context in
-                    let history = ConvertHistory(context: context)
-                    history.title = userInfo?["title"] as? String
-                    history.url = userInfo?["url"] as? String
-                    history.date = Date()
-                    history.fromAmount = lastResult.units
-                    history.fromSymbol = lastResult.convertFrom
-                    history.toSymbol = lastResult.convertTo
-                    let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
-                        fromSymbol: lastResult.convertFrom,
-                        toSymbol: lastResult.convertTo,
-                        fxFeeRate: lastResult.fxRate,
-                        ratio: lastResult.ratio
-                    )
-                    history.fxFee = values.fxFeeRate
-                    history.ratio = values.ratio
-                    history.id = UUID()
-                    try? context.save()
-                }
+                guard pasteBoard.setString(lastResult.resultString, forType: .string) else { return }
             }
         }
+    }
+
+    private func persistHistory(lastResult: LastResult, userInfo: [String: Any]?) -> Bool {
+        let context = sharedPersistentContainer.newBackgroundContext()
+        context.undoManager = nil
+        var saved = false
+        context.performAndWait {
+            guard let history = NSEntityDescription.insertNewObject(
+                forEntityName: "ConvertHistory",
+                into: context
+            ) as? ConvertHistory else { return }
+            history.title = userInfo?["title"] as? String
+            history.url = userInfo?["url"] as? String
+            history.date = Date()
+            history.fromAmount = lastResult.units
+            history.fromSymbol = lastResult.convertFrom
+            history.toSymbol = lastResult.convertTo
+            let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                fromSymbol: lastResult.convertFrom,
+                toSymbol: lastResult.convertTo,
+                fxFeeRate: lastResult.fxRate,
+                ratio: lastResult.ratio
+            )
+            history.fxFee = values.fxFeeRate
+            history.ratio = values.ratio
+            history.id = UUID()
+            do {
+                try context.save()
+                saved = true
+            } catch {
+                context.rollback()
+                NSLog("CurrencyConverter history save failed")
+            }
+        }
+        return saved
+    }
+}
+
+private struct ContextMenuRequestKey: Equatable {
+    let title: String?
+    let url: String?
+
+    init(userInfo: [String: Any]?) {
+        title = userInfo?["title"] as? String
+        url = userInfo?["url"] as? String
     }
 }

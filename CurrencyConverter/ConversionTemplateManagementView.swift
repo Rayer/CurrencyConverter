@@ -34,12 +34,19 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
     func refresh() {
         switch manager.availableTemplates() {
         case .success(let templates):
-            self.templates = templates
-            if case .success(let selected) = manager.selectedTemplate() {
+            switch manager.selectedTemplate() {
+            case .success(let selected):
+                self.templates = templates
                 selectedID = selected.id
+                errorMessage = nil
+            case .failure(let error):
+                self.templates = []
+                selectedID = nil
+                errorMessage = error.errorDescription
             }
-            errorMessage = nil
         case .failure(let error):
+            templates = []
+            selectedID = nil
             errorMessage = error.errorDescription
         }
     }

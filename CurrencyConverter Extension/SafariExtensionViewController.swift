@@ -41,6 +41,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     var fxRateBtnList : [NSButton] = []
     private var formatTemplates: [ConversionTemplate] = []
+    private var formatterRequestGeneration: UInt64 = 0
     
     override func viewDidLoad() {
         
@@ -129,7 +130,10 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     func UpdateFormatters() {
         guard let convertFromSym, let convertToSym else { return }
+        formatterRequestGeneration &+= 1
+        let requestGeneration = formatterRequestGeneration
         self.formatterListBtn.removeAllItems()
+        self.formatTemplates = []
         guard case .success(let templates) = templateManager.availableTemplates() else {
             self.statusText.stringValue = NSLocalizedString("Conversion templates are unavailable.", comment: "Extension template repository error")
             return
@@ -141,11 +145,13 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
         }()
         cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: 1) { result, status, error in
             DispatchQueue.main.async {
+                guard requestGeneration == self.formatterRequestGeneration else { return }
                 self.statusText.stringValue = (error as? RateDataError)?.message ?? status.message
                 guard error == nil else {
                   return
                 }
                 let cpf = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: 1, toSymbol: convertToSym, toAmount: result)
+                self.formatTemplates = templates
                 self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings(templates: templates))
                 let selectedIndex = selectedID.flatMap { id in templates.firstIndex { $0.id == id } } ?? 0
                 self.formatterListBtn.selectItem(at: selectedIndex)

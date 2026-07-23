@@ -169,3 +169,45 @@ enum ConversionTemplateSelection {
             ?? ConversionTemplateCatalog.defaults[0]
     }
 }
+
+final class LatestRequestGate<Key: Equatable, Value> {
+    struct Generation: Equatable {
+        fileprivate let generation: UInt64
+    }
+
+    private let lock = NSLock()
+    private var generation: UInt64 = 0
+    private var pending: (key: Key, value: Value)?
+
+    func begin() -> Generation {
+        lock.lock()
+        defer { lock.unlock() }
+        generation &+= 1
+        pending = nil
+        return Generation(generation: generation)
+    }
+
+    func publish(_ value: Value, for key: Key, generation requestGeneration: Generation) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard requestGeneration.generation == generation else { return false }
+        pending = (key, value)
+        return true
+    }
+
+    func invalidate(_ requestGeneration: Generation) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard requestGeneration.generation == generation else { return }
+        pending = nil
+    }
+
+    func consume(for key: Key) -> Value? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let candidate = pending, candidate.key == key else { return nil }
+        pending = nil
+        generation &+= 1
+        return candidate.value
+    }
+}

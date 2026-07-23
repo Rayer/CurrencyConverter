@@ -4,6 +4,7 @@
 //
 
 import CoreData
+import Darwin
 import Foundation
 
 enum ConversionTemplateRepositoryError: Error, Equatable, LocalizedError {
@@ -35,21 +36,52 @@ enum ConversionTemplateOperationError: Error, Equatable, LocalizedError {
     }
 }
 
+private final class ConversionTemplateRepositoryLock {
+    private static let processLock = NSLock()
+    private let fileURL: URL?
+
+    init(fileURL: URL?) {
+        self.fileURL = fileURL
+    }
+
+    func withLock<T>(_ work: () throws -> T) throws -> T {
+        Self.processLock.lock()
+        defer { Self.processLock.unlock() }
+        guard let fileURL else { return try work() }
+
+        let descriptor = open(fileURL.path, O_CREAT | O_RDWR, mode_t(S_IRUSR | S_IWUSR))
+        guard descriptor >= 0 else { throw ConversionTemplateRepositoryError.readFailed }
+        defer { close(descriptor) }
+        guard flock(descriptor, LOCK_EX) == 0 else {
+            throw ConversionTemplateRepositoryError.readFailed
+        }
+        defer { flock(descriptor, LOCK_UN) }
+        return try work()
+    }
+}
+
 final class FormatStringDataManager {
     static let shared = FormatStringDataManager()
 
     private let context: NSManagedObjectContext
     private let defaults: UserDefaults
     private let saveOperation: (() throws -> Void)?
+    private let repositoryLock: ConversionTemplateRepositoryLock
 
     init(
         context: NSManagedObjectContext? = nil,
         defaults: UserDefaults = sharedUserDefaults,
         saveOperation: (() throws -> Void)? = nil
     ) {
+        let usesSharedStore = context == nil
         self.context = context ?? sharedPersistentContainer.newBackgroundContext()
         self.defaults = defaults
         self.saveOperation = saveOperation
+        self.repositoryLock = ConversionTemplateRepositoryLock(
+            fileURL: usesSharedStore
+                ? NSCustomPersistentContainer.defaultDirectoryURL().appendingPathComponent(".conversion-templates.lock")
+                : nil
+        )
         self.context.undoManager = nil
     }
 
@@ -201,26 +233,42 @@ final class FormatStringDataManager {
 
     private func ensureBundledDefaults() throws {
         let request = try formatStringFetchRequest()
-        let objects = try context.fetch(request)
+        let objects = try context.fetch(request).sorted(by: Self.objectOrder)
         var changed = false
-        for (defaultID, defaultText) in zip(ConversionTemplateCatalog.defaultIDs, ConversionTemplateCatalog.defaultTexts) {
-            let matching = objects.filter { $0.format_string == defaultText }
-                .sorted(by: Self.objectOrder)
-            let canonical = matching.first(where: { $0.id == defaultID }) ?? matching.first
-            if let canonical {
-                if canonical.id != defaultID {
-                    canonical.id = defaultID
+        var objectsByID: [UUID: [FormatString]] = [:]
+
+        for object in objects {
+            guard let id = object.id,
+                  let text = object.format_string,
+                  case .success = ConversionTemplateFormatter.validate(text) else {
+                context.delete(object)
+                changed = true
+                continue
+            }
+            objectsByID[id, default: []].append(object)
+        }
+
+        for (id, matches) in objectsByID {
+            guard let canonical = matches.first else { continue }
+            for duplicate in matches.dropFirst() {
+                context.delete(duplicate)
+                changed = true
+            }
+            if let defaultIndex = ConversionTemplateCatalog.defaultIDs.firstIndex(of: id) {
+                let defaultText = ConversionTemplateCatalog.defaultTexts[defaultIndex]
+                if canonical.format_string != defaultText {
+                    canonical.format_string = defaultText
                     changed = true
                 }
-                for duplicate in matching where duplicate.objectID != canonical.objectID {
-                    context.delete(duplicate)
-                    changed = true
-                }
-            } else {
+            }
+        }
+
+        for (index, defaultID) in ConversionTemplateCatalog.defaultIDs.enumerated() {
+            if objectsByID[defaultID] == nil {
                 let entity = try insertFormatString()
                 entity.id = defaultID
-                entity.date = Date()
-                entity.format_string = defaultText
+                entity.date = Date(timeIntervalSinceReferenceDate: TimeInterval(index))
+                entity.format_string = ConversionTemplateCatalog.defaultTexts[index]
                 changed = true
             }
         }
@@ -268,9 +316,11 @@ final class FormatStringDataManager {
 
     private func repositoryResult<T>(_ work: () throws -> T) -> Result<T, ConversionTemplateRepositoryError> {
         do {
-            return .success(try performAndWait {
-                context.reset()
-                return try work()
+            return .success(try repositoryLock.withLock {
+                try performAndWait {
+                    context.reset()
+                    return try work()
+                }
             })
         }
         catch { return .failure(Self.repositoryError(for: error)) }
@@ -278,9 +328,11 @@ final class FormatStringDataManager {
 
     private func operationResult<T>(_ work: () throws -> T) -> Result<T, ConversionTemplateOperationError> {
         do {
-            return .success(try performAndWait {
-                context.reset()
-                return try work()
+            return .success(try repositoryLock.withLock {
+                try performAndWait {
+                    context.reset()
+                    return try work()
+                }
             })
         }
         catch { return .failure(.repository(Self.repositoryError(for: error))) }
