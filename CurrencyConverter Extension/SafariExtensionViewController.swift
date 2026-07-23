@@ -135,6 +135,10 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
             return
         }
         self.formatTemplates = templates
+        let selectedID: UUID? = {
+            guard case .success(let template) = templateManager.selectedTemplate() else { return nil }
+            return template.id
+        }()
         cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: 1) { result, status, error in
             DispatchQueue.main.async {
                 self.statusText.stringValue = (error as? RateDataError)?.message ?? status.message
@@ -143,13 +147,9 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
                 }
                 let cpf = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: 1, toSymbol: convertToSym, toAmount: result)
                 self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings(templates: templates))
+                let selectedIndex = selectedID.flatMap { id in templates.firstIndex { $0.id == id } } ?? 0
+                self.formatterListBtn.selectItem(at: selectedIndex)
             }
         }
-        let selectedID: UUID? = {
-            guard case .success(let template) = templateManager.selectedTemplate() else { return nil }
-            return template.id
-        }()
-        let selectedIndex = selectedID.flatMap { id in templates.firstIndex { $0.id == id } } ?? 0
-        self.formatterListBtn.selectItem(at: selectedIndex)
     }
 }

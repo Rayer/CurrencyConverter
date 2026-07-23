@@ -72,8 +72,13 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                         return
                     }
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
-                    if let encoded = try? LastResultPersistence.encode(lastResult) {
+                    do {
+                        let encoded = try LastResultPersistence.encode(lastResult)
                         sharedUserDefaults.set(encoded, forKey: "lastResult")
+                    } catch {
+                        sharedUserDefaults.removeObject(forKey: "lastResult")
+                        validationHandler(true, NSLocalizedString("Could not prepare the conversion result.", comment: "Context menu result persistence error"))
+                        return
                     }
                     let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
                     validationHandler(false, title)

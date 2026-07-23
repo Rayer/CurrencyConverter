@@ -41,6 +41,10 @@ if rg -q 'defaultFormattingString|\$\{to_amount\} \$\{to_symbol\}' 'CurrencyConv
     fail "extension contains a duplicate hard-coded template array"
 fi
 rg -q 'templateManager\.selectedTemplate\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context menu does not read selected repository template"
+rg -q 'removeObject\(forKey: "lastResult"\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "encode failure can leave a stale clipboard result"
+if tail -n 35 'CurrencyConverter Extension/SafariExtensionViewController.swift' | awk '/addItems\(withTitles:/ {added=1} /selectItem\(at:/ {if (!added) exit 1; selected=1} END {exit !(added && selected)}'; then :; else
+    fail "popover selection is published before asynchronous items"
+fi
 if rg -q 'TEST_HOST|BUNDLE_LOADER' "$project_file"; then
     fail "test host or bundle loader was introduced"
 fi
