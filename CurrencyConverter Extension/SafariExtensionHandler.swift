@@ -35,70 +35,76 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
     }
         
     override func validateContextMenuItem(withCommand command: String, in page: SFSafariPage, userInfo: [String : Any]? = nil, validationHandler: @escaping (Bool, String?) -> Void) {
-        if command == "CurrencyExchange" {
-            let requestGeneration = pendingResults.begin()
-            let requestKey = ContextMenuRequestKey(userInfo: userInfo)
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
+        let response = OneShot<(Bool, String?)> { validationHandler($0.0, $0.1) }
+        guard command == "CurrencyExchange" else {
+            response.call((true, nil))
+            return
+        }
+        let requestKey = ContextMenuRequestKey(page: page, userInfo: userInfo)
+        let requestGeneration = pendingResults.begin(for: requestKey)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
                 
-                let convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as? String ?? "TWD"
-                let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as? String ?? "TWD"
-                let unit = Float32(truncating: selected)
+            let convertFromSym = sharedUserDefaults.value(forKey: "convertFromSym") as? String ?? "TWD"
+            let convertToSym = sharedUserDefaults.value(forKey: "convertToSym") as? String ?? "TWD"
+            let unit = Float32(truncating: selected)
                 
-                CurrencyConverter.shared.convertWithStatus(from: convertFromSym, to: convertToSym, unit: unit) { result, status, error in
-                    guard error == nil else {
-                        self.pendingResults.invalidate(requestGeneration)
-                        validationHandler(true, (error as? RateDataError)?.message ?? status.message)
-                        return
-                    }
-                    
-                    //Add credit card FX rate
-                    let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as? Int ?? 1
-                    let calculation = LegacyContextMenuCalculation.calculate(
-                        rawResult: result,
-                        unit: unit,
-                        sourceCurrency: convertFromSym,
-                        targetCurrency: convertToSym,
-                        feeIndex: fxIndex
-                    )
-                    let price = calculation.finalAmount
-                    
-                    let formatter = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
-                    guard case .success(let template) = self.templateManager.selectedTemplate() else {
-                        self.pendingResults.invalidate(requestGeneration)
-                        validationHandler(true, NSLocalizedString("Conversion templates are unavailable.", comment: "Context menu template repository error"))
-                        return
-                    }
-                    let lastCurrencyExchangeStr = formatter.getFormattedString(template: template)
-                    guard !lastCurrencyExchangeStr.isEmpty else {
-                        self.pendingResults.invalidate(requestGeneration)
-                        validationHandler(true, NSLocalizedString("The selected conversion template is invalid.", comment: "Context menu selected template error"))
-                        return
-                    }
-                    let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
-                    guard self.pendingResults.publish(lastResult, for: requestKey, generation: requestGeneration) else {
-                        validationHandler(true, nil)
-                        return
-                    }
-                    let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
-                    validationHandler(false, title)
-                    
+            CurrencyConverter.shared.convertWithStatus(from: convertFromSym, to: convertToSym, unit: unit) { result, status, error in
+                guard error == nil else {
+                    self.pendingResults.invalidate(requestGeneration)
+                    response.call((true, (error as? RateDataError)?.message ?? status.message))
+                    return
                 }
-            } else {
-                pendingResults.invalidate(requestGeneration)
-                validationHandler(true, nil)
+                    
+                //Add credit card FX rate
+                let fxIndex = sharedUserDefaults.value(forKey: "fxRateIndex") as? Int ?? 1
+                let calculation = LegacyContextMenuCalculation.calculate(
+                    rawResult: result,
+                    unit: unit,
+                    sourceCurrency: convertFromSym,
+                    targetCurrency: convertToSym,
+                    feeIndex: fxIndex
+                )
+                let price = calculation.finalAmount
+                    
+                let formatter = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
+                guard case .success(let template) = self.templateManager.selectedTemplate() else {
+                    self.pendingResults.invalidate(requestGeneration)
+                    response.call((true, NSLocalizedString("Conversion templates are unavailable.", comment: "Context menu template repository error")))
+                    return
+                }
+                let lastCurrencyExchangeStr = formatter.getFormattedString(template: template)
+                guard !lastCurrencyExchangeStr.isEmpty else {
+                    self.pendingResults.invalidate(requestGeneration)
+                    response.call((true, NSLocalizedString("The selected conversion template is invalid.", comment: "Context menu selected template error")))
+                    return
+                }
+                let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
+                guard self.pendingResults.publish(lastResult, generation: requestGeneration) else {
+                    response.call((true, nil))
+                    return
+                }
+                let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
+                response.call((false, title))
             }
+        } else {
+            pendingResults.invalidate(requestGeneration)
+            response.call((true, nil))
         }
     }
     
     override func contextMenuItemSelected(withCommand command: String, in page: SFSafariPage, userInfo: [String : Any]? = nil) {
         if command == "CurrencyExchange" {
-            if let lastResult = pendingResults.consume(for: ContextMenuRequestKey(userInfo: userInfo)) {
+            if let lastResult = pendingResults.consume(for: ContextMenuRequestKey(page: page, userInfo: userInfo)) {
                 guard persistHistory(lastResult: lastResult, userInfo: userInfo) else { return }
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()
-                guard pasteBoard.setString(lastResult.resultString, forType: .string) else { return }
+                guard pasteBoard.setString(lastResult.resultString, forType: .string) else {
+                    // History intentionally records the user action even when the system pasteboard rejects publication.
+                    NSLog("CurrencyConverter pasteboard publication failed")
+                    return
+                }
             }
         }
     }
@@ -140,10 +146,12 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
 }
 
 private struct ContextMenuRequestKey: Equatable {
+    let pageIdentifier: ObjectIdentifier
     let title: String?
     let url: String?
 
-    init(userInfo: [String: Any]?) {
+    init(page: SFSafariPage, userInfo: [String: Any]?) {
+        pageIdentifier = ObjectIdentifier(page)
         title = userInfo?["title"] as? String
         url = userInfo?["url"] as? String
     }

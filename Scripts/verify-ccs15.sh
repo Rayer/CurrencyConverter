@@ -30,6 +30,7 @@ rg -q 'sharedPersistentContainer\.newBackgroundContext\(\)' Shared/FormatStringD
 rg -q 'context\.reset\(\)' Shared/FormatStringDataManager.swift || fail "repository does not refresh cross-process reads"
 rg -q 'flock\(descriptor, LOCK_EX\)' Shared/FormatStringDataManager.swift || fail "repository has no cross-process write serialization"
 rg -q 'objectsByID\[id, default: \[\]\]' Shared/FormatStringDataManager.swift || fail "repository does not repair duplicate stable IDs"
+rg -q 'objectID\.uriRepresentation\(\)\.absoluteString' Shared/FormatStringDataManager.swift || fail "duplicate repair has no permanent object-ID tie-breaker"
 if rg -q 'initializationError|try performAndWait \{ try ensureBundledDefaults\(\) \}' Shared/FormatStringDataManager.swift; then
     fail "repository still performs sticky eager initialization"
 fi
@@ -45,6 +46,8 @@ fi
 rg -q 'templateManager\.selectedTemplate\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context menu does not read selected repository template"
 rg -q 'LatestRequestGate<ContextMenuRequestKey, LastResult>' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu results are not request-scoped"
 rg -q 'pendingResults\.consume' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu result is not atomically consumed"
+rg -q 'pageIdentifier = ObjectIdentifier\(page\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu result is not page-scoped"
+rg -Fq 'OneShot<(Bool, String?)>' 'CurrencyConverter Extension/SafariExtensionHandler.swift' || fail "context-menu validation callback is not once-only"
 if rg -q 'sharedUserDefaults.*lastResult|performBackgroundTask|try\? context\.save\(\)' 'CurrencyConverter Extension/SafariExtensionHandler.swift'; then
     fail "context-menu output or history can remain stale or fire-and-forget"
 fi

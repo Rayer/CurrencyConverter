@@ -177,14 +177,27 @@ final class CCS15ConversionTemplateTests: XCTestCase {
 
     func testLatestRequestGateRejectsStaleAndConsumesExactlyOnce() {
         let gate = LatestRequestGate<String, Int>()
-        let stale = gate.begin()
-        let current = gate.begin()
+        let stale = gate.begin(for: "page-a")
+        let current = gate.begin(for: "page-a")
+        let otherPage = gate.begin(for: "page-b")
 
-        XCTAssertFalse(gate.publish(1, for: "page-a", generation: stale))
-        XCTAssertTrue(gate.publish(2, for: "page-b", generation: current))
+        XCTAssertFalse(gate.publish(1, generation: stale))
+        XCTAssertTrue(gate.publish(2, generation: current))
+        XCTAssertTrue(gate.publish(3, generation: otherPage))
+        XCTAssertEqual(gate.consume(for: "page-b"), 3)
+        XCTAssertEqual(gate.consume(for: "page-a"), 2)
         XCTAssertNil(gate.consume(for: "page-a"))
-        XCTAssertEqual(gate.consume(for: "page-b"), 2)
         XCTAssertNil(gate.consume(for: "page-b"))
+    }
+
+    func testOneShotCallsCompletionOnce() {
+        var values: [Int] = []
+        let oneShot = OneShot<Int> { values.append($0) }
+
+        oneShot.call(1)
+        oneShot.call(2)
+
+        XCTAssertEqual(values, [1])
     }
 
     func testConcurrentRepositoriesSeedOneStableDefaultPerID() throws {

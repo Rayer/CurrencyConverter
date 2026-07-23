@@ -354,6 +354,7 @@ final class FormatStringDataManager {
 
     private static func objectOrder(_ lhs: FormatString, _ rhs: FormatString) -> Bool {
         if lhs.date != rhs.date { return (lhs.date ?? .distantPast) < (rhs.date ?? .distantPast) }
-        return (lhs.id?.uuidString ?? "") < (rhs.id?.uuidString ?? "")
+        if lhs.id != rhs.id { return (lhs.id?.uuidString ?? "") < (rhs.id?.uuidString ?? "") }
+        return lhs.objectID.uriRepresentation().absoluteString < rhs.objectID.uriRepresentation().absoluteString
     }
 }

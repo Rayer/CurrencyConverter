@@ -151,8 +151,9 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
                   return
                 }
                 let cpf = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: 1, toSymbol: convertToSym, toAmount: result)
+                let titles = cpf.getAllFormattedStrings(templates: templates)
+                self.formatterListBtn.addItems(withTitles: titles)
                 self.formatTemplates = templates
-                self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings(templates: templates))
                 let selectedIndex = selectedID.flatMap { id in templates.firstIndex { $0.id == id } } ?? 0
                 self.formatterListBtn.selectItem(at: selectedIndex)
             }

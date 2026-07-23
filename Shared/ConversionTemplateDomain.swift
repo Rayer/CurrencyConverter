@@ -172,42 +172,85 @@ enum ConversionTemplateSelection {
 
 final class LatestRequestGate<Key: Equatable, Value> {
     struct Generation: Equatable {
-        fileprivate let generation: UInt64
+        fileprivate let key: Key
+        fileprivate let value: UInt64
+        fileprivate let identity: UUID
     }
 
     private let lock = NSLock()
-    private var generation: UInt64 = 0
-    private var pending: (key: Key, value: Value)?
+    private var generations: [(key: Key, value: UInt64, identity: UUID)] = []
+    private var pending: [(key: Key, value: Value)] = []
 
-    func begin() -> Generation {
+    func begin(for key: Key) -> Generation {
         lock.lock()
         defer { lock.unlock() }
-        generation &+= 1
-        pending = nil
-        return Generation(generation: generation)
+        let current = generations.first { $0.key == key }?.value ?? 0
+        let next = current == UInt64.max ? UInt64.max : current + 1
+        let identity = UUID()
+        generations.removeAll { $0.key == key }
+        generations.append((key, next, identity))
+        pending.removeAll { $0.key == key }
+        return Generation(key: key, value: next, identity: identity)
     }
 
-    func publish(_ value: Value, for key: Key, generation requestGeneration: Generation) -> Bool {
+    func publish(_ value: Value, generation requestGeneration: Generation) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard requestGeneration.generation == generation else { return false }
-        pending = (key, value)
+        guard generations.contains(where: {
+            $0.key == requestGeneration.key
+                && $0.value == requestGeneration.value
+                && $0.identity == requestGeneration.identity
+        }) else {
+            return false
+        }
+        pending.removeAll { $0.key == requestGeneration.key }
+        pending.append((requestGeneration.key, value))
         return true
     }
 
     func invalidate(_ requestGeneration: Generation) {
         lock.lock()
         defer { lock.unlock() }
-        guard requestGeneration.generation == generation else { return }
-        pending = nil
+        guard generations.contains(where: {
+            $0.key == requestGeneration.key
+                && $0.value == requestGeneration.value
+                && $0.identity == requestGeneration.identity
+        }) else {
+            return
+        }
+        pending.removeAll { $0.key == requestGeneration.key }
     }
 
     func consume(for key: Key) -> Value? {
         lock.lock()
         defer { lock.unlock() }
-        guard let candidate = pending, candidate.key == key else { return nil }
-        pending = nil
-        generation &+= 1
+        guard let candidate = pending.first(where: { $0.key == key }) else { return nil }
+        pending.removeAll { $0.key == key }
+        if let current = generations.first(where: { $0.key == key })?.value {
+            generations.removeAll { $0.key == key }
+            generations.append((key, current == UInt64.max ? UInt64.max : current + 1, UUID()))
+        }
         return candidate.value
+    }
+}
+
+final class OneShot<Value> {
+    private let lock = NSLock()
+    private var completed = false
+    private let completion: (Value) -> Void
+
+    init(_ completion: @escaping (Value) -> Void) {
+        self.completion = completion
+    }
+
+    func call(_ value: Value) {
+        lock.lock()
+        guard !completed else {
+            lock.unlock()
+            return
+        }
+        completed = true
+        lock.unlock()
+        completion(value)
     }
 }

@@ -58,7 +58,7 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
             preview = ""
             refresh()
         case .failure(let error):
-            errorMessage = error.errorDescription
+            handle(error)
         }
     }
 
@@ -68,7 +68,7 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
             selectedID = selected.id
             errorMessage = nil
         case .failure(let error):
-            errorMessage = error.errorDescription
+            handle(error)
         }
     }
 
@@ -78,7 +78,7 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
             selectedID = selected.id
             refresh()
         case .failure(let error):
-            errorMessage = error.errorDescription
+            handle(error)
         }
     }
 
@@ -89,8 +89,17 @@ final class ConversionTemplateManagementViewModel: ObservableObject {
             preview = ""
             refresh()
         case .failure(let error):
-            errorMessage = error.errorDescription
+            handle(error)
         }
+    }
+
+    private func handle(_ error: ConversionTemplateOperationError) {
+        if case .repository = error {
+            templates = []
+            selectedID = nil
+            preview = ""
+        }
+        errorMessage = error.errorDescription
     }
 }
 
