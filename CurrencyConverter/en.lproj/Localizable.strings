@@ -75,6 +75,12 @@
 "Quit anyway" = "Quit anyway";
 "Cancel" = "Cancel";
 "Quitting now will lose any changes you have made since the last successful save" = "Quitting now will lose any changes you have made since the last successful save";
+"Safari did not provide more details." = "Safari did not provide more details.";
+" — saved rates; refresh failed" = " — saved rates; refresh failed";
+"Cashback" = "Cashback";
+"%d points" = "%d points";
+"per Point" = "per Point";
+"per Dollar" = "per Dollar";
 "Open Safari Extension Settings" = "Open Safari Extension Settings";
 "Opens Safari settings for this extension. Enable or disable it there." = "Opens Safari settings for this extension. Enable or disable it there.";
 "Checking extension status…" = "Checking extension status…";

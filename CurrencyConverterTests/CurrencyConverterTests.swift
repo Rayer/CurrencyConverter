@@ -102,6 +102,112 @@ class CurrencyConverterTests: XCTestCase {
         assertAllValuesAreTranslated(source: "Extension zh-Hant SafariExtensionViewController.strings", values: extensionXibZh)
     }
 
+    func testCCS29_TargetedInventoryPathsAreLocalizedAndParitySafe() throws {
+        let root = projectRoot()
+        let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
+        let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
+
+        let targetedKeys = [
+            "Safari did not provide more details.",
+            " — saved rates; refresh failed",
+            "Cashback",
+            "%d points",
+            "per Point",
+            "per Dollar"
+        ]
+        let staleWarning = " — saved rates; refresh failed"
+
+        for key in targetedKeys {
+            XCTAssertNotNil(appLocalizationEn[key], "Missing app fallback key: \(key)")
+            XCTAssertNotNil(appLocalizationZh[key], "Missing app zh-Hant key: \(key)")
+            XCTAssertNotNil(extensionLocalizationEn[key], "Missing extension fallback key: \(key)")
+            XCTAssertNotNil(extensionLocalizationZh[key], "Missing extension zh-Hant key: \(key)")
+        }
+
+        XCTAssertNotEqual(
+            appLocalizationZh["Safari did not provide more details."],
+            appLocalizationEn["Safari did not provide more details."],
+            "App zh-Hant should not keep raw English fallback for error details"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["Safari did not provide more details."],
+            extensionLocalizationEn["Safari did not provide more details."],
+            "Extension zh-Hant should not keep raw English fallback for error details"
+        )
+
+        XCTAssertTrue(staleWarning.hasPrefix(" —"), "Stale warning should keep a leading separator")
+        XCTAssertTrue(
+            (appLocalizationZh[staleWarning]?.hasPrefix(" —")) == true,
+            "App zh-Hant stale warning should keep leading separator"
+        )
+        XCTAssertTrue(
+            (extensionLocalizationZh[staleWarning]?.hasPrefix(" —")) == true,
+            "Extension zh-Hant stale warning should keep leading separator"
+        )
+        XCTAssertNotEqual(
+            appLocalizationZh[staleWarning],
+            appLocalizationEn[staleWarning],
+            "App zh-Hant should not keep raw English stale warning"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh[staleWarning],
+            extensionLocalizationEn[staleWarning],
+            "Extension zh-Hant should not keep raw English stale warning"
+        )
+
+        XCTAssertNotEqual(
+            appLocalizationZh["Cashback"],
+            appLocalizationEn["Cashback"],
+            "App zh-Hant should not keep raw English Cashback"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["Cashback"],
+            extensionLocalizationEn["Cashback"],
+            "Extension zh-Hant should not keep raw English Cashback"
+        )
+
+        XCTAssertNotEqual(
+            appLocalizationZh["%d points"],
+            appLocalizationEn["%d points"],
+            "App zh-Hant should not keep raw English points format"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["%d points"],
+            extensionLocalizationEn["%d points"],
+            "Extension zh-Hant should not keep raw English points format"
+        )
+        XCTAssertEqual(
+            placeholders(in: appLocalizationEn["%d points"]!),
+            placeholders(in: appLocalizationZh["%d points"]!)
+        )
+        XCTAssertEqual(
+            placeholders(in: extensionLocalizationEn["%d points"]!),
+            placeholders(in: extensionLocalizationZh["%d points"]!)
+        )
+        XCTAssertNotEqual(
+            appLocalizationZh["per Point"],
+            appLocalizationEn["per Point"],
+            "App zh-Hant should not keep raw English per-Point suffix"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["per Point"],
+            extensionLocalizationEn["per Point"],
+            "Extension zh-Hant should not keep raw English per-Point suffix"
+        )
+        XCTAssertNotEqual(
+            appLocalizationZh["per Dollar"],
+            appLocalizationEn["per Dollar"],
+            "App zh-Hant should not keep raw English per-Dollar suffix"
+        )
+        XCTAssertNotEqual(
+            extensionLocalizationZh["per Dollar"],
+            extensionLocalizationEn["per Dollar"],
+            "Extension zh-Hant should not keep raw English per-Dollar suffix"
+        )
+    }
+
     private func projectRoot() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

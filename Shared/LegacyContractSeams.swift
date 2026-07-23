@@ -226,7 +226,7 @@ struct LastResult: Codable, Equatable {
 
 enum LegacyContextMenuPresentation {
     private static let titleLimit = 120
-    private static let staleWarning = " — saved rates; refresh failed"
+    private static let staleWarning = NSLocalizedString(" — saved rates; refresh failed", comment: "Context menu stale-rate warning suffix")
 
     static func menuTitle(resultString: String, status: RateDataStatus) -> String {
         let warning = status.isStale && status.lastRefreshError != nil ? staleWarning : ""

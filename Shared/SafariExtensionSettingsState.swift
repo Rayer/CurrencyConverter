@@ -37,7 +37,7 @@ enum SafariExtensionSettingsCopyMapping {
             statusText = NSLocalizedString("Extension is disabled. Enable it in Safari Extension Settings.", comment: "Extension status text")
             accessibilityValue = NSLocalizedString("Disabled.", comment: "Extension status accessibility value")
         case .error(let message):
-            let detail = message.isEmpty ? "Safari did not provide more details." : message
+            let detail = message.isEmpty ? NSLocalizedString("Safari did not provide more details.", comment: "Error fallback details") : message
             statusText = String(
                 format: NSLocalizedString(
                     "Extension settings error: %@",

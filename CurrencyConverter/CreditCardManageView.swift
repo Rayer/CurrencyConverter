@@ -92,7 +92,9 @@ struct CreditCardManageView: View {
                                 isValid: self.model.mDomesticRateValidate,
                                 is2liner: true,
                                 textFieldWidth: 80,
-                                withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar"
+                                withSuffix: model.mConvertType == 0
+                                    ? NSLocalizedString("per Point", comment: "Mileage reward unit label")
+                                    : NSLocalizedString("per Dollar", comment: "Mileage reward unit label")
                             )
                             UnifiedView(
                                 title: NSLocalizedString("Mileage / Point international rate", comment: "Credit card editor title"),
@@ -102,7 +104,9 @@ struct CreditCardManageView: View {
                                 isValid: self.model.mInternationalRateValidate,
                                 is2liner: true,
                                 textFieldWidth: 80,
-                                withSuffix: model.mConvertType == 0 ? "per Point" : "per Dollar"
+                                withSuffix: model.mConvertType == 0
+                                    ? NSLocalizedString("per Point", comment: "Mileage reward unit label")
+                                    : NSLocalizedString("per Dollar", comment: "Mileage reward unit label")
                             )
 
                             UnifiedView(
