@@ -14,18 +14,6 @@ class ConvertPasteboardFormatter {
     var toSymbol : String
     var toAmount : Float32
     
-    let ToAmountPH = "${to_amount}"
-    let FromAmountPH = "${from_amount}"
-    let ToSymbolPH = "${to_symbol}"
-    let FromSymbolPH = "${from_symbol}"
-    
-    static let defaultFormattingString : [String] = [
-        "${to_amount} ${to_symbol}",
-        "${to_amount}",
-        "${from_amount} ${from_symbol} => ${to_amount} ${to_symbol}",
-        "(${from_symbol}) ${from_amount} => (${to_symbol}) ${to_amount}"
-    ]
-    
     init(fromSymbol : String, fromAmount : Float32, toSymbol : String, toAmount : Float32) {
         self.fromSymbol = fromSymbol
         self.fromAmount = fromAmount
@@ -34,22 +22,24 @@ class ConvertPasteboardFormatter {
     }
     
     func getFormattedString(formatIndex: Int) -> String{
-        var ret = ConvertPasteboardFormatter.defaultFormattingString[formatIndex]
-        ret = ret.replacingOccurrences(of: FromSymbolPH, with: self.fromSymbol)
-        ret = ret.replacingOccurrences(of: ToSymbolPH, with: self.toSymbol)
-        
-        let toAmountFixed = String(format: "%.2f", self.toAmount)
-        ret = ret.replacingOccurrences(of: FromAmountPH, with: String(describing: self.fromAmount))
-        ret = ret.replacingOccurrences(of: ToAmountPH, with: toAmountFixed)
-        
-        return ret
+        guard ConversionTemplateCatalog.defaultIDs.indices.contains(formatIndex) else { return "" }
+        return getFormattedString(template: ConversionTemplateCatalog.defaults[formatIndex])
     }
     
-    func getAllFormattedStrings() -> [String] {
-        var ret : [String] = []
-        for x in 0...(ConvertPasteboardFormatter.defaultFormattingString.count - 1) {
-            ret.insert(getFormattedString(formatIndex: x), at: x)
+    func getFormattedString(template: ConversionTemplate) -> String {
+        let values = ConversionTemplateValues(
+            fromSymbol: fromSymbol,
+            fromAmount: fromAmount,
+            toSymbol: toSymbol,
+            toAmount: toAmount
+        )
+        guard case .success(let formatted) = ConversionTemplateFormatter.format(template.text, values: values) else {
+            return ""
         }
-        return ret
+        return formatted
+    }
+
+    func getAllFormattedStrings(templates: [ConversionTemplate] = ConversionTemplateCatalog.defaults) -> [String] {
+        templates.map { getFormattedString(template: $0) }
     }
 }

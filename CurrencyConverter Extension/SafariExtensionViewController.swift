@@ -19,6 +19,7 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     }()
     
     let cc = CurrencyConverter.shared
+    private let templateManager = FormatStringDataManager.shared
     
     @IBOutlet weak var convertListBtn: NSPopUpButton!
     @IBOutlet weak var convertToListBtn: NSPopUpButton!
@@ -39,6 +40,8 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     @IBOutlet weak var baseRateValueField: NSTextField!
     
     var fxRateBtnList : [NSButton] = []
+    private var formatTemplates: [ConversionTemplate] = []
+    private var formatterRequestGeneration: UInt64 = 0
     
     override func viewDidLoad() {
         
@@ -96,7 +99,11 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     @IBAction func OnFormatBtnClicked(_ sender: NSPopUpButton) {
         let index = sender.indexOfSelectedItem
-        sharedUserDefaults.set(index, forKey: "FormatIndex")
+        guard formatTemplates.indices.contains(index) else { return }
+        guard case .success(let selected) = templateManager.select(id: formatTemplates[index].id) else { return }
+        if let legacyIndex = ConversionTemplateCatalog.defaultIDs.firstIndex(of: selected.id) {
+            sharedUserDefaults.set(legacyIndex, forKey: ConversionTemplateSelection.legacyFormatIndexKey)
+        }
     }
     
     @IBAction func OnFxRateBtnClicked(_ sender: NSButton) {
@@ -123,18 +130,33 @@ class SafariExtensionViewController: SFSafariExtensionViewController {
     
     func UpdateFormatters() {
         guard let convertFromSym, let convertToSym else { return }
+        formatterRequestGeneration &+= 1
+        let requestGeneration = formatterRequestGeneration
         self.formatterListBtn.removeAllItems()
+        self.formatTemplates = []
+        guard case .success(let templates) = templateManager.availableTemplates() else {
+            self.statusText.stringValue = NSLocalizedString("Conversion templates are unavailable.", comment: "Extension template repository error")
+            return
+        }
+        self.formatTemplates = templates
+        let selectedID: UUID? = {
+            guard case .success(let template) = templateManager.selectedTemplate() else { return nil }
+            return template.id
+        }()
         cc.convertWithStatus(from: convertFromSym, to: convertToSym, unit: 1) { result, status, error in
             DispatchQueue.main.async {
+                guard requestGeneration == self.formatterRequestGeneration else { return }
                 self.statusText.stringValue = (error as? RateDataError)?.message ?? status.message
                 guard error == nil else {
-                    return
+                  return
                 }
                 let cpf = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: 1, toSymbol: convertToSym, toAmount: result)
-                self.formatterListBtn.addItems(withTitles: cpf.getAllFormattedStrings())
+                let titles = cpf.getAllFormattedStrings(templates: templates)
+                self.formatterListBtn.addItems(withTitles: titles)
+                self.formatTemplates = templates
+                let selectedIndex = selectedID.flatMap { id in templates.firstIndex { $0.id == id } } ?? 0
+                self.formatterListBtn.selectItem(at: selectedIndex)
             }
         }
-        let formatIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
-        self.formatterListBtn.selectItem(at: formatIndex)
     }
 }

@@ -35,6 +35,11 @@
 		63CC34712531982E00466679 /* CurrencyPickerPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34702531982E00466679 /* CurrencyPickerPresentation.swift */; };
 		63CC34722531982E00466679 /* CurrencyPickerPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34702531982E00466679 /* CurrencyPickerPresentation.swift */; };
 		63CC34742531982E00466679 /* CCS19CurrencyPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34732531982E00466679 /* CCS19CurrencyPickerTests.swift */; };
+		63CC34812531982E00466679 /* ConversionTemplateDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34802531982E00466679 /* ConversionTemplateDomain.swift */; };
+		63CC34822531982E00466679 /* ConversionTemplateDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34802531982E00466679 /* ConversionTemplateDomain.swift */; };
+		63CC34832531982E00466679 /* ConversionTemplateDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC34802531982E00466679 /* ConversionTemplateDomain.swift */; };
+		63CC34842531982E00466679 /* ConversionTemplateManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC348B2531982E00466679 /* ConversionTemplateManagementView.swift */; };
+		63CC34852531982E00466679 /* CCS15ConversionTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CC348C2531982E00466679 /* CCS15ConversionTemplateTests.swift */; };
 		625712FC2371982E00466679 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 625712FB2371982E00466679 /* Cocoa.framework */; };
 		625712FF2371982E00466679 /* SafariExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625712FE2371982E00466679 /* SafariExtensionHandler.swift */; };
 		625713012371982E00466679 /* SafariExtensionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 625713002371982E00466679 /* SafariExtensionViewController.swift */; };
@@ -129,6 +134,9 @@
 		63CC34672531982E00466679 /* SafariExtensionSettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariExtensionSettingsViewModel.swift; sourceTree = "<group>"; };
 		63CC34702531982E00466679 /* CurrencyPickerPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyPickerPresentation.swift; sourceTree = "<group>"; };
 		63CC34732531982E00466679 /* CCS19CurrencyPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCS19CurrencyPickerTests.swift; sourceTree = "<group>"; };
+		63CC34802531982E00466679 /* ConversionTemplateDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionTemplateDomain.swift; sourceTree = "<group>"; };
+		63CC348B2531982E00466679 /* ConversionTemplateManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionTemplateManagementView.swift; sourceTree = "<group>"; };
+		63CC348C2531982E00466679 /* CCS15ConversionTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCS15ConversionTemplateTests.swift; sourceTree = "<group>"; };
 		625712E62371982E00466679 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		62C49F31252AA15400ED2E72 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		625712F62371982E00466679 /* CurrencyConverter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "CurrencyConverter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -218,6 +226,7 @@
 			isa = PBXGroup;
 			children = (
 				625712E42371982E00466679 /* CurrencyConverterTests.swift */,
+				63CC348C2531982E00466679 /* CCS15ConversionTemplateTests.swift */,
 				63CC34732531982E00466679 /* CCS19CurrencyPickerTests.swift */,
 				63CC34662531982E00466679 /* CCS22SafariExtensionSettingsTests.swift */,
 				63CC34022371982E00466679 /* CCS34CharacterizationTests.swift */,
@@ -265,6 +274,7 @@
 		6257131E23719B9800466679 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				63CC34802531982E00466679 /* ConversionTemplateDomain.swift */,
 				63CC34702531982E00466679 /* CurrencyPickerPresentation.swift */,
 				63CC34602531982E00466679 /* SafariExtensionSettingsState.swift */,
 				63CC34672531982E00466679 /* SafariExtensionSettingsViewModel.swift */,
@@ -287,6 +297,7 @@
 			children = (
 				6285039A251B936F00E381AA /* AppDelegate.swift */,
 				6285039C251B936F00E381AA /* ContentView.swift */,
+				63CC348B2531982E00466679 /* ConversionTemplateManagementView.swift */,
 				63CC34652531982E00466679 /* SafariExtensionSettingsAdapter.swift */,
 				628503A1251B937100E381AA /* Assets.xcassets */,
 				628503A6251B937100E381AA /* Main.storyboard */,
@@ -452,6 +463,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63CC34832531982E00466679 /* ConversionTemplateDomain.swift in Sources */,
+				63CC34852531982E00466679 /* CCS15ConversionTemplateTests.swift in Sources */,
 				63CC34722531982E00466679 /* CurrencyPickerPresentation.swift in Sources */,
 				63CC34742531982E00466679 /* CCS19CurrencyPickerTests.swift in Sources */,
 				63CC34642531982E00466679 /* CCS22SafariExtensionSettingsTests.swift in Sources */,
@@ -481,6 +494,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63CC34822531982E00466679 /* ConversionTemplateDomain.swift in Sources */,
 				62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */,
 				62C49F26252AA14600ED2E72 /* CHDataManager.swift in Sources */,
 				62B81E4B2542155D0015CC19 /* CurrencySymbolMap.swift in Sources */,
@@ -500,6 +514,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63CC34812531982E00466679 /* ConversionTemplateDomain.swift in Sources */,
+				63CC34842531982E00466679 /* ConversionTemplateManagementView.swift in Sources */,
 				63CC34712531982E00466679 /* CurrencyPickerPresentation.swift in Sources */,
 				63CC34632531982E00466679 /* SafariExtensionSettingsAdapter.swift in Sources */,
 				63CC34612531982E00466679 /* SafariExtensionSettingsState.swift in Sources */,
