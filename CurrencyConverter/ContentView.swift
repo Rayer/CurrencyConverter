@@ -13,11 +13,16 @@ struct ContentView: View {
     
     @ObservedObject var dataset = ConvertHistoryDMCollection()
     @ObservedObject private var extensionSettings: SafariExtensionSettingsViewModel
+    @ObservedObject private var templates: ConversionTemplateManagementViewModel
     @State var showInstallButton = true
     @State var currentTab = 0
     
-    init(extensionSettings: SafariExtensionSettingsViewModel) {
+    init(
+        extensionSettings: SafariExtensionSettingsViewModel,
+        templates: ConversionTemplateManagementViewModel = ConversionTemplateManagementViewModel()
+    ) {
         _extensionSettings = ObservedObject(wrappedValue: extensionSettings)
+        _templates = ObservedObject(wrappedValue: templates)
         NotificationCenter.default.addObserver(dataset, selector: #selector(type(of: dataset).reload), name: .NSPersistentStoreRemoteChange, object: sharedPersistentContainer.persistentStoreCoordinator)
         dataset.reload()
     }
@@ -89,8 +94,15 @@ struct ContentView: View {
                 .tabItem { Text("API Sync Records") }.tag(2)
                 .onAppear() {
                     self.currentTab = 2
-                }
+            }
             #endif
+
+            ConversionTemplateManagementView(model: templates)
+                .tabItem { Text("Conversion Formats") }
+                .tag(3)
+                .onAppear {
+                    self.currentTab = 3
+                }
         }
         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity, alignment: .center)
     }

@@ -9,6 +9,7 @@
 import SafariServices
 
 class SafariExtensionHandler: SFSafariExtensionHandler {
+    private let templateManager = FormatStringDataManager.shared
     
     override func messageReceived(withName messageName: String, from page: SFSafariPage, userInfo: [String : Any]?) {
         if messageName == "CCInitialize" {
@@ -35,7 +36,6 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         NSLog("validateContextMenuItem : Command: \(command), userInfo: \(String(describing: userInfo)), validationHandler: \(String(describing: validationHandler))")
         
         if command == "CurrencyExchange" {
-            //let selected_string = (userInfo?["selected"] as! String)
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
             if let selected = formatter.number(from: userInfo?["selected"] as? String ?? "") {
@@ -61,11 +61,20 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                     )
                     let price = calculation.finalAmount
                     
-                    let formatter = ConvertPasteboardFormatter.init(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
-                    let formattingIndex = sharedUserDefaults.value(forKey: "FormatIndex") as? Int ?? 0
-                    let lastCurrencyExchangeStr = formatter.getFormattedString(formatIndex: formattingIndex)
+                    let formatter = ConvertPasteboardFormatter(fromSymbol: convertFromSym, fromAmount: unit, toSymbol: convertToSym, toAmount: price)
+                    guard case .success(let template) = self.templateManager.selectedTemplate() else {
+                        validationHandler(true, NSLocalizedString("Conversion templates are unavailable.", comment: "Context menu template repository error"))
+                        return
+                    }
+                    let lastCurrencyExchangeStr = formatter.getFormattedString(template: template)
+                    guard !lastCurrencyExchangeStr.isEmpty else {
+                        validationHandler(true, NSLocalizedString("The selected conversion template is invalid.", comment: "Context menu selected template error"))
+                        return
+                    }
                     let lastResult = LastResult(resultString: lastCurrencyExchangeStr, convertFrom: convertFromSym, convertTo: convertToSym, units: unit, fxRate: calculation.appliedFXFee, ratio: calculation.ratio)
-                    sharedUserDefaults.set(try? LastResultPersistence.encode(lastResult), forKey: "lastResult")
+                    if let encoded = try? LastResultPersistence.encode(lastResult) {
+                        sharedUserDefaults.set(encoded, forKey: "lastResult")
+                    }
                     let title = LegacyContextMenuPresentation.menuTitle(resultString: lastCurrencyExchangeStr, status: status)
                     validationHandler(false, title)
                     
@@ -81,32 +90,32 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
         if command == "CurrencyExchange" {
             NSLog("Executing Currency Exchange")
             if let lastResultData = sharedUserDefaults.value(forKey: "lastResult") as? Data {
-                let lastResult = try! LastResultPersistence.decode(lastResultData)
+                guard let lastResult = try? LastResultPersistence.decode(lastResultData) else { return }
                 let pasteBoard = NSPasteboard.general
                 pasteBoard.clearContents()
                 pasteBoard.setString(lastResult.resultString, forType: .string)
                 NSLog("Copying to pasteboard : \(lastResult)")
 
-                //If everyone is OK, save it to core data
-                let history = ConvertHistory(context: sharedPersistentContainer.viewContext)
-                history.title = userInfo?["title"] as? String
-                history.url = userInfo?["url"] as? String
-                history.date = Date()
-                history.fromAmount = lastResult.units
-                history.fromSymbol = lastResult.convertFrom
-                history.toSymbol = lastResult.convertTo
-                let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
-                    fromSymbol: lastResult.convertFrom,
-                    toSymbol: lastResult.convertTo,
-                    fxFeeRate: lastResult.fxRate,
-                    ratio: lastResult.ratio
-                )
-                history.fxFee = values.fxFeeRate
-                history.ratio = values.ratio
-                history.id = UUID()
-                
-                //Print how many count in CoreData now
-                try? sharedPersistentContainer.viewContext.save()
+                // Keep the shared Core Data context queue-confined in the extension.
+                sharedPersistentContainer.performBackgroundTask { context in
+                    let history = ConvertHistory(context: context)
+                    history.title = userInfo?["title"] as? String
+                    history.url = userInfo?["url"] as? String
+                    history.date = Date()
+                    history.fromAmount = lastResult.units
+                    history.fromSymbol = lastResult.convertFrom
+                    history.toSymbol = lastResult.convertTo
+                    let values = LegacyConvertHistoryCalculations.normalizedHistoryValues(
+                        fromSymbol: lastResult.convertFrom,
+                        toSymbol: lastResult.convertTo,
+                        fxFeeRate: lastResult.fxRate,
+                        ratio: lastResult.ratio
+                    )
+                    history.fxFee = values.fxFeeRate
+                    history.ratio = values.ratio
+                    history.id = UUID()
+                    try? context.save()
+                }
             }
         }
     }
