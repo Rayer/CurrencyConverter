@@ -75,18 +75,29 @@ class CurrencyConverterTests: XCTestCase {
 
     func testCCS29_LocalizedCallsitesAreFullyBackedByFallbackLocale() throws {
         let root = projectRoot()
-        let sourceKeys = try collectLocalizedKeys(in: [
-            root.appendingPathComponent("CurrencyConverter"),
-            root.appendingPathComponent("Shared"),
-            root.appendingPathComponent("CurrencyConverter Extension")
-        ])
         let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let appSourceKeys = try collectLocalizedKeys(in: [
+            root.appendingPathComponent("CurrencyConverter"),
+            root.appendingPathComponent("Shared")
+        ])
+        let extensionSourceKeys = try collectLocalizedKeys(in: [
+            root.appendingPathComponent("CurrencyConverter Extension"),
+            root.appendingPathComponent("Shared")
+        ])
 
-        XCTAssertGreaterThan(sourceKeys.count, 0)
-        for key in sourceKeys {
+        XCTAssertGreaterThan(appSourceKeys.count, 0)
+        XCTAssertGreaterThan(extensionSourceKeys.count, 0)
+        for key in appSourceKeys {
             XCTAssertTrue(
                 appLocalizationEn.keys.contains(key),
-                "Missing fallback key for source callsite: \(key)"
+                "Missing app fallback key for callsite: \(key)"
+            )
+        }
+        for key in extensionSourceKeys {
+            XCTAssertTrue(
+                extensionLocalizationEn.keys.contains(key),
+                "Missing extension fallback key for callsite: \(key)"
             )
         }
     }
@@ -109,9 +120,11 @@ class CurrencyConverterTests: XCTestCase {
         let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
         let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
 
-        let targetedKeys = [
+        let sharedTargetedKeys = [
             "Safari did not provide more details.",
-            " — saved rates; refresh failed",
+            " — saved rates; refresh failed"
+        ]
+        let appOnlyTargetedKeys = [
             "Cashback",
             "%d points",
             "per Point",
@@ -119,11 +132,17 @@ class CurrencyConverterTests: XCTestCase {
         ]
         let staleWarning = " — saved rates; refresh failed"
 
-        for key in targetedKeys {
+        for key in sharedTargetedKeys {
             XCTAssertNotNil(appLocalizationEn[key], "Missing app fallback key: \(key)")
             XCTAssertNotNil(appLocalizationZh[key], "Missing app zh-Hant key: \(key)")
             XCTAssertNotNil(extensionLocalizationEn[key], "Missing extension fallback key: \(key)")
             XCTAssertNotNil(extensionLocalizationZh[key], "Missing extension zh-Hant key: \(key)")
+        }
+        for key in appOnlyTargetedKeys {
+            XCTAssertNotNil(appLocalizationEn[key], "Missing app fallback key: \(key)")
+            XCTAssertNotNil(appLocalizationZh[key], "Missing app zh-Hant key: \(key)")
+            XCTAssertNil(extensionLocalizationEn[key], "App-only key should not be present in extension fallback: \(key)")
+            XCTAssertNil(extensionLocalizationZh[key], "App-only key should not be present in extension zh-Hant: \(key)")
         }
 
         XCTAssertNotEqual(
@@ -157,55 +176,11 @@ class CurrencyConverterTests: XCTestCase {
             "Extension zh-Hant should not keep raw English stale warning"
         )
 
-        XCTAssertNotEqual(
-            appLocalizationZh["Cashback"],
-            appLocalizationEn["Cashback"],
-            "App zh-Hant should not keep raw English Cashback"
-        )
-        XCTAssertNotEqual(
-            extensionLocalizationZh["Cashback"],
-            extensionLocalizationEn["Cashback"],
-            "Extension zh-Hant should not keep raw English Cashback"
-        )
-
-        XCTAssertNotEqual(
-            appLocalizationZh["%d points"],
-            appLocalizationEn["%d points"],
-            "App zh-Hant should not keep raw English points format"
-        )
-        XCTAssertNotEqual(
-            extensionLocalizationZh["%d points"],
-            extensionLocalizationEn["%d points"],
-            "Extension zh-Hant should not keep raw English points format"
-        )
-        XCTAssertEqual(
-            placeholders(in: appLocalizationEn["%d points"]!),
-            placeholders(in: appLocalizationZh["%d points"]!)
-        )
-        XCTAssertEqual(
-            placeholders(in: extensionLocalizationEn["%d points"]!),
-            placeholders(in: extensionLocalizationZh["%d points"]!)
-        )
-        XCTAssertNotEqual(
-            appLocalizationZh["per Point"],
-            appLocalizationEn["per Point"],
-            "App zh-Hant should not keep raw English per-Point suffix"
-        )
-        XCTAssertNotEqual(
-            extensionLocalizationZh["per Point"],
-            extensionLocalizationEn["per Point"],
-            "Extension zh-Hant should not keep raw English per-Point suffix"
-        )
-        XCTAssertNotEqual(
-            appLocalizationZh["per Dollar"],
-            appLocalizationEn["per Dollar"],
-            "App zh-Hant should not keep raw English per-Dollar suffix"
-        )
-        XCTAssertNotEqual(
-            extensionLocalizationZh["per Dollar"],
-            extensionLocalizationEn["per Dollar"],
-            "Extension zh-Hant should not keep raw English per-Dollar suffix"
-        )
+        XCTAssertNotEqual(appLocalizationZh["Cashback"], appLocalizationEn["Cashback"], "App zh-Hant should not keep raw English Cashback")
+        XCTAssertNotEqual(appLocalizationZh["%d points"], appLocalizationEn["%d points"], "App zh-Hant should not keep raw English points format")
+        XCTAssertNotEqual(appLocalizationZh["per Point"], appLocalizationEn["per Point"], "App zh-Hant should not keep raw English per-Point suffix")
+        XCTAssertNotEqual(appLocalizationZh["per Dollar"], appLocalizationEn["per Dollar"], "App zh-Hant should not keep raw English per-Dollar suffix")
+        XCTAssertEqual(placeholders(in: appLocalizationEn["%d points"]!), placeholders(in: appLocalizationZh["%d points"]!))
     }
 
     private func projectRoot() -> URL {

@@ -76,10 +76,6 @@
 "Quitting now will lose any changes you have made since the last successful save" = "若您現在離開，將遺失自上次成功儲存以來的全部變更";
 "Safari did not provide more details." = "Safari 未提供更多資訊。";
 " — saved rates; refresh failed" = " — 已使用已儲存匯率；更新失敗";
-"Cashback" = "現金回饋";
-"%d points" = "%d 點數";
-"per Point" = "每點";
-"per Dollar" = "每美元";
 "Open Safari Extension Settings" = "開啟 Safari 擴充功能設定";
 "Opens Safari settings for this extension. Enable or disable it there." = "開啟 Safari 這個擴充功能的設定頁，可在此啟用或停用。";
 "Checking extension status…" = "正在確認擴充功能狀態…";
