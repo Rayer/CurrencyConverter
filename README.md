@@ -125,3 +125,9 @@ uname -m output: arm64
 ```
 
 Observed baseline on arm64: the test command passes and executes 5 tests (including two performance tests), with 0 failures.
+
+## CCS-19 picker verification (2026-07-22)
+
+The code-first picker change was verified on arm64 with Xcode 26.6 (macOS deployment target 10.15): standalone/static checks pass, the focused production-causal picker suite passes 4/4, and the full suite passes 120/120. A focused TSan run passed 6/6 with no warning or race at the exact production code; the later change only removed unused helpers and their non-production-causal tests. App and extension Debug builds both succeed. Plists, project structure, diff whitespace, and credential safety checks pass.
+
+Manual multi-code verification used a temporary native picker harness compiled from the production presentation seam. Typing `T` selected a T-prefixed code rather than AED, typing `TWD` selected the exact code, mouse selection updated the binding, VoiceOver exposed the ISO code without the decorative flag, and an existing `XTS` selection remained available when incoming data contained only EUR and USD. The temporary harness, Debug build roots, and stale extension registrations were removed after the gate passed. Safari permissions and extension toggles were not automated.
