@@ -137,7 +137,7 @@ struct EntityDetailRow: View {
                 }
                 NSWorkspace.shared.open(url)
             }, label: {
-                Text("Go To Page")
+                Text(NSLocalizedString("Go To Page", comment: "Open record URL"))
             })
                 .padding()
         }

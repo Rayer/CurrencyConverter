@@ -13,28 +13,28 @@ struct APISyncInfoView: View {
     var body: some View {
         VStack {
             HStack {
-                Text("Last updated : ")
+                Text(NSLocalizedString("Last updated : ", comment: "API sync row label"))
                     .font(.system(.body, design: Font.Design.rounded))
                     .frame(width: 200, alignment: .leading)
                 Text(host.lastUpdate ?? "----")
                 Spacer()
             }.frame(alignment: .leading)
             HStack {
-                Text("Parsed data time stamp : ")
+                Text(NSLocalizedString("Parsed data time stamp : ", comment: "API sync row label"))
                     .font(.system(.body, design: Font.Design.rounded))
                     .frame(width: 200, alignment: .leading)
                 Text(host.parsedPayloadUpdate ?? "----")
                 Spacer()
             }.frame(alignment: .leading)
             HStack {
-                Text("Rate status : ")
+                Text(NSLocalizedString("Rate status : ", comment: "API sync row label"))
                     .font(.system(.body, design: Font.Design.rounded))
                     .frame(width: 200, alignment: .leading)
                 Text(host.rateStatus.message)
                 Spacer()
             }.frame(alignment: .leading)
             HStack {
-                Text("Raw Data : ")
+                Text(NSLocalizedString("Raw Data : ", comment: "API sync row label"))
                     .font(.system(.body, design: Font.Design.rounded))
                     .frame(width: 200, alignment: .leading)
                 ScrollView {
@@ -43,10 +43,10 @@ struct APISyncInfoView: View {
             }.frame(alignment: .leading)
             Spacer()
             HStack {
-                Button("Reload from API") {
+                Button(NSLocalizedString("Reload from API", comment: "API sync button")) {
                     host.sync()
                 }
-                Button("Copy Raw Data to Clipboard") {
+                Button(NSLocalizedString("Copy Raw Data to Clipboard", comment: "API sync button")) {
                     let pasteBoard = NSPasteboard.general
                     pasteBoard.clearContents()
                     if let rawData = host.rawData {

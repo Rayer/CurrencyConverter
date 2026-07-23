@@ -108,7 +108,7 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
                 toSymbol: convertToSym,
                 toAmount: calculation.finalAmount
             )
-            guard case .success(let template) = self.templateManager.selectedTemplate() else {
+                guard case .success(let template) = self.templateManager.selectedTemplate() else {
                 completion(.failure(NSLocalizedString("Conversion templates are unavailable.", comment: "Context menu template repository error")))
                 return
             }

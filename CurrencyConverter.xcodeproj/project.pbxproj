@@ -80,6 +80,14 @@
 		62C49F2E252AA15400ED2E72 /* FormatStringDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C49F2C252AA15400ED2E72 /* FormatStringDataManager.swift */; };
 		62C49F2F252AA15400ED2E72 /* FormatStringDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C49F2C252AA15400ED2E72 /* FormatStringDataManager.swift */; };
 		62EEF289237FC14B0067299E /* ConvertPasteboardFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EEF288237FC14B0067299E /* ConvertPasteboardFormatter.swift */; };
+		63A100B10000000000000001 /* Localizable.strings (en) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F50000000000000001 /* Localizable.strings */; };
+		63A100B20000000000000001 /* Localizable.strings (zh-Hant) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F60000000000000001 /* Localizable.strings */; };
+		63A100B30000000000000001 /* Localizable.strings (en) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F70000000000000001 /* Localizable.strings */; };
+		63A100B40000000000000001 /* Localizable.strings (zh-Hant) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F80000000000000001 /* Localizable.strings */; };
+		63A100B50000000000000001 /* InfoPlist.strings (en) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F10000000000000001 /* InfoPlist.strings */; };
+		63A100B60000000000000001 /* InfoPlist.strings (zh-Hant) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F20000000000000001 /* InfoPlist.strings */; };
+		63A100B70000000000000001 /* InfoPlist.strings (en) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F30000000000000001 /* InfoPlist.strings */; };
+		63A100B80000000000000001 /* InfoPlist.strings (zh-Hant) in Resources */ = {isa = PBXBuildFile; fileRef = 63A100F40000000000000001 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,6 +155,16 @@
 		625713052371982E00466679 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		625713062371982E00466679 /* cc-extension.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "cc-extension.js"; sourceTree = "<group>"; };
 		6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CurrencyConverter_Extension.entitlements; sourceTree = "<group>"; };
+		63A100F10000000000000001 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		63A100F20000000000000001 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		63A100F30000000000000001 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		63A100F40000000000000001 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		63A100F50000000000000001 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		63A100F60000000000000001 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		63A100F70000000000000001 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		63A100F80000000000000001 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		63A100F90000000000000001 /* SafariExtensionViewController.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/SafariExtensionViewController.strings; sourceTree = "<group>"; };
+		63A100FA0000000000000001 /* SafariExtensionViewController.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/SafariExtensionViewController.strings"; sourceTree = "<group>"; };
 		6257131A23719B5300466679 /* CurrencyConverter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CurrencyConverter.swift; sourceTree = "<group>"; };
 		6257131F23719BDB00466679 /* SharedPersistent.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharedPersistent.swift; sourceTree = "<group>"; };
 		6257132123719BDC00466679 /* CurrencyExchangeRate.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CurrencyExchangeRate.xcdatamodel; sourceTree = "<group>"; };
@@ -265,8 +283,12 @@
 				625713022371982E00466679 /* SafariExtensionViewController.xib */,
 				6220DCB523A50ACA0093A237 /* money.pdf */,
 				625713052371982E00466679 /* Info.plist */,
-				625713062371982E00466679 /* cc-extension.js */,
 				6257130A2371982E00466679 /* CurrencyConverter_Extension.entitlements */,
+				63A100F70000000000000001 /* Localizable.strings */,
+				63A100F80000000000000001 /* Localizable.strings */,
+				63A100F30000000000000001 /* InfoPlist.strings */,
+				63A100F40000000000000001 /* InfoPlist.strings */,
+				625713062371982E00466679 /* cc-extension.js */,
 			);
 			path = "CurrencyConverter Extension";
 			sourceTree = "<group>";
@@ -302,6 +324,10 @@
 				628503A1251B937100E381AA /* Assets.xcassets */,
 				628503A6251B937100E381AA /* Main.storyboard */,
 				628503A9251B937100E381AA /* Info.plist */,
+				63A100F10000000000000001 /* InfoPlist.strings */,
+				63A100F20000000000000001 /* InfoPlist.strings */,
+				63A100F50000000000000001 /* Localizable.strings */,
+				63A100F60000000000000001 /* Localizable.strings */,
 				628503AA251B937100E381AA /* CurrencyConverter.entitlements */,
 				6285039E251B936F00E381AA /* CurrencyConverter.xcdatamodeld */,
 				628503A3251B937100E381AA /* Preview Content */,
@@ -411,6 +437,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				zh-Hant,
 				Base,
 			);
 			mainGroup = 625712C42371982500466679;
@@ -438,6 +465,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63A100B70000000000000001 /* InfoPlist.strings (en) in Resources */,
+				63A100B80000000000000001 /* InfoPlist.strings (zh-Hant) in Resources */,
+				63A100B30000000000000001 /* Localizable.strings (en) in Resources */,
+				63A100B40000000000000001 /* Localizable.strings (zh-Hant) in Resources */,
 				625713042371982E00466679 /* SafariExtensionViewController.xib in Resources */,
 				625713072371982E00466679 /* cc-extension.js in Resources */,
 				6220DCB623A50ACA0093A237 /* money.pdf in Resources */,
@@ -449,6 +480,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63A100B10000000000000001 /* Localizable.strings (en) in Resources */,
+				63A100B20000000000000001 /* Localizable.strings (zh-Hant) in Resources */,
+				63A100B50000000000000001 /* InfoPlist.strings (en) in Resources */,
+				63A100B60000000000000001 /* InfoPlist.strings (zh-Hant) in Resources */,
 				628503A8251B937100E381AA /* Main.storyboard in Resources */,
 				628503A5251B937100E381AA /* Preview Assets.xcassets in Resources */,
 				628503A2251B937100E381AA /* Assets.xcassets in Resources */,
@@ -564,6 +599,8 @@
 			isa = PBXVariantGroup;
 			children = (
 				625713032371982E00466679 /* Base */,
+				63A100F90000000000000001 /* SafariExtensionViewController.strings */,
+				63A100FA0000000000000001 /* SafariExtensionViewController.strings */,
 			);
 			name = SafariExtensionViewController.xib;
 			sourceTree = "<group>";

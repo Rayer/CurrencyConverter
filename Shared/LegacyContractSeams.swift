@@ -99,19 +99,25 @@ enum RateDataError: Error, Equatable {
     var message: String {
         switch self {
         case .transport:
-            return "Could not refresh exchange rates."
+            return NSLocalizedString("Could not refresh exchange rates.", comment: "Rate data error message")
         case .httpStatus(let status):
-            return "Rate service returned an HTTP \(status / 100)xx response."
+            return String(
+                format: NSLocalizedString(
+                    "Rate service returned an HTTP %dxx response.",
+                    comment: "Rate data error message"
+                ),
+                status / 100
+            )
         case .decode:
-            return "Rate service returned unreadable data."
+            return NSLocalizedString("Rate service returned unreadable data.", comment: "Rate data error message")
         case .invalidPayload:
-            return "Rate service returned invalid data."
+            return NSLocalizedString("Rate service returned invalid data.", comment: "Rate data error message")
         case .invalidConfiguration:
-            return "Rate feed configuration is invalid."
+            return NSLocalizedString("Rate feed configuration is invalid.", comment: "Rate data error message")
         case .missingRate:
-            return "Requested currency rate unavailable."
+            return NSLocalizedString("Requested currency rate unavailable.", comment: "Rate data error message")
         case .unavailable:
-            return "Exchange rates unavailable."
+            return NSLocalizedString("Exchange rates unavailable.", comment: "Rate data error message")
         }
     }
 }
@@ -128,10 +134,10 @@ struct RateDataStatus: Equatable {
         }
         if isStale {
             return lastRefreshError == nil
-                ? "Using saved rates; refresh pending."
-                : "Using saved rates; refresh failed."
+                ? NSLocalizedString("Using saved rates; refresh pending.", comment: "Rate data message")
+                : NSLocalizedString("Using saved rates; refresh failed.", comment: "Rate data message")
         }
-        return lastRefreshError?.message ?? "Exchange rates are current."
+        return lastRefreshError?.message ?? NSLocalizedString("Exchange rates are current.", comment: "Rate data message")
     }
 }
 
