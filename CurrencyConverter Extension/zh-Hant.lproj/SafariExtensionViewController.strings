@@ -41,7 +41,7 @@
 "Yis-qa-9Sr.title" = "0%";
 
 /* Class = "NSTextFieldCell"; title = "Exchange rates are current."; ObjectID = "cCS10-status-cell"; */
-"cCS10-status-cell.title" = "匯率為最新。";
+"cCS10-status-cell.title" = "匯率目前為最新。";
 
 /* Class = "NSMenuItem"; title = "Item 2"; ObjectID = "eVQ-jv-yJd"; */
 "eVQ-jv-yJd.title" = "項目 2";

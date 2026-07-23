@@ -94,7 +94,5 @@
 "The bundled Safari extension identifier is unavailable." = "The bundled Safari extension identifier is unavailable.";
 "Unable to read Safari extension status: %@" = "Unable to read Safari extension status: %@";
 "Unable to open Safari Extension Settings: %@" = "Unable to open Safari Extension Settings: %@";
-"Conversion templates are unavailable." = "Conversion templates are unavailable.";
-"The selected conversion template is invalid." = "The selected conversion template is invalid.";
 "Extension settings error: %@" = "Extension settings error: %@";
 "Error. %@" = "Error. %@";

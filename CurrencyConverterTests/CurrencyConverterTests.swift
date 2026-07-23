@@ -76,7 +76,9 @@ class CurrencyConverterTests: XCTestCase {
     func testCCS29_LocalizedCallsitesAreFullyBackedByFallbackLocale() throws {
         let root = projectRoot()
         let appLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/en.lproj/Localizable.strings"))
+        let appLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter/zh-Hant.lproj/Localizable.strings"))
         let extensionLocalizationEn = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/en.lproj/Localizable.strings"))
+        let extensionLocalizationZh = try loadLocalizationFile(at: root.appendingPathComponent("CurrencyConverter Extension/zh-Hant.lproj/Localizable.strings"))
         let appSourceKeys = try collectLocalizedKeys(in: [
             root.appendingPathComponent("CurrencyConverter"),
             root.appendingPathComponent("Shared")
@@ -88,18 +90,17 @@ class CurrencyConverterTests: XCTestCase {
 
         XCTAssertGreaterThan(appSourceKeys.count, 0)
         XCTAssertGreaterThan(extensionSourceKeys.count, 0)
-        for key in appSourceKeys {
-            XCTAssertTrue(
-                appLocalizationEn.keys.contains(key),
-                "Missing app fallback key for callsite: \(key)"
-            )
-        }
-        for key in extensionSourceKeys {
-            XCTAssertTrue(
-                extensionLocalizationEn.keys.contains(key),
-                "Missing extension fallback key for callsite: \(key)"
-            )
-        }
+        XCTAssertEqual(Set(appLocalizationEn.keys), appSourceKeys, "App Localizable.strings must exactly match app + Shared callsites")
+        XCTAssertEqual(Set(extensionLocalizationEn.keys), extensionSourceKeys, "Extension Localizable.strings must exactly match extension + Shared callsites")
+        XCTAssertEqual(Set(appLocalizationEn.keys), Set(appLocalizationZh.keys), "App en/zh-Hant Localizable.strings must have identical keys")
+        XCTAssertEqual(Set(extensionLocalizationEn.keys), Set(extensionLocalizationZh.keys), "Extension en/zh-Hant Localizable.strings must have identical keys")
+    }
+
+    func testCCS29_PlaceholderParserDetectsSupportedClasses() {
+        XCTAssertEqual(
+            placeholders(in: "%% %d %@ %1$@ %08.2f ${amount}"),
+            ["%d", "%@", "%1$@", "%08.2f", "${amount}"]
+        )
     }
 
     func testCCS29_zhHantLocalizedValuesAreNotRawKeys() throws {
@@ -191,6 +192,16 @@ class CurrencyConverterTests: XCTestCase {
 
     private func loadLocalizationFile(at path: URL) throws -> [String: String] {
         let data = try Data(contentsOf: path)
+        let source = String(decoding: data, as: UTF8.self)
+        let keyRegex = try NSRegularExpression(pattern: #"(?m)^\s*"((?:\\.|[^"])*)"\s*="#, options: [])
+        let keys = keyRegex.matches(in: source, options: [], range: NSRange(source.startIndex..., in: source)).compactMap {
+            Range($0.range(at: 1), in: source).map { String(source[$0]) }
+        }
+        let duplicates = Dictionary(grouping: keys, by: { $0 }).filter { $0.value.count > 1 }.map(\.key)
+        if !duplicates.isEmpty {
+            XCTFail("Duplicate localization keys in \(path.path): \(duplicates.sorted())")
+            return [:]
+        }
         guard let object = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: String] else {
             XCTFail("Unable to parse plist-like localization file: \(path.path)")
             return [:]
@@ -237,7 +248,7 @@ class CurrencyConverterTests: XCTestCase {
 
     private func collectLocalizedKeys(in folders: [URL]) throws -> Set<String> {
         var keys = Set<String>()
-        let regex = try NSRegularExpression(pattern: "NSLocalizedString\\(\\s*\"([^\"]+)\"\\s*,", options: [])
+        let regex = try NSRegularExpression(pattern: "NSLocalizedString\\(\\s*\"([^\"]+)\"", options: [])
 
         for folder in folders {
             let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey])
@@ -257,7 +268,7 @@ class CurrencyConverterTests: XCTestCase {
 
     private func placeholders(in value: String) -> [String] {
         let placeholderPatterns = [
-            #"(%%|%\d+\$?[-+ #0-9.]*[A-Za-z@])"#,
+            #"%(?!%)(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[A-Za-z@]"#,
             #"\$\{[^\}]+\}"#
         ].compactMap { try? NSRegularExpression(pattern: $0, options: []) }
 
@@ -268,9 +279,6 @@ class CurrencyConverterTests: XCTestCase {
             for match in matches {
                 if match.range.location == NSNotFound { continue }
                 let formatToken = String(value[Range(match.range, in: value)!])
-                if formatToken.contains("%%") {
-                    continue
-                }
                 findings.append((match.range.location, formatToken))
             }
         }

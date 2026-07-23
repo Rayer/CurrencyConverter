@@ -44,12 +44,12 @@
 "Convert Type" = "轉換類型";
 "Dollars per point" = "每點美元";
 "Points per dollar" = "每美元點數";
-"Mileage/Point domestic rate" = "國內點數/里程價值";
+"Mileage/Point domestic rate" = "國內點數/里程比率";
 "Mileage(Point) rate while applying domestic currency" = "使用國內貨幣時的點數/里程比率";
-"Mileage / Point international rate" = "國外點數/里程價值";
+"Mileage / Point international rate" = "國外點數/里程比率";
 "Mileage(Point) ratewhile applying international currency" = "使用國外貨幣時的點數/里程比率";
-"Estimated Mileage(point) value" = "預估點數（點）價值";
-"Estimated Mileage(Point) value per point" = "每點預估點數（點）價值";
+"Estimated Mileage(point) value" = "預估每點價值";
+"Estimated Mileage(Point) value per point" = "每點預估價值";
 "Must be a number!" = "請輸入數值！";
 "Update Card" = "更新卡片";
 "Add Card" = "新增卡片";
@@ -62,9 +62,9 @@
 "Rate feed configuration is invalid." = "匯率設定無效。";
 "Requested currency rate unavailable." = "無法取得所需匯率。";
 "Exchange rates unavailable." = "匯率目前無法使用。";
-"Using saved rates; refresh pending." = "已使用已儲存匯率；將於稍後更新。";
-"Using saved rates; refresh failed." = "已使用已儲存匯率；更新失敗。";
-"Exchange rates are current." = "匯率為最新。";
+"Using saved rates; refresh pending." = "已使用儲存的匯率，等待更新。";
+"Using saved rates; refresh failed." = "已使用儲存的匯率，更新失敗。";
+"Exchange rates are current." = "匯率目前為最新。";
 "Could not read conversion templates." = "無法讀取轉換格式。";
 "Could not save conversion templates." = "無法儲存轉換格式。";
 "The conversion template is no longer available." = "轉換格式已不存在。";
@@ -76,7 +76,7 @@
 "Cancel" = "取消";
 "Quitting now will lose any changes you have made since the last successful save" = "若您現在離開，將遺失自上次成功儲存以來的全部變更";
 "Safari did not provide more details." = "Safari 未提供更多細節。";
-" — saved rates; refresh failed" = " — 已使用舊匯率，更新失敗";
+" — saved rates; refresh failed" = " — 已使用儲存的匯率，更新失敗";
 "Cashback" = "現金回饋";
 "%d points" = "%d 點";
 "per Point" = "每點";
@@ -94,7 +94,5 @@
 "The bundled Safari extension identifier is unavailable." = "無法取得打包的 Safari 擴充功能識別碼。";
 "Unable to read Safari extension status: %@" = "無法讀取 Safari 擴充功能狀態：%@";
 "Unable to open Safari Extension Settings: %@" = "無法開啟 Safari 擴充功能設定：%@";
-"Conversion templates are unavailable." = "轉換格式不可用。";
-"The selected conversion template is invalid." = "已選取的轉換格式無效。";
 "Extension settings error: %@" = "擴充功能設定錯誤：%@";
 "Error. %@" = "錯誤：%@";
