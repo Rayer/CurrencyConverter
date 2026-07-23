@@ -146,9 +146,12 @@ struct ConversionTemplateManagementView: View {
             ))
             .accessibility(label: Text("New conversion format"))
 
-            if !model.preview.isEmpty {
-                Text("Preview: \(model.preview)")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Preview")
                     .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(model.preview.isEmpty ? "Enter a valid format to preview it." : model.preview)
+                    .foregroundColor(model.preview.isEmpty ? .secondary : .primary)
                     .accessibility(label: Text("Conversion format preview"))
             }
             if let errorMessage = model.errorMessage {
