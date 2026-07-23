@@ -24,6 +24,16 @@ printf '%s\n' "$app_sources" | rg -q 'ConversionTemplateManagementView.swift in 
 printf '%s\n' "$test_sources" | rg -q 'CCS15ConversionTemplateTests.swift in Sources' || fail "CCS-15 tests are not in the test target"
 
 rg -q '^import Foundation$' Shared/ConversionTemplateDomain.swift || fail "domain seam is not Foundation-only"
+rg -q 'private lazy var conversionTemplateViewModel = ConversionTemplateManagementViewModel\(\)' CurrencyConverter/AppDelegate.swift || fail "AppDelegate does not own the template ViewModel"
+rg -q 'templates: conversionTemplateViewModel' CurrencyConverter/AppDelegate.swift || fail "AppDelegate does not inject its template ViewModel"
+rg -q 'sharedPersistentContainer\.newBackgroundContext\(\)' Shared/FormatStringDataManager.swift || fail "default repository does not use a dedicated context"
+rg -q 'context\.reset\(\)' Shared/FormatStringDataManager.swift || fail "repository does not refresh cross-process reads"
+if rg -q 'initializationError|try performAndWait \{ try ensureBundledDefaults\(\) \}' Shared/FormatStringDataManager.swift; then
+    fail "repository still performs sticky eager initialization"
+fi
+if rg -q 'FormatString\(context:' Shared/FormatStringDataManager.swift CurrencyConverterTests/CCS15ConversionTemplateTests.swift; then
+    fail "ambiguous generated Core Data insertion remains"
+fi
 if rg -q 'SwiftUI|AppKit|SafariServices|CoreData' Shared/ConversionTemplateDomain.swift; then
     fail "UI, Safari, or Core Data leaked into the Foundation domain seam"
 fi

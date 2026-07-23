@@ -95,7 +95,9 @@ final class CCS15ConversionTemplateTests: XCTestCase {
         XCTAssertEqual(try manager.selectedTemplate().get().id, ConversionTemplateCatalog.defaultIDs[0])
         XCTAssertEqual(defaults.string(forKey: ConversionTemplateSelection.selectedIDKey), ConversionTemplateCatalog.defaultIDs[0].uuidString)
 
-        let corrupt = FormatString(context: context)
+        let corrupt = try XCTUnwrap(
+            NSEntityDescription.insertNewObject(forEntityName: "FormatString", into: context) as? FormatString
+        )
         corrupt.id = UUID()
         corrupt.date = Date()
         corrupt.format_string = "${corrupt}"
@@ -107,10 +109,12 @@ final class CCS15ConversionTemplateTests: XCTestCase {
     }
 
     func testAppAndExtensionRepositoriesReadTheSameSelection() throws {
-        let context = try makeContext()
+        let appContext = try makeContext()
+        let extensionContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        extensionContext.persistentStoreCoordinator = appContext.persistentStoreCoordinator
         let defaults = try makeDefaults()
-        let appRepository = FormatStringDataManager(context: context, defaults: defaults)
-        let extensionRepository = FormatStringDataManager(context: context, defaults: defaults)
+        let appRepository = FormatStringDataManager(context: appContext, defaults: defaults)
+        let extensionRepository = FormatStringDataManager(context: extensionContext, defaults: defaults)
         let added = try appRepository.add(template: "shared ${from_symbol} ${to_amount}").get()
         _ = try appRepository.select(id: added.id).get()
 

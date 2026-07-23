@@ -116,6 +116,7 @@ struct ConversionTemplateManagementView: View {
                         Button("Delete") {
                             model.delete(template.id)
                         }
+                        .disabled(ConversionTemplateCatalog.defaultIDs.contains(template.id))
                         .accessibility(label: Text("Delete conversion format"))
                     }
                 }

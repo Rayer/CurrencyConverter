@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var window: NSWindow!
     private let extensionSettingsViewModel = SafariExtensionSettingsViewModel(provider: SafariExtensionSettingsAdapter())
+    private lazy var conversionTemplateViewModel = ConversionTemplateManagementViewModel()
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
@@ -25,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add `@Environment(\.managedObjectContext)` in the views that will need the context.
         let contentView = ContentView(
             extensionSettings: extensionSettingsViewModel,
-            templates: ConversionTemplateManagementViewModel()
+            templates: conversionTemplateViewModel
         )
             .environment(\.managedObjectContext, persistentContainer.viewContext)
 

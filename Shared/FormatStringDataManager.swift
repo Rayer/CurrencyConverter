@@ -41,21 +41,16 @@ final class FormatStringDataManager {
     private let context: NSManagedObjectContext
     private let defaults: UserDefaults
     private let saveOperation: (() throws -> Void)?
-    private var initializationError: ConversionTemplateRepositoryError? = nil
 
     init(
-        context: NSManagedObjectContext = sharedPersistentContainer.viewContext,
+        context: NSManagedObjectContext? = nil,
         defaults: UserDefaults = sharedUserDefaults,
         saveOperation: (() throws -> Void)? = nil
     ) {
-        self.context = context
+        self.context = context ?? sharedPersistentContainer.newBackgroundContext()
         self.defaults = defaults
         self.saveOperation = saveOperation
-        do {
-            try performAndWait { try ensureBundledDefaults() }
-        } catch {
-            initializationError = Self.repositoryError(for: error)
-        }
+        self.context.undoManager = nil
     }
 
     func availableTemplates() -> Result<[ConversionTemplate], ConversionTemplateRepositoryError> {
@@ -96,8 +91,9 @@ final class FormatStringDataManager {
             return .failure(.validation(error))
         }
         return operationResult {
+            try ensureBundledDefaults()
             let template = ConversionTemplate(id: UUID(), text: text, date: Date())
-            let entity = FormatString(context: context)
+            let entity = try insertFormatString()
             entity.id = template.id
             entity.date = template.date
             entity.format_string = template.text
@@ -149,7 +145,7 @@ final class FormatStringDataManager {
             let objects = try context.fetch(request)
             objects.forEach(context.delete)
             for (id, text) in zip(ConversionTemplateCatalog.defaultIDs, ConversionTemplateCatalog.defaultTexts) {
-                let entity = FormatString(context: context)
+                let entity = try insertFormatString()
                 entity.id = id
                 entity.date = Date()
                 entity.format_string = text
@@ -221,7 +217,7 @@ final class FormatStringDataManager {
                     changed = true
                 }
             } else {
-                let entity = FormatString(context: context)
+                let entity = try insertFormatString()
                 entity.id = defaultID
                 entity.date = Date()
                 entity.format_string = defaultText
@@ -260,15 +256,33 @@ final class FormatStringDataManager {
         return NSFetchRequest<FormatString>(entityName: "FormatString")
     }
 
+    private func insertFormatString() throws -> FormatString {
+        guard let entity = NSEntityDescription.insertNewObject(
+            forEntityName: "FormatString",
+            into: context
+        ) as? FormatString else {
+            throw ConversionTemplateRepositoryError.readFailed
+        }
+        return entity
+    }
+
     private func repositoryResult<T>(_ work: () throws -> T) -> Result<T, ConversionTemplateRepositoryError> {
-        if let initializationError { return .failure(initializationError) }
-        do { return .success(try performAndWait { try work() }) }
+        do {
+            return .success(try performAndWait {
+                context.reset()
+                return try work()
+            })
+        }
         catch { return .failure(Self.repositoryError(for: error)) }
     }
 
     private func operationResult<T>(_ work: () throws -> T) -> Result<T, ConversionTemplateOperationError> {
-        if let initializationError { return .failure(.repository(initializationError)) }
-        do { return .success(try performAndWait { try work() }) }
+        do {
+            return .success(try performAndWait {
+                context.reset()
+                return try work()
+            })
+        }
         catch { return .failure(.repository(Self.repositoryError(for: error))) }
     }
 
